@@ -26,46 +26,27 @@ from losspager.schema import emailschema
 NUSERS = 10
 
 def test_create_db():
-    #TODO change this to memory url
-    tempdir = None
-    try:
-        
-        #Create a sqlite file database engine
-        tempdir = tempfile.mkdtemp()
-        tmpfile = os.path.abspath(os.path.join(tempdir,'test_data.db'))
-        fileurl = 'sqlite:///%s' % tmpfile
-        jsonfile = os.path.join(homedir,'..','data','pager_profiles.json')
-        session = emailschema.create_db(fileurl,jsonfile,nusers=10,create_db=True)
-        print('Checking to see that database has expected number of users.')
-        assert len(session.query(emailschema.User).all()) == 10
-        print('Database has 10 users in it.')
-        hasregions = False
-        for user in session.query(emailschema.User):
-            for address in user.addresses:
-                if len(address.regions):
-                    hasregions = True
-                    break
-        session.close()
-        x = 1
-    except Exception as error:
-        raise error
-    finally:
-        if os.path.isdir(tempdir):
-            shutil.rmtree(tempdir)
+    memurl = 'sqlite://'
+    jsonfile = os.path.join(homedir,'..','data','anonymized_pager_users.json')
+    session = emailschema.create_db(memurl,jsonfile,nusers=10,create_db=True)
+    print('Checking to see that database has expected number of users.')
+    assert len(session.query(emailschema.User).all()) == 10
+    print('Database has 10 users in it.')
+    session.close()
 
 def test_read_db():
     dbfile = os.path.abspath(os.path.join(homedir,'..','data','losspager_test.db'))
     url = 'sqlite:///%s' % dbfile
     session = emailschema.get_session(url)
-    assert len(session.query(emailschema.User).all()) == 510
+    assert len(session.query(emailschema.User).all()) == 10
 
-def test_get_polygon():
-    dbfile = os.path.abspath(os.path.join(homedir,'..','data','losspager_test.db'))
-    url = 'sqlite:///%s' % dbfile
-    session = emailschema.get_session(url)
-    for region in session.query(emailschema.Region):
-        polygon = region.getPolygon()
-    session.close()
+# def test_get_polygon():
+#     dbfile = os.path.abspath(os.path.join(homedir,'..','data','losspager_test.db'))
+#     url = 'sqlite:///%s' % dbfile
+#     session = emailschema.get_session(url)
+#     for region in session.query(emailschema.Region):
+#         polygon = region.getPolygon()
+#     session.close()
 
    
 def test_get_email():
@@ -81,23 +62,22 @@ def test_get_email():
                                   number=1,
                                   maxmmi = 7.4,
                                   summarylevel='yellow')
+    test_num_addresses = 9
+    naddresses = 0
     for address in session.query(emailschema.Address):
         if address.shouldAlert(version):
-            print(address)
-            for threshold in address.thresholds:
-                print('\t'+str(threshold))
-
+            naddresses += 1
+            # print(address)
+            # for profile in address.profiles:
+            #     print('\tProfile %s' % str(profile))
+            #     for threshold in profile.thresholds:
+            #         print('\t\t'+str(threshold))
+    assert test_num_addresses == naddresses
     
 if __name__ == '__main__':
-    #test_get_polygon()
-    tmpfile = '/Users/mhearne/src/python/all_pager_users.db'
-    fileurl = 'sqlite:///%s' % tmpfile
-    jsonfile = os.path.join('/Users/mhearne/src/python/','pager_profiles.json')
-    session = emailschema.create_db(fileurl,jsonfile,nusers=None,create_db=True)
-    session.close()
-    sys.exit(0)
-    # test_read_db()
-    # test_get_email()
-    #test_create_db()
+    # test_get_polygon()
+    test_read_db()
+    test_get_email()
+    test_create_db()
 
     
