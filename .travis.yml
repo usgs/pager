@@ -26,7 +26,8 @@ before_script:
     - sleep 3 # give xvfb some time to start
 script:
     - export PYTHONPATH="."
-    - py.test --mpl --cov=losspager
+    - echo `which py.test`
+    - py.test --mpl --cov=lossxpager
     - echo `sphinx-build --version`
 after_success:
     - pip install codecov codacy-coverage
