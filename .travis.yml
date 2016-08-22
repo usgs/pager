@@ -13,7 +13,8 @@ install:
     - conda config --set always_yes yes --set changeps1 no
     - conda update -q conda
     - conda info -a
-    - bash setup_env.sh 1
+    - bash setup_env.sh
+    - source activate pager
     - conda install --yes --channel conda-forge pytest pytest-cov pytest-mpl flake8 pep8-naming
     #---------------------
     # Install pager
