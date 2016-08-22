@@ -14,6 +14,7 @@ install:
     - conda update -q conda
     - conda info -a
     - bash setup_env.sh 1
+    - conda install --yes --channel conda-forge pytest pytest-cov pytest-mpl flake8 pep8-naming
     #---------------------
     # Install pager
     #---------------------
@@ -27,7 +28,7 @@ before_script:
 script:
     - export PYTHONPATH="."
     - echo `which py.test`
-    - py.test --mpl --cov=lossxpager
+    - py.test --mpl --cov=losspager
     - echo `sphinx-build --version`
 after_success:
     - pip install codecov codacy-coverage

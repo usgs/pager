@@ -3,7 +3,7 @@
 VENV=pager
 PYVER=3.5
 
-DEPS="numpy scipy matplotlib jupyter rasterio fiona xlrd xlwt pandas basemap basemap-data-hires shapely h5py gdal==1.11.4 descartes sphinx configobj pyproj pytest pytables pytest-cov pytest-mpl flake8 pep8-naming"
+DEPS="numpy scipy matplotlib jupyter rasterio fiona xlrd xlwt pandas basemap basemap-data-hires shapely h5py gdal==1.11.4 descartes sphinx configobj pyproj pytest pytables"
 
 if [ "$#" -le 1 ]; then
     #turn off whatever other virtual environment user might be in
