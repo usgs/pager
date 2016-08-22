@@ -37,11 +37,13 @@ Currently, to install the code and its dependencies requires use of git.
 
 Do the following (If you already have Anaconda or Miniconda installed, skip steps #2-3):
 
-  1. git clone git@gitlab.cr.usgs.gov:mhearne/pager2.git losspager
+  1. git clone https://github.com/usgs/pager losspager
   2. curl -O https://repo.continuum.io/miniconda/Miniconda2-latest-MacOSX-x86_64.sh
   3. sh Miniconda2-latest-MacOSX-x86_64.sh
   4. cd losspager
+  6. source deactivate #this turns off any current virtual environments you may have configured
   5. ./setup_env.sh
+  6. source activate pager
   6. cd ..
   7. pip install losspager/
 

@@ -3,23 +3,23 @@
 VENV=pager
 PYVER=3.5
 
-DEPS="numpy scipy matplotlib jupyter rasterio fiona xlrd xlwt pandas basemap basemap-data-hires shapely h5py gdal==1.11.4 descartes sphinx configobj pyproj pytest pytables"
+DEPS="numpy scipy matplotlib jupyter rasterio fiona xlrd xlwt pandas basemap basemap-data-hires shapely h5py gdal==1.11.4 descartes sphinx configobj pyproj pytest pytables pytest-cov pytest-mpl flake8 pep8-naming"
 
 if [ "$#" -le 1 ]; then
     #turn off whatever other virtual environment user might be in
     source deactivate
     
     #remove any previous virtual environments called pager
-    conda remove --name pager --all -y
+    conda remove --name $VENV --all -y
     
     #create a new virtual environment called $VENV with the below list of dependencies installed into it
-    conda create --name pager --yes --channel conda-forge python=3.5 $DEPS -y
+    conda create --name $VENV --yes --channel conda-forge python=3.5 $DEPS -y
 else
     conda install --yes --channel conda-forge python=3.5 $DEPS -y
 fi
 
 #activate the new environment
-source activate pager
+source activate $VENV
 
 #install some items separately
 #conda install -y sqlalchemy #at the time of this writing, this is v1.0, and I want v1.1
