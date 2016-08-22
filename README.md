@@ -2,12 +2,9 @@ PAGER
 =====
 
 
-<table>
-  <tr>
-    <td><img src="https://travis-ci.org/usgs/pager.svg?branch=master">
-    <td><img src="https://codecov.io/gh/usgs/pager/branch/master/graph/badge.svg">
-  </tr>
-</table>
+| Travis  | CodeCov |
+| ------------- | ------------- |
+| [![Build Status](https://travis-ci.org/usgs/pager.svg?branch=master)](https://travis-ci.org/usgs/pager)  | [![codecov](https://codecov.io/gh/usgs/pager/branch/master/graph/badge.svg)](https://codecov.io/gh/usgs/pager)  |
 
 Prompt Assessment of Global Earthquakes for Response (PAGER)
 
