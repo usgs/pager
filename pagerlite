@@ -1,0 +1,329 @@
+#!/usr/bin/env python
+
+#stdlib imports
+import argparse
+import configparser
+import os.path
+import sys
+import pprint
+import locale
+
+#third party imports
+import pandas as pd
+import numpy as np
+
+#local imports
+from losspager.models.exposure import Exposure
+from losspager.models.econexposure import EconExposure
+from losspager.models.emploss import EmpiricalLoss
+from losspager.models.semimodel import SemiEmpiricalFatality
+from losspager.models.growth import PopulationGrowth
+from losspager.utils.country import Country
+
+COUNTRY = Country()
+
+def pandify_semi(fatbystruct):
+    """Turn the fatalities by structure (either residential or non-residential) into DataFrame suitable for printing.
+
+    :param fatbystruct:
+      Dictionary of country code, fatality dictionary, where fatality dictionary has:
+        - (key,value) of (building type,number of fatalities)
+    :returns:
+      pandas DataFrame with columns (Country Code,Building Type 1,Building Type 2, ...) and index of country codes.
+    """
+    #figure out what all of the unique building types are...
+    utypes = []
+    for ccode,fatstruct in fatbystruct.items():
+        for key in fatstruct.keys():
+            if key not in utypes:
+                utypes.append(key)
+
+    newfatbystruct = {}
+    for utype in utypes:
+        newfatbystruct[utype] = []
+    ccodes = []
+    for ccode,fatstruct in fatbystruct.items():
+        ccodes.append(ccode)
+        #ccodes are the rows in our new dictionary
+        for utype in utypes:
+            if utype not in fatstruct:
+                newfatbystruct[utype].append(np.nan)
+            else:
+                newfatbystruct[utype].append((fatstruct[utype]))
+
+        
+    d1 = pd.DataFrame(newfatbystruct,index=ccodes)
+    return d1
+
+def pandify_exposure(exposure,human_readable=False):
+    """Turn the exposure dictionary into a DataFrame suitable for printing.
+
+    :param exposure:
+      exposure dictionary as returned by Exposure.calcExposure().
+    :param human_readable:
+      Boolean indicating whether exposure values should be printed as human readable (i.e, "1,234" not "1234").
+    :returns:
+      Pandas DataFrame containing the rows of exposure to shaking.
+    """
+    columns = ['Country Code']
+    mmi = ['MMI%i' % i for i in range(1,11)]
+    columns = columns + mmi
+    rows = {}
+    for c in columns:
+        rows[c] = []
+    for ccode,array in exposure.items():
+        if human_readable and ccode.find('Total') < 0:
+            cname = COUNTRY.getCountry(ccode)['Name']
+            rows['Country Code'].append(cname)
+        else:
+            rows['Country Code'].append(ccode)
+        for arrvalue,mmicol in zip(array,mmi):
+            rows[mmicol].append(int(arrvalue))
+    df = pd.DataFrame(rows,columns=columns,dtype=np.int32)
+    df = df.set_index('Country Code')
+
+    #shuffle the rows so that they are sorted by country codes, then total at the end
+    ccols = df.index.tolist()
+    ccols.remove('TotalExposure')
+    ccols.sort()
+    ccols += ['TotalExposure']
+    df = df.reindex(ccols)
+    
+    if human_readable:
+        locale.setlocale(locale.LC_ALL, '') #set the locale to that specified by the system
+        sep = locale.localeconv()['thousands_sep']
+        fmt = '{:%sd}' % sep
+        for mmicol in mmi:
+            df[mmicol] = df[mmicol].map(fmt.format)
+    return df
+
+def pandify_losses(lossdict,losstype='fatality',human_readable=False):
+    """Turn the loss dictionaries into DataFrames suitable for printing.
+
+    :param lossdict:
+      loss dictionary as returned by EmpiricalLoss.getLosses().
+    :param losstype:
+      One of 'fatality','economic'.
+    :param human_readable:
+      Boolean indicating whether exposure values should be printed as human readable (i.e, "1,234" not "1234").
+    :returns:
+      Pandas DataFrame containing the rows of losses due to shaking.
+    """
+    if losstype == 'fatality':
+        losscol = 'Fatalities'
+        totalrow = 'TotalFatalities'
+    else:
+        losscol = 'Dollars Lost'
+        totalrow = 'TotalDollars'
+
+    columns = ['Country Code',losscol]
+    rows = {'Country Code':[]}
+    rows[losscol] = []
+    for ccode,lossvalue in lossdict.items():
+        if human_readable and ccode.find('Total') < 0:
+            cname = COUNTRY.getCountry(ccode)['Name']
+            rows['Country Code'].append(cname)
+        else:
+            rows['Country Code'].append(ccode)
+        rows[losscol].append(lossvalue)
+    df = pd.DataFrame(rows,columns=columns,dtype=np.int32)
+    df = df.set_index('Country Code')
+    #shuffle the rows so that they are sorted by country codes, then total at the end
+    ccols = df.index.tolist()
+    ccols.remove(totalrow)
+    ccols.sort()
+    ccols += [totalrow]
+    df = df.reindex(ccols)
+    if human_readable:
+        locale.setlocale(locale.LC_ALL, '') #set the locale to that specified by the system
+        sep = locale.localeconv()['thousands_sep']
+        fmt = '{:%sd}' % sep
+        df[losscol] = df[losscol].map(fmt.format)
+
+    return df
+                
+
+def main(pargs,configfile):
+    #parse config file
+    config = configparser.ConfigParser()
+    config.read(configfile)
+
+    #Make sure MODEL_DATA_FILES section exists
+    required_files = ['population_file','iso_file','growth_file','gdp_file',
+                      'fatality_file','economic_file']
+    if 'MODEL_DATA_FILES' not in config.sections():
+        print('Config file %s missing [MODEL_DATA_FILES] section.  Exiting.' % configfile)
+        sys.exit(1)
+
+    #make sure all files have been listed
+    notfound = set(required_files) - set(config['MODEL_DATA_FILES'].keys())
+    if len(notfound):
+        print('Config file %s is missing required files:' % configfile)
+        for n in notfound:
+            print('\t%s' % n)
+        sys.exit(1)
+
+    #Make sure that popyear exists
+    popyear = None
+    try:
+        popyear = int(config['MODEL_PARAMS']['population_year'])
+    except:
+        print('Config file %s is missing or has invalid population_year value' % configfile)
+        sys.exit(1)
+        
+    #make sure all files actually exist
+    notfiles = []
+    for key,value in config['MODEL_DATA_FILES'].items():
+        if not os.path.isfile(value):
+            notfiles.append((key,value))
+    if len(notfiles):
+        print('Some of the files specified in config file %s are invalid' % configfile)
+        for n in notfiles:
+            print('%s: %s NOT FOUND' % (n[0],n[1]))
+        sys.exit(1)
+
+    #Make sure grid.xml file exists
+    if not os.path.isfile(pargs.gridfile):
+        print('ShakeMap Grid file %s does not exist.' % pargs.gridfile)
+        sys.exit(1)
+
+    #Now we can start running the models
+
+    #Get exposure results
+    growth = PopulationGrowth.loadFromUNSpreadsheet(config['MODEL_DATA_FILES']['growth_file'])
+    popfile = config['MODEL_DATA_FILES']['population_file']
+    isofile = config['MODEL_DATA_FILES']['iso_file']
+    gdpfile = config['MODEL_DATA_FILES']['gdp_file']
+    expomodel = Exposure(popfile,2012,isofile,growth)
+    exposure = expomodel.calcExposure(pargs.gridfile)
+    expdf = pandify_exposure(exposure,human_readable=pargs.readable)
+    print('Population Exposure to Shaking:\n')
+    print(expdf)
+    print()
+    
+    #get fatality results, if requested
+    if pargs.fatalities:
+        fatfile = config['MODEL_DATA_FILES']['fatality_file']
+        fatmodel = EmpiricalLoss.loadFromXML(fatfile)
+        fatdict = fatmodel.getLosses(exposure)
+        fatdf = pandify_losses(fatdict,losstype='fatality',human_readable=pargs.readable)
+        print('Fatalities Due to Shaking:\n')
+        print(fatdf)
+        print()
+    
+    #get economic results, if requested
+    if pargs.econloss:
+        ecofile = config['MODEL_DATA_FILES']['economic_file']
+        econexpmodel = EconExposure(popfile,popyear,isofile,growth,gdpfile,ecofile)
+        ecomodel = EmpiricalLoss.loadFromXML(ecofile)
+        econexposure = econexpmodel.calcExposure(pargs.gridfile)
+        ecodict = ecomodel.getLosses(econexposure)
+        ecodf = pandify_losses(ecodict,losstype='economic',human_readable=pargs.readable)
+        print('Dollar Losses Due to Shaking:\n')
+        print(ecodf)
+
+    #Get semi-empirical losses, if requested
+    if pargs.semiloss:
+        invfile = config['MODEL_DATA_FILES']['semi_inventory_file']
+        colfile = config['MODEL_DATA_FILES']['semi_collapse_file']
+        fatfile = config['MODEL_DATA_FILES']['semi_casualty_file']
+        workfile = config['MODEL_DATA_FILES']['semi_workforce_file']
+        growthfile = config['MODEL_DATA_FILES']['growth_file']
+        urbanfile = config['MODEL_DATA_FILES']['urban_rural_file']
+        semi = SemiEmpiricalFatality.loadFromFiles(invfile,colfile,fatfile,workfile,growthfile)
+        semi.setGlobalFiles(popfile,popyear,urbanfile,isofile)
+        semiloss,resfat,nonresfat = semi.getLosses(pargs.gridfile)
+        print('Fatalities according to Semi-Empirical model: %i\n' % semiloss)
+        d1 = pandify_semi(resfat)
+        print('Fatalities by residential building types:\n')
+        print(d1)
+        d2 = pandify_semi(nonresfat)
+        print('\nFatalities by non-residential building types:\n')
+        print(d2)
+                  
+    
+if __name__ == '__main__':
+    desc = '''Calculate PAGER exposures and losses (fatalities or economic).
+
+    This program presumes that you have a configuration file in ~/.losspager/config.ini,
+    consisting of the following entries:
+
+    [MODEL_DATA_FILES]
+    population_file = /PATH/TO/POPULATION/FILE
+    iso_file = /PATH/TO/COUNTRY_CODE/FILE
+    growth_file = /PATH/TO/GROWTH/FILE
+    gdp_file = /PATH/TO/GDP/FILE
+    fatality_file = /PATH/TO/FATALITY_MODEL/FILE
+    economic_file = /PATH/TO/ECONOMIC_MODEL/FILE
+
+    [MODEL_PARAMS]
+    population_year = POPYEAR
+    
+    
+    Example usage:
+    %(prog)s grid.xml
+
+    will print out exposures (per-country, and total)...
+    Country MMI1 MMI2 MMI3 MMI4 MMI5  MMI6   MMI7    MMI8   MMI9 MMI10
+    AF         0    0   10  100 1000 10000 100000 1000000 100000     0
+    PK         0    0   10  100 1000 10000 100000 1000000 100000     0
+    Total      0    0   20  200 2000 20000 200000 2000000 200000     0
+
+    %(prog)s grid.xml -f
+    will print out exposures and fatalities...
+    Exposure:
+    Country MMI1 MMI2 MMI3 MMI4 MMI5  MMI6   MMI7    MMI8   MMI9 MMI10
+    AF         0    0   10  100 1000 10000 100000 1000000 100000     0
+    PK         0    0   10  100 1000 10000 100000 1000000 100000     0
+    Total      0    0   20  200 2000 20000 200000 2000000 200000     0
+
+    Fatalities:
+    Country         Losses
+    AF              100000
+    PK              100000
+    TotalFatalities 200000
+
+    %(prog)s grid.xml -f -e
+    will print out exposures,fatalities, and economic losses...
+    Exposure:
+    Country MMI1 MMI2 MMI3 MMI4 MMI5  MMI6   MMI7    MMI8   MMI9 MMI10
+    AF         0    0   10  100 1000 10000 100000 1000000 100000     0
+    PK         0    0   10  100 1000 10000 100000 1000000 100000     0
+    Total      0    0   20  200 2000 20000 200000 2000000 200000     0
+
+    Fatalities:
+    Country         Losses
+    AF              100000
+    PK              100000
+    TotalFatalities 200000
+
+    Economic Losses:
+    Country  Dollars(USD)
+    AF            1000000
+    PK            1000000
+    TotalDollars  2000000
+    '''
+    parser = argparse.ArgumentParser(description='desc')
+    parser.add_argument('gridfile',
+                        help='The path to a ShakeMap grid.xml file')
+    parser.add_argument('-f','--fatalities', action='store_true',
+                        default=False, help='Calculate empirical fatalities')
+    parser.add_argument('-e','--econloss', action='store_true',
+                        default=False, help='Calculate empirical economic losses')
+    parser.add_argument('-s','--semiloss', action='store_true',
+                        default=False, help='Calculate semi-empirical fatalities')
+    parser.add_argument('-r','--readable', action='store_true',
+                        default=False, help='Print all numbers in human readable format')
+    
+    args = parser.parse_args()
+
+    #get config file name, make sure it exists
+    configfilename = os.path.join(os.path.expanduser('~'),'.losspager','config.ini')
+    if not os.path.isfile(configfilename):
+        print('Config file could not be found at %s.  Exiting.\n\n' % configfilename)
+        parser.print_help()
+        sys.exit(1)
+
+    pd.set_option('display.width', 1000)
+    pd.set_option('precision', 2)
+    main(args,configfilename)

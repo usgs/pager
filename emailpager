@@ -1,0 +1,190 @@
+#!/usr/bin/env python
+
+#stdlib imports
+import argparse
+import configparser
+import os.path
+import sys
+import smtplib
+from xml.dom import minidom
+from datetime import datetime
+
+#third party imports
+import pandas as pd
+import numpy as np
+
+#local imports
+from losspager.schema import emailschema as es
+from losspager.mail import send_message
+
+TIMEFMT = '%Y-%m-%d %H:%M:%S'
+
+def parse_xml(xmlfile):
+    alert_dict = {'green':0,
+                  'yellow':1,
+                  'orange':2,
+                  'red':3}
+    rev_alert_dict = {0:'green',
+                      1:'yellow',
+                      2:'orange',
+                      3:'red'}
+    eventcode = ''
+    vdict = {}
+    root = minidom.parse(xmlfile)
+    pager = root.getElementsByTagName('pager')[0]
+    event = pager.getElementsByTagName('event')[0]
+
+    vdict['versioncode'] = event.getAttribute('versioncode')
+    vdict['time'] = datetime.strptime(event.getAttribute('event_timestamp'),TIMEFMT)
+    vdict['lat'] = float(event.getAttribute('lat'))
+    vdict['lon'] = float(event.getAttribute('lon'))
+    vdict['depth'] = float(event.getAttribute('depth'))
+    vdict['magnitude'] = float(event.getAttribute('magnitude'))
+    vdict['number'] = int(event.getAttribute('number'))
+    #summarylevel = Column(Enum(_AlertEnum), nullable=False)
+    vdict['processtime'] = datetime.strptime(event.getAttribute('process_timestamp'),TIMEFMT)
+    vdict['maxmmi'] = float(event.getAttribute('maxmmi'))
+
+    alerts = pager.getElementsByTagName('alert')
+    levels = [alert_dict[alert.getAttribute(level)] for alert in alerts]
+    vdict['summarylevel'] = rev_alert_dict[max(levels)]
+    eventcode = event.getAttribute('eventcode')
+
+    #now we need to build a dictionary with:
+    #location string, both alert levels, alert comment, tsunami flag, exposures, 
+    #city table, structure comment, historical earthquakes, secondary hazards comment, 
+    #event url, pdf file location.
+    eventinfo = {}
+    eventinfo['location'] = event.getAttribute('event_description')
+    for alert in alerts:
+        if alert.getAttribute('type') == 'fatality':
+            eventinfo['fatalert'] = alert.getAttribute('level')
+        else:
+            eventinfo['ecoalert'] = alert.getAttribute('level')
+
+    #tsunami info
+    eventinfo['tsunami'] = int(event.getAttribute('tsunami'))
+
+    #get exposures
+    aggexp = pager.getElementsByTagName('impact')[0].getElementsByTagName('aggregated_exposures')[0]
+    exposures = aggexp.getElementsByTagName('exposure')
+    expo = []
+    tdict = {'False':False,'True':True}
+    for exp in exposures:
+        expo.append({'inside':tdict[expo.getAttribute('rangeInsideMap')],
+                     'exposure':int(expo.getAttribute('exposure'))})
+    eventinfo['exposure'] = expo
+
+    #get city table
+    cities = pager.getElementsByTagName('cities')[0].getElementsByTagName('pagercity')
+    citylist = []
+    for city in cities:
+        citylist.append({'name':city.getAttribute('name'),
+                         'mmi':float(city.getAttribute('mmi')),
+                         'pop':int(city.getAttribute('pop'))})
+    eventinfo['cities'] = citylist
+
+    #get comments
+    topcomment = pager.getElementsByTagName('comments')[0]
+    impact1 = topcomment.getElementsByTagName('impact1')[0]
+    impact2 = topcomment.getElementsByTagName('impact2')[0]
+    eventinfo['alert_comment'] = impact1.firstChild.data + ' ' + impact2.firstChild.data
+    struct = topcomment.getElementsByTagName('structure_comment')[0]
+    eventinfo['structure_comment'] = struct.firstChild.data
+    sec = topcomment.getElementsByTagName('secondary_comment')[0]
+    eventinfo['secondary_comment'] = sec.firstChild.data
+    
+    #get historical earthquakes
+    histevents = pager.getElementsByTagName('historical_events')[0]
+    historical_events = []
+    for histevent in histevents.getElementsByTagName('historical_event'):
+        historical_events.append({'distance':float(histevent.getAttribute('distance')),
+                                  'date':datetime.strptime(histevent.getAttribute('date'),TIMEFMT),
+                                  'magnitude':float(histevent.getAttribute('magnitude')),
+                                  'maxmmi':int(histevent.getAttribute('maxmmi')),
+                                  'maxmmiexp':int(histevent.getAttribute('maxmmiexp')),
+                                  'deaths':int(histevent.getAttribute('shakingdeaths'))})
+    eventinfo['historical_earthquakes'] = historical_events
+
+    #insert the url for the event
+    urltemplate = config.get('URL_TEMPLATE','template')
+    url = url.replace('EVENTID',eventcode)
+    eventinfo['url'] = url
+
+    #ARE WE STILL DOING THE PDF ATTACHMENT?
+    folder,xmlname = os.path.split(xmlfile)
+    pdfpath = os.path.join(folder,'onepager.pdf')
+    eventinfo['pdf'] = pdfpath
+                                  
+    
+    root.unlink()
+    return (eventcode,vdict,eventinfo)
+
+def alert_user(email,format,config,version,send_mail=False):
+    pass
+        
+
+def main(args,configfile):
+    config = configparser.ConfigParser()
+    config.read(configfile)
+    
+    xmlfile = os.path.join(args.pagerdir,'pager.xml')
+    eventcode,vdict,eventinfo = parse_xml(xmlfile)
+
+    database_url = config.get('DATABASE','url')
+    session = emailschema.get_session(database_url)
+
+    #first, check to see if this event already exists in the database
+    event = session.query(es.Event).filter(es.Event.eventcode == eventcode).first()
+    if event is None:
+        event = es.Event(eventcode=eventcode)
+        session.add(event)
+        
+    version = es.Version(versioncode=vdict['versioncode'],
+                         time=vdict['time'],
+                         lat=vdict['lat'],
+                         lon=vdict['lon'],
+                         depth=vdict['depth'],
+                         magnitude=vdict['magnitude'],
+                         number=vdict['number'],
+                         summarylevel=vdict['summarylevel'],
+                         processtime=vdict['processtime'],
+                         maxmmi=vdict['maxmmi'])
+    event.versions.append(version)
+    session.commit()
+
+    #first check to see that the event time is less than the threshold elapsed
+    #time after which emails should not be sent
+    #TODO - allow for force option?
+    elapsed_hours = int(config.get('THRESHOLDS','elapsed_threshold'))
+    elapsed = timedelta(seconds=elapsed_hours*3600)
+    if (datetime.utcnow() - version.time) > elapsed:
+        print('More than %i hours have elapsed since event origin time.  No emails will be sent.' % elapsed_hours)
+        sys.exit(0)
+        
+    for address in session.query(es.Address):
+        if address.shouldAlert(version):
+            alert_user(address.email,address.format,send_mail=args.production)
+    
+    session.close()
+
+if __name__ == '__main__':
+    desc = """Send emails to PAGER users, given a PAGER product as input.
+
+    THIS SCRIPT IS A PLACEHOLDER!
+    """
+    parser = argparse.ArgumentParser(description='desc')
+    parser.add_argument('pagerdir',
+                        help='The path to a PAGER product directory')
+    parser.add_argument('-p','--production', action='store_true',
+                        default=False, help='Actually send emails')
+    pargs = parser.parse_args()
+
+    #get config file name, make sure it exists
+    configfilename = os.path.join(os.path.expanduser('~'),'.losspager','mailconfig.ini')
+    if not os.path.isfile(configfilename):
+        print('Config file could not be found at %s.  Exiting.\n\n' % configfilename)
+        parser.print_help()
+        sys.exit(1)
+    
+    main(pargs,configfilename)

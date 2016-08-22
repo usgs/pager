@@ -1,0 +1,315 @@
+<?xml version="1.0" encoding="US-ASCII" standalone="yes"?>
+<pager software_version="1.0 Revision 1458">
+	<impact>
+		<aggregated_exposures>
+			<exposure dmax="1.5" dmin="0.5" rangeInsideMap="False" exposure="0.0"/>
+			<exposure dmax="2.5" dmin="1.5" rangeInsideMap="False" exposure="0.0"/>
+			<exposure dmax="3.5" dmin="2.5" rangeInsideMap="False" exposure="5999397.0"/>
+			<exposure dmax="4.5" dmin="3.5" rangeInsideMap="False" exposure="7734572.0"/>
+			<exposure dmax="5.5" dmin="4.5" rangeInsideMap="True" exposure="8041148.0"/>
+			<exposure dmax="6.5" dmin="5.5" rangeInsideMap="True" exposure="2670694.0"/>
+			<exposure dmax="7.5" dmin="6.5" rangeInsideMap="True" exposure="869317.0"/>
+			<exposure dmax="8.5" dmin="7.5" rangeInsideMap="True" exposure="947968.0"/>
+			<exposure dmax="9.5" dmin="8.5" rangeInsideMap="True" exposure="54893.0"/>
+			<exposure dmax="10.5" dmin="9.5" rangeInsideMap="True" exposure="654.0"/>
+		</aggregated_exposures>
+		<exposures countrycode="KR">
+			<exposure dmax="1.5" dmin="0.5" rangeInsideMap="False" exposure="0.0"/>
+			<exposure dmax="2.5" dmin="1.5" rangeInsideMap="False" exposure="0.0"/>
+			<exposure dmax="3.5" dmin="2.5" rangeInsideMap="False" exposure="5860184.0"/>
+			<exposure dmax="4.5" dmin="3.5" rangeInsideMap="False" exposure="162003.0"/>
+			<exposure dmax="5.5" dmin="4.5" rangeInsideMap="True" exposure="0.0"/>
+			<exposure dmax="6.5" dmin="5.5" rangeInsideMap="True" exposure="0.0"/>
+			<exposure dmax="7.5" dmin="6.5" rangeInsideMap="True" exposure="0.0"/>
+			<exposure dmax="8.5" dmin="7.5" rangeInsideMap="True" exposure="0.0"/>
+			<exposure dmax="9.5" dmin="8.5" rangeInsideMap="True" exposure="0.0"/>
+			<exposure dmax="10.5" dmin="9.5" rangeInsideMap="True" exposure="0.0"/>
+			<econexposure dmax="1.5" dmin="0.5" rangeInsideMap="False" exposure="0.0"/>
+			<econexposure dmax="2.5" dmin="1.5" rangeInsideMap="False" exposure="0.0"/>
+			<econexposure dmax="3.5" dmin="2.5" rangeInsideMap="False" exposure="1.39060987573e+12"/>
+			<econexposure dmax="4.5" dmin="3.5" rangeInsideMap="False" exposure="38442986039.1"/>
+			<econexposure dmax="5.5" dmin="4.5" rangeInsideMap="True" exposure="0.0"/>
+			<econexposure dmax="6.5" dmin="5.5" rangeInsideMap="True" exposure="0.0"/>
+			<econexposure dmax="7.5" dmin="6.5" rangeInsideMap="True" exposure="0.0"/>
+			<econexposure dmax="8.5" dmin="7.5" rangeInsideMap="True" exposure="0.0"/>
+			<econexposure dmax="9.5" dmin="8.5" rangeInsideMap="True" exposure="0.0"/>
+			<econexposure dmax="10.5" dmin="9.5" rangeInsideMap="True" exposure="0.0"/>
+		</exposures>
+		<exposures countrycode="JP">
+			<exposure dmax="1.5" dmin="0.5" rangeInsideMap="False" exposure="0.0"/>
+			<exposure dmax="2.5" dmin="1.5" rangeInsideMap="False" exposure="0.0"/>
+			<exposure dmax="3.5" dmin="2.5" rangeInsideMap="False" exposure="139213.0"/>
+			<exposure dmax="4.5" dmin="3.5" rangeInsideMap="False" exposure="7572569.0"/>
+			<exposure dmax="5.5" dmin="4.5" rangeInsideMap="True" exposure="8041148.0"/>
+			<exposure dmax="6.5" dmin="5.5" rangeInsideMap="True" exposure="2670694.0"/>
+			<exposure dmax="7.5" dmin="6.5" rangeInsideMap="True" exposure="869317.0"/>
+			<exposure dmax="8.5" dmin="7.5" rangeInsideMap="True" exposure="947968.0"/>
+			<exposure dmax="9.5" dmin="8.5" rangeInsideMap="True" exposure="54893.0"/>
+			<exposure dmax="10.5" dmin="9.5" rangeInsideMap="True" exposure="654.0"/>
+			<econexposure dmax="1.5" dmin="0.5" rangeInsideMap="False" exposure="0.0"/>
+			<econexposure dmax="2.5" dmin="1.5" rangeInsideMap="False" exposure="0.0"/>
+			<econexposure dmax="3.5" dmin="2.5" rangeInsideMap="False" exposure="71910876670.9"/>
+			<econexposure dmax="4.5" dmin="3.5" rangeInsideMap="False" exposure="3.9116323579e+12"/>
+			<econexposure dmax="5.5" dmin="4.5" rangeInsideMap="True" exposure="4.15367819184e+12"/>
+			<econexposure dmax="6.5" dmin="5.5" rangeInsideMap="True" exposure="1.37955468857e+12"/>
+			<econexposure dmax="7.5" dmin="6.5" rangeInsideMap="True" exposure="449048203651.0"/>
+			<econexposure dmax="8.5" dmin="7.5" rangeInsideMap="True" exposure="489675604548.0"/>
+			<econexposure dmax="9.5" dmin="8.5" rangeInsideMap="True" exposure="28692963059.8"/>
+			<econexposure dmax="10.5" dmin="9.5" rangeInsideMap="True" exposure="0.0"/>
+		</exposures>
+		<modelresult upper="2145" lower="21" name="Empirical Fatality Model" key="EMP" units="Fatalities" best="214" desc="Jaiswal Empirical Loss Model">
+			<results_by_country ccode="KR">
+				<loss value="0"/>
+			</results_by_country>
+			<results_by_country ccode="JP">
+				<loss value="214"/>
+			</results_by_country>
+		</modelresult>
+		<modelresult upper="55039267844" lower="550392678" name="Empirical Economic Loss Model" key="ECO" units="Dollars" best="5503926784" desc="Jaiswal Empirical Economic Model">
+			<results_by_country ccode="KR">
+				<loss value="0"/>
+			</results_by_country>
+			<results_by_country ccode="JP">
+				<loss value="5503926784"/>
+			</results_by_country>
+		</modelresult>
+		<modelresult upper="6620" lower="66" name="Semi-Empirical Fatality Model" key="SEMI" units="Fatalities" best="662" desc="Jaiswal Semi-Empirical Loss Model">
+			<results_by_country ccode="JP">
+				<buildings>
+					<building pagertype="W1" collapses="4149.3547449" deaths="23.0031631181"/>
+					<building pagertype="W2" collapses="27125.91098" deaths="279.277943325"/>
+					<building pagertype="S1" collapses="26.0314164641" deaths="2.88625560326"/>
+					<building pagertype="S2" collapses="65.4823605594" deaths="7.26041283"/>
+					<building pagertype="S4" collapses="103.014039955" deaths="11.4217699388"/>
+					<building pagertype="C1" collapses="149.060905889" deaths="17.7077739113"/>
+					<building pagertype="C2" collapses="13.1319763425" deaths="1.56002049427"/>
+					<building pagertype="C2L" collapses="2568.44239191" deaths="305.119554379"/>
+					<building pagertype="C4" collapses="76.0025377627" deaths="9.02876409721"/>
+					<building pagertype="RM2" collapses="99.6321383964" deaths="4.73434230257"/>
+				</buildings>
+			</results_by_country>
+			<population_by_structure C2L="804476.790616" W2="937490.184201" W1="1188224.41697"/>
+		</modelresult>
+	</impact>
+	<event depth="10.0" shakeversion="6" maxmmi="9.0" ccode="JP" eventcode="us20005iis" scenario="0" process_timestamp="2016-06-09 16:59:28" lon="130.7486" number="1" event_timestamp="2016-04-15 16:25:06" elapsed="7 weeks, 6 days" lat="32.7931" tsunami="1" magnitude="7.0" isreviewed="False" event_description="KYUSHU, JAPAN" versioncode="us20005iis" approved="A" alertlevel="red" localtime="01:25:06"/>
+	<alert units="fatalities" gvalue="1.461126" summary="False" type="fatality" level="orange">
+		<bin color="green" max="0" probability="0.0" min="0"/>
+		<bin color="yellow" max="9" probability="2.0" min="1"/>
+		<bin color="yellow" max="99" probability="28.0" min="10"/>
+		<bin color="orange" max="999" probability="55.0" min="100"/>
+		<bin color="red" max="9999" probability="14.0" min="1000"/>
+		<bin color="red" max="99999" probability="0.0" min="10000"/>
+		<bin color="red" max="9999999" probability="0.0" min="100000"/>
+	</alert>
+	<alert units="USD" gvalue="2.05198" summary="True" type="economic" level="red">
+		<bin color="green" max="999999.0" probability="0.0" min="0.0"/>
+		<bin color="yellow" max="9999999.0" probability="0.0" min="1000000.0"/>
+		<bin color="yellow" max="99999999.0" probability="2.0" min="10000000.0"/>
+		<bin color="orange" max="999999999.0" probability="18.0" min="100000000.0"/>
+		<bin color="red" max="9999999999.0" probability="41.0" min="1000000000.0"/>
+		<bin color="red" max="99999999999.0" probability="31.0" min="10000000000.0"/>
+		<bin color="red" max="1e+13" probability="8.0" min="1e+11"/>
+	</alert>
+	<rates>
+		<lossrate units="deaths" rates="0.000000,0.000000,0.000049,0.005203,0.083134" mmi="5,6,7,8,9" countrycode="KR"/>
+		<lossrate units="dollars" rates="0.000002,0.000377,0.009605,0.073361,0.252711" mmi="5,6,7,8,9" countrycode="KR"/>
+		<lossrate units="deaths" rates="0.000000,0.000000,0.000000,0.000046,0.003070" mmi="5,6,7,8,9" countrycode="JP"/>
+		<lossrate units="dollars" rates="0.000000,0.000000,0.000058,0.005906,0.090114" mmi="5,6,7,8,9" countrycode="JP"/>
+	</rates>
+	<historical_events>
+		<historical_event distance="363.70022777" color="#ff0000" magnitude="6.7" maxmmi="9" shakingdeaths="0" date="2000-10-06 04:30:20" maxmmiexp="37718"/>
+		<historical_event distance="120.744540337" color="#ff0000" magnitude="6.6" maxmmi="9" shakingdeaths="1" date="2005-03-20 01:53:42" maxmmiexp="73948"/>
+		<historical_event distance="220.632206626" color="#ff9100" magnitude="6.8" maxmmi="8" shakingdeaths="2" date="2001-03-24 06:27:53" maxmmiexp="4737"/>
+	</historical_events>
+	<comments>
+		<structure_comment>
+			Overall, the population in this region resides in structures that are resistant to earthquake shaking, though some vulnerable structures exist.  The predominant vulnerable building types are low-rise concrete wall and heavy wood frame construction.
+		</structure_comment>
+		<impact1 type="economic">
+			Red alert level for economic losses.  Extensive damage is probable and the disaster is likely widespread. Estimated economic losses are less than 1% of GDP of Japan. Past events with this alert level have required a national or international level response.
+		</impact1>
+		<impact2 type="fatality">
+			Orange alert level for shaking-related fatalities.  Significant casualties are likely.
+		</impact2>
+		<secondary_comment>
+			Recent earthquakes in this area have caused secondary hazards such as tsunamis and landslides that might have contributed to losses.
+		</secondary_comment>
+	</comments>
+	<cities>
+		<city iscap="False" lon="131.08008" pop="27978" name="Aso" mmi="8.41" lat="32.93726" ccode="JP"/>
+		<city iscap="False" lon="130.66667" pop="39234" name="Uto" mmi="8.29" lat="32.68333" ccode="JP"/>
+		<city iscap="False" lon="130.86667" pop="29820" name="Ozu" mmi="8.27" lat="32.86667" ccode="JP"/>
+		<city iscap="False" lon="130.66667" pop="26163" name="Matsubase" mmi="7.92" lat="32.65" ccode="JP"/>
+		<city iscap="True" lon="130.69181" pop="680423" name="Kumamoto" mmi="7.77" lat="32.80589" ccode="JP"/>
+		<city iscap="False" lon="130.68333" pop="31688" name="Ueki" mmi="7.11" lat="32.9" ccode="JP"/>
+		<city iscap="False" lon="130.81667" pop="26677" name="Kikuchi" mmi="7.08" lat="32.98333" ccode="JP"/>
+		<city iscap="False" lon="130.60066" pop="104341" name="Yatsushiro" mmi="7.07" lat="32.5045" ccode="JP"/>
+		<city iscap="False" lon="130.4" pop="40386" name="Yanagawa" mmi="6.86" lat="33.16667" ccode="JP"/>
+		<city iscap="False" lon="130.46548" pop="23985" name="Setakamachi-takayanagi" mmi="6.86" lat="33.14858" ccode="JP"/>
+		<city iscap="True" lon="131.6" pop="448907" name="Oita" mmi="6.84" lat="33.23333" ccode="JP"/>
+		<city iscap="False" lon="130.68333" pop="32298" name="Yamaga" mmi="6.73" lat="33.01667" ccode="JP"/>
+		<city iscap="False" lon="130.35" pop="39223" name="Okawa" mmi="6.65" lat="33.2" ccode="JP"/>
+		<city iscap="False" lon="131.49751" pop="125065" name="Beppu" mmi="6.61" lat="33.27945" ccode="JP"/>
+		<city iscap="False" lon="130.56667" pop="45661" name="Tamana" mmi="6.56" lat="32.91667" ccode="JP"/>
+		<city iscap="False" lon="131.69165" pop="76968" name="Tsurusaki" mmi="6.54" lat="33.24528" ccode="JP"/>
+		<city iscap="False" lon="130.36667" pop="38113" name="Shimabara" mmi="6.46" lat="32.78333" ccode="JP"/>
+		<city iscap="False" lon="131.4" pop="16361" name="Takedamachi" mmi="6.38" lat="32.96667" ccode="JP"/>
+		<city iscap="False" lon="131.9" pop="49065" name="Saiki" mmi="6.38" lat="32.95" ccode="JP"/>
+		<city iscap="True" lon="130.3" pop="165236" name="Saga" mmi="6.3" lat="33.23333" ccode="JP"/>
+		<city iscap="False" lon="130.68333" pop="21156" name="Tanushimarumachi-toyoki" mmi="6.24" lat="33.35" ccode="JP"/>
+		<city iscap="False" lon="131.66667" pop="121949" name="Nobeoka" mmi="6.24" lat="32.58333" ccode="JP"/>
+		<city iscap="False" lon="131.15628" pop="18371" name="Tsukawaki" mmi="6.2" lat="33.27668" ccode="JP"/>
+		<city iscap="False" lon="130.51667" pop="238197" name="Kurume" mmi="6.2" lat="33.31667" ccode="JP"/>
+		<city iscap="False" lon="130.94098" pop="61481" name="Hita" mmi="6.13" lat="33.3213" ccode="JP"/>
+		<city iscap="False" lon="130.75" pop="38006" name="Hitoyoshi" mmi="5.96" lat="32.21667" ccode="JP"/>
+		<city iscap="False" lon="131.5" pop="22513" name="Takanabe" mmi="5.79" lat="32.13333" ccode="JP"/>
+		<city iscap="False" lon="130.37383" pop="20172" name="Kanzakimachi-kanzaki" mmi="5.79" lat="33.30895" ccode="JP"/>
+		<city iscap="False" lon="131.53025" pop="27864" name="Hiji" mmi="5.74" lat="33.37081" ccode="JP"/>
+		<city iscap="False" lon="130.45" pop="131974" name="Omuta" mmi="5.73" lat="33.03333" ccode="JP"/>
+		<city iscap="False" lon="131.1883" pop="67372" name="Nakatsu" mmi="5.73" lat="33.59811" ccode="JP"/>
+		<city iscap="False" lon="131.17599" pop="6875" name="Yoshitomi" mmi="5.73" lat="33.60247" ccode="JP"/>
+		<city iscap="False" lon="130.983" pop="71277" name="Yukuhashi" mmi="5.7" lat="33.72873" ccode="JP"/>
+		<city iscap="False" lon="130.04306" pop="97371" name="Isahaya" mmi="5.66" lat="32.84111" ccode="JP"/>
+		<city iscap="False" lon="131.4" pop="34318" name="Tsuma" mmi="5.58" lat="32.1" ccode="JP"/>
+		<city iscap="False" lon="131.05797" pop="11737" name="Shiida" mmi="5.58" lat="33.65341" ccode="JP"/>
+		<city iscap="False" lon="130.70962" pop="46745" name="Nakama" mmi="5.57" lat="33.81688" ccode="JP"/>
+		<city iscap="False" lon="130.09056" pop="32410" name="Kashima" mmi="5.56" lat="33.10611" ccode="JP"/>
+		<city iscap="False" lon="130.65413" pop="42312" name="Amagi" mmi="5.55" lat="33.41804" ccode="JP"/>
+		<city iscap="False" lon="131.61837" pop="23353" name="Kitsuki" mmi="5.52" lat="33.41998" ccode="JP"/>
+		<city iscap="True" lon="131.41667" pop="311203" name="Miyazaki" mmi="5.51" lat="31.91667" ccode="JP"/>
+		<city iscap="False" lon="130.4" pop="29428" name="Minamata" mmi="5.46" lat="32.21667" ccode="JP"/>
+		<city iscap="True" lon="130.41667" pop="1392289" name="Fukuoka" mmi="5.43" lat="33.6" ccode="JP"/>
+		<city iscap="False" lon="131.86907" pop="21658" name="Tsukumiura" mmi="5.41" lat="33.07539" ccode="JP"/>
+		<city iscap="False" lon="130.3" pop="73132" name="Satsumasendai" mmi="5.4" lat="31.81667" ccode="JP"/>
+		<city iscap="False" lon="130.51667" pop="63595" name="Tosu" mmi="5.39" lat="33.36667" ccode="JP"/>
+		<city iscap="True" lon="130.55" pop="555352" name="Kagoshima" mmi="5.39" lat="31.56667" ccode="JP"/>
+		<city iscap="False" lon="131.03776" pop="9100" name="Tsuiki" mmi="5.36" lat="33.67307" ccode="JP"/>
+		<city iscap="False" lon="131.80401" pop="35001" name="Usuki" mmi="5.35" lat="33.12342" ccode="JP"/>
+		<city iscap="False" lon="130.46667" pop="60045" name="Koga" mmi="5.34" lat="33.73333" ccode="JP"/>
+		<city iscap="False" lon="131.44506" pop="23856" name="Bungo-Takada-shi" mmi="5.33" lat="33.5567" ccode="JP"/>
+		<city iscap="False" lon="129.95389" pop="89918" name="Omura" mmi="5.33" lat="32.92139" ccode="JP"/>
+		<city iscap="False" lon="130.47861" pop="94957" name="Onojo" mmi="5.32" lat="33.53567" ccode="JP"/>
+		<city iscap="False" lon="131.13002" pop="26886" name="Buzen" mmi="5.32" lat="33.61153" ccode="JP"/>
+		<city iscap="False" lon="130.62439" pop="22425" name="Okuchi-shinohara" mmi="5.28" lat="32.06779" ccode="JP"/>
+		<city iscap="False" lon="130.98333" pop="36122" name="Kanda" mmi="5.28" lat="33.78333" ccode="JP"/>
+		<city iscap="False" lon="129.87877" pop="57940" name="Imaricho-ko" mmi="5.26" lat="33.27362" ccode="JP"/>
+		<city iscap="False" lon="130.81495" pop="19141" name="Kawasaki" mmi="5.24" lat="33.59993" ccode="JP"/>
+		<city iscap="False" lon="129.96972" pop="78330" name="Karatsu" mmi="5.2" lat="33.4425" ccode="JP"/>
+		<city iscap="False" lon="131.25111" pop="173733" name="Ube" mmi="5.18" lat="33.94306" ccode="JP"/>
+		<city iscap="False" lon="130.72263" pop="56821" name="Nogata" mmi="5.18" lat="33.74051" ccode="JP"/>
+		<city iscap="False" lon="130.68678" pop="78206" name="Iizuka" mmi="5.18" lat="33.63654" ccode="JP"/>
+		<city iscap="False" lon="130.4313" pop="25991" name="Shingu" mmi="5.12" lat="33.71399" ccode="JP"/>
+		<city iscap="False" lon="130.8" pop="51608" name="Tagawa" mmi="5.1" lat="33.63333" ccode="JP"/>
+		<city iscap="False" lon="130.20148" pop="70339" name="Maebaru-chuo" mmi="5.04" lat="33.55916" ccode="JP"/>
+		<city iscap="False" lon="130.98333" pop="39747" name="Kobayashi" mmi="5.03" lat="31.98333" ccode="JP"/>
+		<city iscap="False" lon="130.2" pop="25089" name="Akune" mmi="5.02" lat="32.01667" ccode="JP"/>
+		<city iscap="False" lon="130.66667" pop="22997" name="Kajiki" mmi="5.0" lat="31.73333" ccode="JP"/>
+		<city iscap="False" lon="130.52389" pop="70587" name="Dazaifu" mmi="4.98" lat="33.51278" ccode="JP"/>
+		<city iscap="False" lon="132.21667" pop="30151" name="Otake" mmi="4.94" lat="34.2" ccode="JP"/>
+		<city iscap="False" lon="130.5156" pop="100353" name="Chikushino-shi" mmi="4.94" lat="33.49631" ccode="JP"/>
+		<city iscap="False" lon="132.71124" pop="30548" name="Masaki-cho" mmi="4.91" lat="33.78757" ccode="JP"/>
+		<city iscap="False" lon="130.65297" pop="20421" name="Miyata" mmi="4.9" lat="33.70811" ccode="JP"/>
+		<city iscap="False" lon="131.18361" pop="44295" name="Onoda" mmi="4.83" lat="34.00139" ccode="JP"/>
+		<city iscap="False" lon="130.73333" pop="39475" name="Hamanoichi" mmi="4.81" lat="31.71667" ccode="JP"/>
+		<city iscap="False" lon="129.88333" pop="45293" name="Obita" mmi="4.79" lat="32.81667" ccode="JP"/>
+		<city iscap="False" lon="130.26667" pop="25744" name="Kushikino" mmi="4.77" lat="31.71667" ccode="JP"/>
+		<city iscap="False" lon="130.36667" pop="39217" name="Izumi" mmi="4.75" lat="32.08333" ccode="JP"/>
+		<city iscap="False" lon="130.02554" pop="16667" name="Ushibuka" mmi="4.73" lat="32.19537" ccode="JP"/>
+		<city iscap="False" lon="129.85" pop="29364" name="Togitsu" mmi="4.73" lat="32.83333" ccode="JP"/>
+		<city iscap="False" lon="130.51009" pop="39772" name="Umi" mmi="4.71" lat="33.56826" ccode="JP"/>
+		<city iscap="False" lon="130.47461" pop="43154" name="Nishifukuma" mmi="4.71" lat="33.76627" ccode="JP"/>
+		<city iscap="False" lon="132.77767" pop="27992" name="Hojo" mmi="4.71" lat="33.97661" ccode="JP"/>
+		<city iscap="False" lon="130.00292" pop="18953" name="Ureshinomachi-shimojuku" mmi="4.69" lat="33.11358" ccode="JP"/>
+		<city iscap="False" lon="132.70139" pop="30760" name="Iyo" mmi="4.69" lat="33.75139" ccode="JP"/>
+		<city iscap="True" lon="129.88333" pop="410204" name="Nagasaki" mmi="4.66" lat="32.75" ccode="JP"/>
+		<city iscap="False" lon="132.93333" pop="34559" name="Nakamura" mmi="4.65" lat="32.98333" ccode="JP"/>
+		<city iscap="False" lon="130.85034" pop="997536" name="Kitakyushu" mmi="4.61" lat="33.85181" ccode="JP"/>
+		<city iscap="False" lon="130.7" pop="19146" name="Tarumizu" mmi="4.59" lat="31.48333" ccode="JP"/>
+		<city iscap="False" lon="129.72278" pop="237444" name="Sasebo" mmi="4.57" lat="33.15917" ccode="JP"/>
+		<city iscap="False" lon="129.55247" pop="22516" name="Hirado" mmi="4.57" lat="33.36853" ccode="JP"/>
+		<city iscap="False" lon="132.56001" pop="58971" name="Uwajima" mmi="4.57" lat="33.22375" ccode="JP"/>
+		<city iscap="False" lon="130.02084" pop="34230" name="Takeocho-takeo" mmi="4.56" lat="33.19009" ccode="JP"/>
+		<city iscap="False" lon="131.06667" pop="130994" name="Miyakonojo" mmi="4.53" lat="31.73333" ccode="JP"/>
+		<city iscap="False" lon="130.76667" pop="57896" name="Kokubu-matsuki" mmi="4.53" lat="31.73333" ccode="JP"/>
+		<city iscap="False" lon="130.95" pop="245786" name="Shimonoseki" mmi="4.52" lat="33.95" ccode="JP"/>
+		<city iscap="False" lon="131.56667" pop="116925" name="Hofu" mmi="4.51" lat="34.05" ccode="JP"/>
+		<city iscap="False" lon="130.2" pop="40787" name="Hondo" mmi="4.44" lat="32.45" ccode="JP"/>
+		<city iscap="False" lon="131.4" pop="23516" name="Ogori-shimogo" mmi="4.39" lat="34.1" ccode="JP"/>
+		<city iscap="False" lon="131.105" pop="18349" name="Shibushi" mmi="4.38" lat="31.46667" ccode="JP"/>
+		<city iscap="False" lon="130.55105" pop="32588" name="Sasaguri" mmi="4.36" lat="33.61561" ccode="JP"/>
+		<city iscap="False" lon="131.2421" pop="22102" name="Kushima" mmi="4.34" lat="31.48621" ccode="JP"/>
+		<city iscap="False" lon="131.95" pop="45885" name="Hikari" mmi="4.32" lat="33.955" ccode="JP"/>
+		<city iscap="False" lon="132.35417" pop="0" name="Ikata-cho" mmi="4.32" lat="33.48833" ccode="JP"/>
+		<city iscap="True" lon="132.76574" pop="443322" name="Matsuyama" mmi="4.3" lat="33.83916" ccode="JP"/>
+		<city iscap="False" lon="132.22" pop="104004" name="Iwakuni" mmi="4.29" lat="34.16297" ccode="JP"/>
+		<city iscap="False" lon="131.81667" pop="101133" name="Tokuyama" mmi="4.25" lat="34.05" ccode="JP"/>
+		<city iscap="True" lon="132.45" pop="1143841" name="Hiroshima" mmi="4.23" lat="34.4" ccode="JP"/>
+		<city iscap="False" lon="132.55" pop="38833" name="Ozu" mmi="4.21" lat="33.5" ccode="JP"/>
+		<city iscap="False" lon="131.01667" pop="19986" name="Sueyoshicho-ninokata" mmi="4.19" lat="31.65" ccode="JP"/>
+		<city iscap="False" lon="131.86667" pop="52772" name="Kudamatsu" mmi="4.17" lat="34.0" ccode="JP"/>
+		<city iscap="True" lon="133.53333" pop="335570" name="Kochi" mmi="4.17" lat="33.55" ccode="JP"/>
+		<city iscap="False" lon="132.73333" pop="25784" name="Sukumo" mmi="4.14" lat="32.93333" ccode="JP"/>
+		<city iscap="False" lon="132.11667" pop="32229" name="Yanai" mmi="4.13" lat="33.96667" ccode="JP"/>
+		<city iscap="False" lon="132.56658" pop="196624" name="Kure" mmi="4.13" lat="34.23222" ccode="JP"/>
+		<city iscap="False" lon="132.33333" pop="77341" name="Hatsukaichi" mmi="4.13" lat="34.35" ccode="JP"/>
+		<city iscap="False" lon="130.31667" pop="23710" name="Kaseda-shirakame" mmi="4.12" lat="31.41667" ccode="JP"/>
+		<city iscap="False" lon="133.64598" pop="44363" name="Kan'onjicho" mmi="4.12" lat="34.1276" ccode="JP"/>
+		<city iscap="False" lon="131.36667" pop="44243" name="Nichinan" mmi="4.11" lat="31.6" ccode="JP"/>
+		<city iscap="False" lon="130.4" pop="25217" name="Ijuin" mmi="4.1" lat="31.61667" ccode="JP"/>
+		<city iscap="False" lon="133.36667" pop="383298" name="Fukuyama" mmi="4.1" lat="34.48333" ccode="JP"/>
+		<city iscap="False" lon="133.18333" pop="58823" name="Saijo" mmi="4.1" lat="33.91667" ccode="JP"/>
+		<city iscap="False" lon="133.50391" pop="58461" name="Kasaoka" mmi="4.05" lat="34.50597" ccode="JP"/>
+		<city iscap="False" lon="130.85" pop="82335" name="Kanoya" mmi="4.05" lat="31.38333" ccode="JP"/>
+		<city iscap="False" lon="132.26667" pop="26190" name="Ono-hara" mmi="4.04" lat="34.28333" ccode="JP"/>
+		<city iscap="False" lon="132.68343" pop="11712" name="Kihoku-cho" mmi="4.04" lat="33.25592" ccode="JP"/>
+		<city iscap="False" lon="131.85" pop="48576" name="Masuda" mmi="4.02" lat="34.66667" ccode="JP"/>
+		<city iscap="False" lon="132.32612" pop="2018" name="Miyajima" mmi="4.01" lat="34.30183" ccode="JP"/>
+		<city iscap="False" lon="131.2" pop="23101" name="Nagato" mmi="3.99" lat="34.38333" ccode="JP"/>
+		<city iscap="True" lon="131.46667" pop="145515" name="Yamaguchi" mmi="3.98" lat="34.18333" ccode="JP"/>
+		<city iscap="False" lon="133.41796" pop="40766" name="Kannabecho-yahiro" mmi="3.98" lat="34.55808" ccode="JP"/>
+		<city iscap="False" lon="133.30522" pop="123059" name="Niihama" mmi="3.97" lat="33.96047" ccode="JP"/>
+		<city iscap="False" lon="133.23513" pop="50746" name="Fuchucho" mmi="3.97" lat="34.5735" ccode="JP"/>
+		<city iscap="False" lon="128.84561" pop="26636" name="Fukuecho" mmi="3.95" lat="32.69732" ccode="JP"/>
+		<city iscap="False" lon="131.41667" pop="43826" name="Hagi" mmi="3.94" lat="34.4" ccode="JP"/>
+		<city iscap="False" lon="132.85" pop="39257" name="Miyoshi" mmi="3.92" lat="34.8" ccode="JP"/>
+		<city iscap="False" lon="133.18333" pop="26141" name="Innoshima" mmi="3.92" lat="34.28333" ccode="JP"/>
+		<city iscap="False" lon="133.27297" pop="21030" name="Shin'ichi" mmi="3.88" lat="34.55543" ccode="JP"/>
+		<city iscap="False" lon="132.50846" pop="31867" name="Odacho-oda" mmi="3.85" lat="35.19025" ccode="JP"/>
+		<city iscap="False" lon="133.29128" pop="26195" name="Susaki" mmi="3.84" lat="33.39471" ccode="JP"/>
+		<city iscap="False" lon="133.08333" pop="80387" name="Mihara" mmi="3.84" lat="34.4" ccode="JP"/>
+		<city iscap="False" lon="133.58967" pop="18412" name="Kamogatacho-kamogata" mmi="3.84" lat="34.53745" ccode="JP"/>
+		<city iscap="False" lon="133.2" pop="90936" name="Onomichi" mmi="3.8" lat="34.41667" ccode="JP"/>
+		<city iscap="False" lon="133.57844" pop="37641" name="Kawanoecho" mmi="3.8" lat="34.01654" ccode="JP"/>
+		<city iscap="False" lon="133.61667" pop="24819" name="Takahashi" mmi="3.77" lat="34.78333" ccode="JP"/>
+		<city iscap="False" lon="132.2257" pop="24597" name="Gotsucho" mmi="3.77" lat="35.00856" ccode="JP"/>
+		<city iscap="False" lon="131.0" pop="17832" name="Nishinoomote" mmi="3.76" lat="30.73333" ccode="JP"/>
+		<city iscap="False" lon="132.08333" pop="45750" name="Hamada" mmi="3.76" lat="34.88333" ccode="JP"/>
+		<city iscap="False" lon="130.31667" pop="24971" name="Makurazaki" mmi="3.75" lat="31.26667" ccode="JP"/>
+		<city iscap="False" lon="133.46667" pop="23787" name="Niimi" mmi="3.69" lat="34.98333" ccode="JP"/>
+		<city iscap="False" lon="133.43333" pop="24123" name="Ino" mmi="3.66" lat="33.55" ccode="JP"/>
+		<city iscap="False" lon="132.91667" pop="30506" name="Takehara" mmi="3.65" lat="34.33833" ccode="JP"/>
+		<city iscap="False" lon="130.65" pop="29710" name="Ibusuki" mmi="3.65" lat="31.23333" ccode="JP"/>
+		<city iscap="False" lon="133.46667" pop="34424" name="Ibara" mmi="3.55" lat="34.6" ccode="JP"/>
+		<city iscap="False" lon="133.01667" pop="20527" name="Shobara" mmi="3.51" lat="34.85" ccode="JP"/>
+		<city iscap="False" lon="128.32361" pop="26704" name="Goseong" mmi="3.48" lat="34.97631" ccode="KR"/>
+		<city iscap="True" lon="128.68111" pop="550000" name="Changwon" mmi="3.43" lat="35.22806" ccode="KR"/>
+		<city iscap="False" lon="128.88111" pop="356242" name="Kimhae" mmi="3.36" lat="35.23417" ccode="KR"/>
+		<city iscap="True" lon="129.04028" pop="3678555" name="Busan" mmi="3.35" lat="35.10278" ccode="KR"/>
+		<city iscap="False" lon="129.21389" pop="43064" name="Gijang" mmi="3.27" lat="35.24417" ccode="KR"/>
+		<city iscap="False" lon="128.58861" pop="72124" name="Kyosai" mmi="3.25" lat="34.85028" ccode="KR"/>
+		<city iscap="False" lon="128.62667" pop="82560" name="Sinhyeon" mmi="3.25" lat="34.8825" ccode="KR"/>
+		<city iscap="False" lon="128.52" pop="80987" name="Naeso" mmi="3.08" lat="35.24972" ccode="KR"/>
+		<city iscap="False" lon="128.08472" pop="307242" name="Chinju" mmi="3.01" lat="35.19278" ccode="KR"/>
+		<pagercity iscap="False" lon="131.08008" pop="27978" name="Aso" mmi="8.41" lat="32.93726" ccode="JP"/>
+		<pagercity iscap="False" lon="130.66667" pop="39234" name="Uto" mmi="8.29" lat="32.68333" ccode="JP"/>
+		<pagercity iscap="False" lon="130.86667" pop="29820" name="Ozu" mmi="8.27" lat="32.86667" ccode="JP"/>
+		<pagercity iscap="False" lon="130.66667" pop="26163" name="Matsubase" mmi="7.92" lat="32.65" ccode="JP"/>
+		<pagercity iscap="True" lon="130.69181" pop="680423" name="Kumamoto" mmi="7.77" lat="32.80589" ccode="JP"/>
+		<pagercity iscap="False" lon="130.68333" pop="31688" name="Ueki" mmi="7.11" lat="32.9" ccode="JP"/>
+		<pagercity iscap="True" lon="130.41667" pop="1392289" name="Fukuoka" mmi="5.43" lat="33.6" ccode="JP"/>
+		<pagercity iscap="True" lon="130.55" pop="555352" name="Kagoshima" mmi="5.39" lat="31.56667" ccode="JP"/>
+		<pagercity iscap="True" lon="132.45" pop="1143841" name="Hiroshima" mmi="4.23" lat="34.4" ccode="JP"/>
+		<pagercity iscap="True" lon="128.68111" pop="550000" name="Changwon" mmi="3.43" lat="35.22806" ccode="KR"/>
+		<pagercity iscap="True" lon="129.04028" pop="3678555" name="Busan" mmi="3.35" lat="35.10278" ccode="KR"/>
+	</cities>
+</pager>
