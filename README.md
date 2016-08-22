@@ -1,6 +1,13 @@
 PAGER
 =====
 
+<table>
+  <tr>
+    <td>https://travis-ci.org/usgs/pager.svg?branch=master</td>
+    <td>https://codecov.io/gh/usgs/pager/branch/master/graph/badge.svg</td>
+  </tr>
+</table>
+
 Prompt Assessment of Global Earthquakes for Response (PAGER)
 
 The PAGER system provides fatality and economic loss impact estimates following significant earthquakes worldwide.
