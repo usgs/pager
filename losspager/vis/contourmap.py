@@ -31,7 +31,8 @@ import pyproj
 from matplotlib import _cntr as cntr
 
 #local imports
-from losspager.utils.text import dec_to_roman
+from impactutils.textformat.text import dec_to_roman
+
 
 CITY_COLS = 2
 CITY_ROWS = 2

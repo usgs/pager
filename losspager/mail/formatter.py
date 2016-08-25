@@ -1,5 +1,5 @@
 from textwrap import dedent
-from losspager.utils.text import pop_round,dec_to_roman,pop_round_short
+from impactutils.textformat.text import pop_round,dec_to_roman,pop_round_short
 
 DATEFMT = '%Y/%m/%d-%H:%M'
 MIN_POP = 1000

@@ -10,7 +10,7 @@ from datetime import datetime
 #hack the path so that I can debug these functions if I need to
 homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
 pagerdir = os.path.abspath(os.path.join(homedir,'..','..'))
-sys.path.insert(0,pagerdir) #put this at the front of the system path, ignoring any installed shakemap stuff
+sys.path.insert(0,pagerdir) #put this at the front of the system path, ignoring any installed pager stuff
 
 #third party imports 
 import numpy as np
@@ -19,6 +19,8 @@ import numpy as np
 from losspager.utils.expocat import ExpoCat
 
 def commify(value):
+    if np.isnan(value):
+        return 'NaN'
     return format(int(value),",d")
 
 def get_max_mmi(tdict,minimum=1000):
