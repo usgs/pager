@@ -30,6 +30,7 @@ pip install 'SQLAlchemy==1.1.0b3' #installs any sqlalchemy greater than 1.1.0
 pip install SQLAlchemy-Utils
 pip -v install git+git://github.com/gem/oq-hazardlib.git
 pip install git+git://github.com/usgs/MapIO.git
+pip install git+git://github.com/usgs/earthquake-impact-utils.git
 pip install sphinx_rtd_theme
 pip install flake8
 pip install pep8-naming
