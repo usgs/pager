@@ -17,7 +17,6 @@ sys.path.insert(0,pagerdir) #put this at the front of the system path, ignoring 
 #third party imports 
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.basemap import Basemap
 
 #local imports
 import sqlalchemy

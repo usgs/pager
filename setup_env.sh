@@ -3,20 +3,19 @@
 VENV=pager
 PYVER=3.5
 
-DEPS="numpy scipy matplotlib jupyter rasterio fiona xlrd xlwt pandas basemap basemap-data-hires shapely h5py gdal==1.11.4 descartes sphinx configobj pyproj pytest pytables pytest pytest-cov pytest-mpl flake8 pep8-naming"
+DEPARRAY=(numpy scipy matplotlib jupyter rasterio fiona xlrd xlwt pandas cartopy shapely h5py gdal==1.11.4 descartes sphinx configobj pyproj pytest pytables pytest pytest-cov pytest-mpl cartopy)
 
-if [ "$#" -le 1 ]; then
-    #turn off whatever other virtual environment user might be in
-    source deactivate
+#turn off whatever other virtual environment user might be in
+source deactivate
     
-    #remove any previous virtual environments called pager
-    conda remove --name $VENV --all -y
+#remove any previous virtual environments called pager
+CWD=`pwd`
+cd $HOME;
+conda remove --name $VENV --all -y
+cd $CWD
     
-    #create a new virtual environment called $VENV with the below list of dependencies installed into it
-    conda create --name $VENV --yes --channel conda-forge python=3.5 $DEPS -y
-else
-    conda install --yes --channel conda-forge python=3.5 $DEPS -y
-fi
+#create a new virtual environment called $VENV with the below list of dependencies installed into it
+conda create --name $VENV --yes --channel conda-forge python=3.5 ${DEPARRAY[*]} -y
 
 #activate the new environment
 source activate $VENV
@@ -25,6 +24,7 @@ source activate $VENV
 #conda install -y sqlalchemy #at the time of this writing, this is v1.0, and I want v1.1
 conda install -y psutil
 
+#do pip installs of those things that are not available via conda.
 #do pip installs of those things that are not available via conda.
 pip install 'SQLAlchemy==1.1.0b3' #installs any sqlalchemy greater than 1.1.0
 pip install SQLAlchemy-Utils
@@ -36,4 +36,4 @@ pip install flake8
 pip install pep8-naming
 
 #tell the user they have to activate this environment
-echo "Type 'source activate pager' to use this new virtual environment."
+echo "Type 'source activate ${VENV}' to use this new virtual environment."
