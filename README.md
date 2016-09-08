@@ -53,9 +53,6 @@ Do the following (If you already have Anaconda or Miniconda installed, skip step
   7. pip install losspager/
 
 
-Downloading code for script usage or usage in libraries
----------------------------------------
-pip -v install git+git://gitlab.cr.usgs.gov/mhearne/pager2.git
 
 
 
