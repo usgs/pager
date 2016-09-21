@@ -38,12 +38,12 @@ def test():
     shapefile = os.path.join(homedir,'..','data','eventdata',event,'City_BoundariesWGS84','City_Boundaries.shp')
     
     print('Test loading economic exposure from inputs...')
-    popgrowth = PopulationGrowth.loadFromUNSpreadsheet(growthfile)
-    econexp = EconExposure(popfile,2012,isofile,popgrowth,gdpfile,xmlfile)
+    popgrowth = PopulationGrowth.fromDefault()
+    econexp = EconExposure(popfile,2012,isofile)
     print('Passed loading economic exposure from inputs...')
 
     print('Test loading empirical fatality model from XML file...')
-    ecomodel = EmpiricalLoss.loadFromXML(xmlfile)
+    ecomodel = EmpiricalLoss.fromDefaultEconomic()
     print('Passed loading empirical fatality model from XML file.')
 
     print('Testing calculating probabilities for standard PAGER ranges...')
@@ -56,7 +56,7 @@ def test():
                  '100-1000':0.17564981840854255,
                  '1000-10000':0.33957681768639003,
                  '10000-100000':0.29777890303065313,
-                 '100000-10000000':0.13961034368152736}
+                 '100000-10000000':0.14138196485040311}
     for key,value in probs.items():
         np.testing.assert_almost_equal(value,testprobs[key])
     print('Passed combining G values from all countries that contributed to losses...')
@@ -78,7 +78,7 @@ def test():
 
     print('Testing calculating total economic losses for Northridge...')
     expdict = econexp.calcExposure(shakefile)
-    ecomodel = EmpiricalLoss.loadFromXML(xmlfile)
+    ecomodel = EmpiricalLoss.fromDefaultEconomic()
     lossdict = ecomodel.getLosses(expdict)
     testdict = {'XF':23172277187}
     assert lossdict['XF'] == testdict['XF']

@@ -115,7 +115,7 @@ def basic_test():
     
     popgrowth = PopulationGrowth(ratedict)
     popyear = datetime.utcnow().year
-    exposure = Exposure(popfile,popyear,isofile,popgrowth)
+    exposure = Exposure(popfile,popyear,isofile,popgrowth=popgrowth)
     expdict = exposure.calcExposure(shakefile)
     
     modeldict = [LognormalModel('AF',11.613073,0.180683,1.0),
@@ -171,8 +171,16 @@ def test():
     shapefile = os.path.join(homedir,'..','data','eventdata',event,'City_BoundariesWGS84','City_Boundaries.shp')
     
     print('Test loading empirical fatality model from XML file...')
-    fatmodel = EmpiricalLoss.loadFromXML(xmlfile)
+    fatmodel = EmpiricalLoss.fromDefaultFatality()
     print('Passed loading empirical fatality model from XML file.')
+
+    print('Test getting alert level from various losses...')
+    assert fatmodel.getAlertLevel({'TotalFatalities':0}) == 'green'
+    assert fatmodel.getAlertLevel({'TotalFatalities':5}) == 'yellow'
+    assert fatmodel.getAlertLevel({'TotalFatalities':100}) == 'orange'
+    assert fatmodel.getAlertLevel({'TotalFatalities':1000}) == 'red'
+    assert fatmodel.getAlertLevel({'TotalFatalities':1e13}) == 'red' #1000 times Earth's population
+    print('Passed getting alert level from various losses.')
     
     print('Test retrieving fatality model data from XML file...')
     model = fatmodel.getModel('af')
@@ -204,15 +212,14 @@ def test():
                  '100-1000':0.039995273501147441,
                  '1000-10000':0.17297196910604343,
                  '10000-100000':0.3382545813262674,
-                 '100000-10000000':0.42067536809570771}
+                 '100000-10000000':0.44442457847445394}
     for key,value in probs.items():
         np.testing.assert_almost_equal(value,testprobs[key])
     print('Passed combining G values from all countries that contributed to losses...')
 
 
     print('Testing calculating total fatalities for Northridge...')
-    popgrowth = PopulationGrowth.loadFromUNSpreadsheet(ratefile)
-    expobject = Exposure(popfile,2012,isofile,popgrowth)
+    expobject = Exposure(popfile,2012,isofile)
     expdict = expobject.calcExposure(shakefile)
     fatdict = fatmodel.getLosses(expdict)
     testdict = {'XF':18}

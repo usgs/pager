@@ -3,6 +3,7 @@
 #stdlib imports
 from xml.dom import minidom
 from collections import OrderedDict
+import os.path
 
 #third party imports
 import numpy as np
@@ -312,9 +313,21 @@ class EmpiricalLoss(object):
             return self._model_dict[ccode]
         else:
             return default
+
+    @classmethod
+    def fromDefaultFatality(cls):
+        homedir = os.path.dirname(os.path.abspath(__file__)) #where is this module?
+        fatxml = os.path.join(homedir,'..','data','fatality.xml')
+        return cls.fromXML(fatxml)
+
+    @classmethod
+    def fromDefaultEconomic(cls):
+        homedir = os.path.dirname(os.path.abspath(__file__)) #where is this module?
+        econxml = os.path.join(homedir,'..','data','economy.xml')
+        return cls.fromXML(econxml)
         
     @classmethod
-    def loadFromXML(cls,xmlfile):
+    def fromXML(cls,xmlfile):
         """Load country-specific models from an XML file of the form:
           <?xml version="1.0" encoding="US-ASCII" standalone="yes"?>
           
@@ -472,10 +485,33 @@ class EmpiricalLoss(object):
                 rmax = int(rparts[0])
             else:
                 rmax = int(rparts[1])
+                #the high end of the highest red range should be a very large number (ideally infinity).
+                #one trillion should do it. 
+                if rmax == 10000000:
+                    rmax = 1e12
             prob = calcEmpiricalProbFromRange(G,expected,(rmin,rmax))
             ranges[rangekey] = prob
         return ranges
 
+    def getAlertLevel(self,lossdict):
+        """Get the alert level associated with the input losses.
+
+        :param lossdict:
+          Loss results dictionary as returned by getLosses() method.
+        :returns:
+          String alert level, one of ('green','yellow','orange','red').
+        """
+        levels = [(1,'green'),(100,'yellow'),(1000,'orange'),(1e12,'red')]
+        if 'TotalFatalities' in lossdict:
+            total = lossdict['TotalFatalities']
+        else:
+            total = lossdict['TotalDollars']/1e6
+        for i in range(0,len(levels)-1):
+            lossmax,thislevel = levels[i]
+            if total < lossmax:
+                return thislevel
+        return 'red' #we should never get here, unless we have 1e18 USD in losses!
+    
     def overrideModel(self,ccode,rates):
         """Override the rates determined from theta,beta values with these hard-coded ones.
         Once set on the instance object, these will be the preferred rates.

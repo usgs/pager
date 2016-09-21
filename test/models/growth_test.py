@@ -50,9 +50,8 @@ def test_adjust_pop():
     
 def test_pop_growth():
     homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
-    excelfile = os.path.join(homedir,'..','data','WPP2015_POP_F02_POPULATION_GROWTH_RATE.xls')
     print('Testing loading Population Growth from UN spreadsheet...')
-    pg = PopulationGrowth.loadFromUNSpreadsheet(excelfile)
+    pg = PopulationGrowth.fromDefault()
     print('Passed loading Population Growth from UN spreadsheet...')
 
     print('Testing getting growth rates for the US...')

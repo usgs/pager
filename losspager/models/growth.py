@@ -4,6 +4,7 @@
 import re
 from collections import OrderedDict
 import time
+import os.path
 
 #third party imports
 import pandas as pd
@@ -60,8 +61,15 @@ class PopulationGrowth(object):
         self._dataframe = pd.DataFrame(ratedict)
         self._default = default_rate
 
+
     @classmethod
-    def loadFromUNSpreadsheet(cls,excelfile,default_rate=DEFAULT_RATE):
+    def fromDefault(cls):
+        homedir = os.path.dirname(os.path.abspath(__file__)) #where is this module?
+        excelfile = os.path.join(homedir,'..','data','WPP2015_POP_F02_POPULATION_GROWTH_RATE.xls')
+        return cls.fromUNSpreadsheet(excelfile)
+        
+    @classmethod
+    def fromUNSpreadsheet(cls,excelfile,default_rate=DEFAULT_RATE):
         """Instantiate population growth rates from UN global spreadsheet.
         http://esa.un.org/unpd/wpp/Download/Standard/Population/
 

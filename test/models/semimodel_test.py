@@ -129,7 +129,7 @@ def model_test_simple():
         urbgrid.save(urbfile)
         mmigrid.save(shakefile)
         
-        semi = SemiEmpiricalFatality.loadFromFiles(invfile,colfile,fatfile,workfile,growthfile)
+        semi = SemiEmpiricalFatality.fromDefault()
         losses,resfat,nonresfat = semi.getLosses(shakefile)
         assert losses == 85
         print('Semi-empirical model calculations appear to be done correctly.')
@@ -214,7 +214,8 @@ def model_test_fake():
         urbgrid.save(urbfile)
         mmigrid.save(shakefile)
         
-        semi = SemiEmpiricalFatality.loadFromFiles(invfile,colfile,fatfile,workfile,growthfile,popfile,popyear,urbfile,isofile)
+        semi = SemiEmpiricalFatality.fromDefault()
+        semi.setGlobalFiles(popfile,popyear,urbfile,isofile)
         losses,resfat,nonresfat = semi.getLosses(shakefile)
         assert losses == 85
         print('Semi-empirical model calculations appear to be done correctly.')
@@ -240,9 +241,7 @@ def model_test_real():
     
     isofile = os.path.join(homedir,'..','data','eventdata','northridge','northridge_isogrid.bil')
     urbanfile = os.path.join(homedir,'..','data','eventdata','northridge','northridge_urban.bil')
-    semi = SemiEmpiricalFatality.loadFromFiles(invfile,colfile,fatfile,workfile,growthfile)
-
-
+    semi = SemiEmpiricalFatality.fromDefault()
     semi.setGlobalFiles(popfile,popyear,urbanfile,isofile)
 
     print('Testing semi-empirical losses...')
@@ -268,8 +267,8 @@ def model_test_single():
     pop = 100000
     mmi = 8.5
     popyear = 2016
-    semi = SemiEmpiricalFatality.loadFromFiles(invfile,colfile,fatfile,workfile,growthfile)
-    #semi.setGlobalFiles(,popfile,popyear,urbfile,isofile)
+    semi = SemiEmpiricalFatality.fromDefault()
+    semi.setGlobalFiles(popfile,popyear,urbfile,isofile)
 
     #let's do the calculations "manually" by getting all of the data and doing our own multiplications
     workforce = semi.getWorkforce(ccode)
@@ -288,7 +287,7 @@ def model_test_single():
     assert fatsum == 383
     print('Passed.')
     
-    loss,resfat,nresfat = make_test_semi_model(invfile,colfile,fatfile,workfile,growthfile,ccode,timeofday,density,pop,mmi)
+    loss,resfat,nresfat = make_test_semi_model(ccode,timeofday,density,pop,mmi)
     print('Testing that "manual" calculations achieve same results as grid calculations...')
     assert fatsum == loss
     print('Passed.')

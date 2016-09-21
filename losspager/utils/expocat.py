@@ -3,12 +3,25 @@
 #stdlib imports
 import operator
 from datetime import datetime,timedelta
+import re
+import os.path
+from collections import OrderedDict
 
 #third party imports
 import pandas as pd
 import numpy as np
+from impactutils.colors.cpalette import ColorPalette
+from openquake.hazardlib.geo.geodetic import geodetic_distance
 
 TIME_WINDOW = 15 #number of seconds to compare one event with another when searching for similar events.
+MIN_MMI = 1000
+
+def to_ordered_dict(series):
+    keys = series.index
+    mydict = OrderedDict()
+    for key in keys:
+        mydict[key] = series[key]
+    return mydict
 
 def _select_by_max_mmi(df,mmi,minimum=1000):
     mmi_indices = {1:'MMI1',2:'MMI2',3:'MMI3',4:'MMI4',5:'MMI5',6:'MMI6',7:'MMI7',8:'MMI8',9:'MMI9+'}
@@ -20,42 +33,130 @@ def _select_by_max_mmi(df,mmi,minimum=1000):
 
 class ExpoCat(object):
     def __init__(self,dataframe):
+        """Create an ExpoCat object from a dataframe input.
+
+        :param dataframe:
+          Pandas dataframe containing columns:
+            - EventID  14 character event ID based on time: (YYYYMMDDHHMMSS).
+            - Time Pandas Timestamp object.
+            - Lat  Event latitude.
+            - Lon  Event longitude.
+            - Depth  Event depth.
+            - Magnitude  Event magnitude.
+            - CountryCode  Two letter country code in which epicenter is located.
+            - ShakingDeaths Number of fatalities due to shaking.
+            - TotalDeaths Number of total fatalities.
+            - Injured Number of injured.
+            - Fire Integer (0 or 1) indicating if any fires occurred as a result of this earthquake.
+            - Liquefaction Integer (0 or 1) indicating if any liquefaction occurred as a result of this earthquake.
+            - Tsunami Integer (0 or 1) indicating if any tsunamis occurred as a result of this earthquake.
+            - Landslide Integer (0 or 1) indicating if any landslides occurred as a result of this earthquake.
+            - MMI1 - Number of people exposed to Mercalli intensity 1.
+            - MMI2 - Number of people exposed to Mercalli intensity 2.
+            - MMI3 - Number of people exposed to Mercalli intensity 3.
+            - MMI4 - Number of people exposed to Mercalli intensity 4.
+            - MMI5 - Number of people exposed to Mercalli intensity 5.
+            - MMI6 - Number of people exposed to Mercalli intensity 6.
+            - MMI7 - Number of people exposed to Mercalli intensity 7.
+            - MMI8 - Number of people exposed to Mercalli intensity 8.
+            - MMI9+ Number of people exposed to Mercalli intensity 9 and above.
+            - MaxMMI  Highest intensity level with at least 1000 people exposed.
+            - NumMaxMMI Number of people exposed at MaxMMI.
+        """
         self._dataframe = dataframe.copy()
 
     @classmethod
-    def loadFromCSV(cls,csvfile):
-        df = pd.read_csv(csvfile,parse_dates=[2])
-        df = df.rename(columns={'Unnamed: 0':'Index'})
-        maxmmi = np.zeros(len(df))
-        #df['MaxMMI'] = np.zeros(len(df))
-        for idx,row in df.iterrows():
-            exparray = np.array([row['MMI1'],row['MMI2'],row['MMI3'],row['MMI4'],
-                                 row['MMI5'],row['MMI6'],row['MMI7'],row['MMI8'],row['MMI9+']])
+    def fromDefault(cls):
+        """Read in data from CSV file included in the distribution of this code.
 
-            gt0 = (exparray > 0).nonzero()[0]
-            if len(gt0):
-                imax = gt0.max()
-            else:
-                imax = -1
-            maxmmi[idx] = imax+1
-        df['MaxMMI'] = maxmmi
+        :returns:
+          ExpoCat object.
+        """
+        homedir = os.path.dirname(os.path.abspath(__file__)) #where is this module?
+        csvfile = os.path.join(homedir,'..','data','expocat.csv')
+        return cls.fromCSV(csvfile)
+        
+    @classmethod
+    def fromCSV(cls,csvfile):
+        """Read in data from Expocat CSV file.
+
+        :param csvfile:
+          CSV file containing columns as described above for constructor, minus the MaxMMI and NumMaxMMI columns.
+        :returns:
+          ExpoCat object.
+        """
+        df = pd.read_csv(csvfile,parse_dates=[2],dtype={'EventID':str})
+        df = df.drop('Unnamed: 0',1)
+
+        mmicols = ['MMI1','MMI2','MMI3','MMI4','MMI5','MMI6','MMI7','MMI8','MMI9+']
+        mmicols.reverse()
+        maxmmi = np.zeros(len(df))
+        nmaxmmi = np.zeros(len(df))
+        for mmicol in mmicols:
+            mmival = int(re.search('[0-9]',mmicol).group())
+            i_unfilled = maxmmi == 0
+            i_meets_min = (df[mmicol] > MIN_MMI).as_matrix()
+            intersected = (i_meets_min & i_unfilled)
+            maxmmi[intersected] = mmival
+            nmaxmmi[intersected] = (df[mmicol].as_matrix())[intersected]
+        df['MaxMMI'] = pd.Series(maxmmi)
+        df['NumMaxMMI'] = pd.Series(nmaxmmi)
+        
         return cls(df)
 
     def __len__(self):
+        """Return the number of rows in this object's dataframe.
+
+        :returns:
+          Number of rows in this object's dataframe.
+        """
         return len(self._dataframe)
 
     def __add__(self,other):
+        """Add two ExpoCat objects together by concatenating their internal dataframes.
+
+        :param other:
+          ExpoCat object.
+        :returns:
+          An ExpoCat object consisting of events from this ExpoCat object and those from other.
+        """
         newdf = pd.concat([self._dataframe,other._dataframe]).drop_duplicates()
         return ExpoCat(newdf)
     
     def getDataFrame(self):
+        """Return a copy of the dataframe contained in this ExpoCat object.
+
+        :returns:
+          A copy of the dataframe contained in this ExpoCat object.
+        """
         return self._dataframe.copy()
 
     def selectByTime(self,mintime,maxtime):
+        """Select down the events in the ExpoCat by restricting to events between two input times.
+
+        :param mintime:
+          Pandas Timestamp object OR Python datetime object.
+        :param maxtime:
+          Pandas Timestamp object OR Python datetime object.
+        :returns:
+          Reduced ExpoCat set of events to those inside the input time bounds.
+        """
+        if mintime >= maxtime:
+            raise PagerException('Input mintime must be less than maxtime.')
+        
         newdf = self._dataframe[(self._dataframe['Time'] > mintime) & (self._dataframe['Time'] <= maxtime)]
         return ExpoCat(newdf)
 
     def selectByMagnitude(self,minmag,maxmag=None):
+        """Select down the events in the ExpoCat by restricting to events between two input magnitudes.
+
+        :param minmag:
+          Float earthquake minimum magnitude.
+        :param maxmag:
+          Float earthquake maximum magnitude.
+        :returns:
+          Reduced ExpoCat set of events to those inside the input magnitude bounds.
+        """
         if maxmag is not None:
             newdf = self._dataframe[(self._dataframe['Magnitude'] > minmag) & (self._dataframe['Magnitude'] <= maxmag)]
         else:
@@ -63,6 +164,19 @@ class ExpoCat(object):
         return ExpoCat(newdf)
 
     def selectByBounds(self,xmin,xmax,ymin,ymax):
+        """Select down the events in the ExpoCat by restricting to events inside bounding box.
+
+        :param xmin:
+          Minimum longitude.
+        :param xmax:
+          Maximum longitude.
+        :param ymin:
+          Minimum latitude.
+        :param ymax:
+          Maximum latitude.
+        :returns:
+          Reduced ExpoCat set of events to those inside bounding box.
+        """
         idx1 = (self._dataframe['Lat'] > ymin)
         idx2 = (self._dataframe['Lat'] <= ymax)
         idx3 = (self._dataframe['Lon'] > xmin)
@@ -71,125 +185,145 @@ class ExpoCat(object):
         return ExpoCat(newdf)
 
     def selectByShakingDeaths(self,mindeaths):
+        """Select down the events in the ExpoCat by restricting to events with shaking deaths greater than input.
+
+        :param mindeaths:
+          Minimum shaking fatality threshold.
+        :returns:
+          Reduced ExpoCat set of events to those with shaking fatalities greater than mindeaths.
+        """
         newdf = self._dataframe[self._dataframe['ShakingDeaths'] >= mindeaths]
         return ExpoCat(newdf)
 
-    def selectMostFatal(self):
-        dmax = self._dataframe['ShakingDeaths'].max()
-        newdf = self._dataframe[self._dataframe['ShakingDeaths'] == dmax]
-        return ExpoCat(newdf)
+    def selectByRadius(self,clat,clon,radius):
+        """Select events by restricting to those within a search radius around a set of coordinates.
 
-    def selectByMaxMMI(self,mmi,minimum=1000):
-        #find all events that have at least minimum population exposed at input MMI or higher
-        anymmi = _select_by_max_mmi(self._dataframe,mmi,minimum=minimum)
-        if anymmi is not None:
-            return ExpoCat(anymmi)
-        return None
-            
-    
-    def selectSimilarByExposure(self,maxmmi,nmmi,deaths,search='high',time=None,avoid_ids=[]):
-        """Select an earthquake from internal list that is more/less fatal than input and similar in exposure.
-        
-        :param maxmmi:
-          Maximum mmi level (1-10) with at least 1000 people exposed.
-        :param nmmi:
-          Number of people exposed to maxmmi.
-        :param deaths:
-          Number of fatalities for input event.
-        :param search:
-          One of 'high' or 'low'.  
-            * If 'high', search for *more* fatal events than this one with a similar
-            exposure at maxmmi.  If there are no similar events found at that MMI, search first in 
-            successively lower MMI values for similar exposure values (down to MMI 2), then successively higher
-            MMI values (up to 10) for similar exposure.
-
-            * If 'low', search for *less* fatal events than this one with a similar
-            exposure at maxmmi.  If there are no similar events found at that MMI, search first in 
-            successively higher MMI values for similar exposure values (up to MMI 10), then successively lower
-            MMI values (down to MMI 2) for similar exposure.
-
-            If no similar earthquakes are found, return None.
-        :param time:
-          Event datetime - if the user is concerned, this is used to make sure that the returned event is not
-          the same as the input event.  Should only be required for generating results from catalog events.
-        :param avoid_ids:
-          Sequence of EventID values to use to remove undesired rows from consideration 
-          (presumably these represent rows that have already been selected for other criteria.)
         """
-        #ok, so this is a little tricky, but it saves me from having to write two nearly identical
-        #functions.
-        #INC_OP1 is the increment operator for the first while loop (up or down in MMI)
-        #INC_OP2 is the increment operator for the second while loop (up or down in MMI)
-        #INC_COMP1 is the comparison operator for the first while loop (up or down in MMI)
-        #INC_COMP2 is the comparison operator for the second while loop (up or down in MMI)
-        #DEATH_COMP is the comparison operator for deaths
-        #COMP1 is the upper or lower MMI bound we check against in the first while loop
-        #COMP2 is the upper or lower MMI bound we check against in the first while loop
-        if search == 'low':
-            INC_OP1 = operator.sub
-            INC_OP2 = operator.add
-            INC_COMP1 = operator.gt
-            INC_COMP2 = operator.lt
-            DEATH_COMP = operator.gt
-            MMI_COMP1 = operator.ge
-            COMP1 = 1
-            COMP2 = 11
+        lons = self._dataframe['Lon']
+        lats = self._dataframe['Lat']
+        distances = geodetic_distance(clon,clat,lons,lats)
+        iclose = pd.Series(distances < radius)
+        newdf = self._dataframe[iclose]
+        d1 = distances[distances < radius]
+        newdf = newdf.assign(Distance=d1)
+        return ExpoCat(newdf)
+        
+
+    def getHistoricalEvents(self,maxmmi,nmmi,clat,clon):
+        """Select three earthquakes from internal list that are "representative" and similar to input event.
+
+        First event should be the event "most similar" in exposure, and with the fewest fatalities.
+        Second event should also be "similar" in exposure, and with the most fatalities.
+        Third event should be the deadliest and/or highest population exposure event.
+
+        :param maxmmi:
+          
+        :param clat:
+          Origin latitude.
+        :param clon:
+          Origin latitude.
+        :returns:
+          List of three dictionaries, containing fields:
+            - EventID  14 character event ID based on time: (YYYYMMDDHHMMSS).
+            - Time Pandas Timestamp object.
+            - Lat  Event latitude.
+            - Lon  Event longitude.
+            - Depth  Event depth.
+            - Magnitude  Event magnitude.
+            - CountryCode  Two letter country code in which epicenter is located.
+            - ShakingDeaths Number of fatalities due to shaking.
+            - TotalDeaths Number of total fatalities.
+            - Injured Number of injured.
+            - Fire Integer (0 or 1) indicating if any fires occurred as a result of this earthquake.
+            - Liquefaction Integer (0 or 1) indicating if any liquefaction occurred as a result of this earthquake.
+            - Tsunami Integer (0 or 1) indicating if any tsunamis occurred as a result of this earthquake.
+            - Landslide Integer (0 or 1) indicating if any landslides occurred as a result of this earthquake.
+            - MMI1 - Number of people exposed to Mercalli intensity 1.
+            - MMI2 - Number of people exposed to Mercalli intensity 2.
+            - MMI3 - Number of people exposed to Mercalli intensity 3.
+            - MMI4 - Number of people exposed to Mercalli intensity 4.
+            - MMI5 - Number of people exposed to Mercalli intensity 5.
+            - MMI6 - Number of people exposed to Mercalli intensity 6.
+            - MMI7 - Number of people exposed to Mercalli intensity 7.
+            - MMI8 - Number of people exposed to Mercalli intensity 8.
+            - MMI9+ Number of people exposed to Mercalli intensity 9 and above.
+            - MaxMMI  Highest intensity level with at least 1000 people exposed.
+            - NumMaxMMI Number of people exposed at MaxMMI.
+            - Distance Distance of this event from input event, in km.
+            - Color The hex color that should be used for row color in historical events table.
+        """
+        #get the worst event first
+        newdf = self._dataframe.sort_values(['ShakingDeaths','MaxMMI','NumMaxMMI'],ascending=False)
+        worst = newdf.iloc[0]
+        newdf = newdf.drop(newdf.index[[0]]) #get rid of that first row, so we don't re-include the same event
+        
+        #get the similar but less bad event
+        less_bad,newdf = self.getSimilarEvent(newdf,maxmmi,go_down=True)
+
+        #get the similar but worse event
+        more_bad,newdf = self.getSimilarEvent(newdf,maxmmi,go_down=False)
+
+        events = []
+        colormap = ColorPalette.fromPreset('mmi')
+        if less_bad is not None:
+            lessdict = to_ordered_dict(less_bad)
+            rgbval = colormap.getDataColor(lessdict['MaxMMI'])
+            rgb255 = tuple([int(c*255) for c in rgbval])[0:3]
+            lessdict['Color'] = '#%02x%02x%02x' % rgb255
+            events.append(lessdict)
+
+        if more_bad is not None:
+            moredict = to_ordered_dict(more_bad)
+            rgbval = colormap.getDataColor(moredict['MaxMMI'])
+            rgb255 = tuple([int(c*255) for c in rgbval])[0:3]
+            moredict['Color'] = '#%02x%02x%02x' % rgb255
+            events.append(moredict)
+
+            
+        worstdict = to_ordered_dict(worst)
+        rgbval = colormap.getDataColor(worstdict['MaxMMI'])
+        rgb255 = tuple([int(c*255) for c in rgbval])[0:3]
+        worstdict['Color'] = '#%02x%02x%02x' % rgb255
+        events.append(worstdict)
+
+        return events
+
+    def getSimilarEvent(self,df,maxmmi,go_down=True):
+        #get all of the events with the same maxmmi as input
+        newdf = df[df.MaxMMI == maxmmi]
+
+        #if we're searching for the most similar but less bad event, go_down is True
+        newmaxmmi = maxmmi
+        if go_down:
+            incop = operator.sub
+            mmi1 = 1
+            mmi2 = 9
+            ascending = True
+            compop = operator.gt
+            decop = operator.add
         else:
-            INC_OP1 = operator.add
-            INC_OP2 = operator.sub
-            INC_COMP1 = operator.lt
-            INC_COMP2 = operator.gt
-            DEATH_COMP = operator.le
-            MMI_COMP2 = operator.le
-            COMP1 = 10
-            COMP2 = 1
+            incop = operator.sub
+            mmi1 = 9
+            mmi2 = 1
+            ascending = False
+            compop = operator.gt
+            decop = operator.add
+        while not len(newdf) and compop(newmaxmmi,mmi1):
+            newmaxmmi = incop(newmaxmmi,1)
+            newdf = df[df.MaxMMI == newmaxmmi]
 
-        mmi_indices = {1:'MMI1',2:'MMI2',3:'MMI3',4:'MMI4',5:'MMI5',6:'MMI6',7:'MMI7',8:'MMI8',9:'MMI9+'}
-        #maxmmi is MMI1, 2, 3, etc.
-        #nmmi is the number of people at maxmmi
-        if time is not None:
-            #select out everything BUT the input event (or events really close to it)
-            treduce1 = self.selectByTime(datetime(1900,1,1,0,0,0),time-timedelta(seconds=TIME_WINDOW))
-            treduce2 = self.selectByTime(time+timedelta(seconds=TIME_WINDOW),datetime.utcnow())
-            reduced1 = (treduce1+treduce2).getDataFrame()
-        else:
-            reduced1 = self._dataframe 
+        if not len(newdf):
+            newdf = df[df.MaxMMI == maxmmi]
+        newmaxmmi = maxmmi
+        while not len(newdf) and compop(newmaxmmi,mmi2):
+            newmaxmmi = decop(newmaxmmi,1)
+            newdf = df[df.MaxMMI == newmaxmmi]
+        if not len(newdf):
+            return None
+        newdf = newdf.sort_values(['ShakingDeaths','MaxMMI','NumMaxMMI'],ascending=ascending)
+        similar = newdf.iloc[0]
+        newdf = df.drop(similar.name)
+        return (similar,newdf)
+        
+        
 
-        if len(avoid_ids):
-            for eid in avoid_ids:
-                reduced1 = reduced1[reduced1['EventID'] != eid]
-
-        #select any events lt or gt the number of deaths we have
-        hasdeaths = reduced1[(DEATH_COMP(reduced1['ShakingDeaths'],deaths))]
-        newmmi = maxmmi
-        #iterate over MMI (up or down, depending on search mode) looking for events with similar MMI
-        while INC_COMP1(newmmi,COMP1):
-            hasmmi = reduced1[(reduced1['MaxMMI'] == newmmi)]
-            reduced2 = (ExpoCat(hasdeaths) + ExpoCat(hasmmi)).getDataFrame()
-            if len(reduced2):
-                #find the event with the most similar exposure at maxmmi
-                mmi_idx = mmi_indices[newmmi]
-                similar_exp = _select_by_max_mmi(reduced2,newmmi)
-                if len(similar_exp):
-                    #find the event with the most similar exposure at this MMI
-                    immi = np.abs(similar_exp[mmi_idx].as_matrix()-nmmi).argmin()
-                    similar = similar_exp.iloc[immi]
-                    return similar
-            newmmi = INC_OP1(newmmi,1)
-
-        newmmi = maxmmi
-        while INC_COMP2(newmmi,COMP2):
-            hasmmi = reduced1[(reduced1['MaxMMI'] == newmmi)]
-            reduced2 = (ExpoCat(hasdeaths) + ExpoCat(hasmmi)).getDataFrame()
-            if len(reduced2):
-                #find the event with the most similar exposure at maxmmi
-                mmi_idx = mmi_indices[newmmi]
-                similar_exp = _select_by_max_mmi(reduced2,newmmi)
-                if len(similar_exp):
-                    #find the event with the most similar exposure at this MMI
-                    immi = np.abs(similar_exp[mmi_idx].as_matrix()-nmmi).argmin()
-                    similar = similar_exp.iloc[immi]
-                    return similar
-            newmmi = INC_OP2(newmmi,1)
-
-        return None

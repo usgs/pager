@@ -31,67 +31,60 @@ def get_max_mmi(tdict,minimum=1000):
 
 def test():
     homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
-    catfile = os.path.join(homedir,'..','data','expocat.csv')
-    expocat = ExpoCat.loadFromCSV(catfile)
-    start = datetime(2011,1,1,0,0,0)
-    finish = datetime(2011,1,31,23,59,59)
-    jan2012 = expocat.selectByTime(start,finish).getDataFrame()
-    assert len(jan2012) == 9
+    expocat = ExpoCat.fromDefault()
+    minicat = expocat.selectByRadius(0.37,-79.94,400)
+    events = minicat.getHistoricalEvents(8,103000,0.37,-79.94)
 
-    #test selectByMaxMMI
-    #how many events have 1000+ people at MMI9?
-    expevents = expocat.selectByMaxMMI(9,minimum=1000)
-    nevents = len(expevents)
-    assert nevents == 45
+    print('Testing that historical events returned are correct...')
+    assert events[0]['EventID'] == '20000928232343'
+    assert events[1]['EventID'] == '19791212075904'
+    assert events[2]['EventID'] == '19870306041041'
+    print('Passed.')
     
-    width = 5.0
-    # clat,clon = -36.911687, -72.841387
-    # chile = expocat.selectByBounds(clon-width,clon+width,clat-width,clat+width)
-    # high = chile.selectSimilarByExposure(8,22000,100,search='high')
-    # low = chile.selectSimilarByExposure(8,22000,100,search='low',avoid_ids=[high['EventID']])
-    # print(high)
-    # print()
-    # print(low)
+    # start = datetime(2011,1,1,0,0,0)
+    # finish = datetime(2011,1,31,23,59,59)
+    # jan2012 = expocat.selectByTime(start,finish).getDataFrame()
+    # assert len(jan2012) == 9
 
-    #get all events with 100 or more fatalities, then shuffle them
-    bigdead = expocat.selectByShakingDeaths(100).getDataFrame().sample(frac=1)
-    bigdead2 = bigdead.iloc[0:10] #this should be a random sample now
-    for idx,event in bigdead2.iterrows():
-        deaths = int(event['ShakingDeaths'])
-        clat = event['Lat']
-        clon = event['Lon']
-        emag = event['Magnitude']
-        etime = event['Time']
-        maxmmi,nmmi = get_max_mmi(event.to_dict())
-        inbounds = expocat.selectByBounds(clon-width,clon+width,clat-width,clat+width)
-        high = inbounds.selectSimilarByExposure(maxmmi,nmmi,deaths,search='high',time=etime)
-        if high is not None:
-            low = inbounds.selectSimilarByExposure(maxmmi,nmmi,deaths,search='low',time=etime,avoid_ids=[high['EventID']])
-        else:
-            low = inbounds.selectSimilarByExposure(maxmmi,nmmi,deaths,search='low',time=etime)
-        print('%19s %3s %9s %10s %10s %10s' % ('Event Time','Mag','Deaths','MMI7','MMI8','MMI9+'))
-        dstr = commify(deaths)
-        mmi7 = commify(event['MMI7'])
-        mmi8 = commify(event['MMI8'])
-        mmi9 = commify(event['MMI9+'])
-        print('%19s %3.1f %9s %10s %10s %10s' % (str(etime),emag,dstr,mmi7,mmi8,mmi9))
-        if high is not None:
-            dstr = commify(high['ShakingDeaths'])
-            mmi7 = commify(high['MMI7'])
-            mmi8 = commify(high['MMI8'])
-            mmi9 = commify(high['MMI9+'])
-            print('%19s %3.1f %9s %10s %10s %10s - HIGH' % (str(high['Time']),high['Magnitude'],dstr,mmi7,mmi8,mmi9))
-        else:
-            print('None')
-        if low is not None:
-            dstr = commify(low['ShakingDeaths'])
-            mmi7 = commify(low['MMI7'])
-            mmi8 = commify(low['MMI8'])
-            mmi9 = commify(low['MMI9+'])
-            print('%19s %3.1f %9s %10s %10s %10s - LOW' % (str(low['Time']),low['Magnitude'],dstr,mmi7,mmi8,mmi9))
-        else:
-            print('None')
-        print()
+    # #get all events with 100 or more fatalities, then shuffle them
+    # bigdead = expocat.selectByShakingDeaths(100).getDataFrame().sample(frac=1)
+    # bigdead2 = bigdead.iloc[0:10] #this should be a random sample now
+    # for idx,event in bigdead2.iterrows():
+    #     deaths = int(event['ShakingDeaths'])
+    #     clat = event['Lat']
+    #     clon = event['Lon']
+    #     emag = event['Magnitude']
+    #     etime = event['Time']
+    #     maxmmi,nmmi = get_max_mmi(event.to_dict())
+    #     inbounds = expocat.selectByBounds(clon-width,clon+width,clat-width,clat+width)
+    #     high = inbounds.selectSimilarByExposure(maxmmi,nmmi,deaths,search='high',time=etime)
+    #     if high is not None:
+    #         low = inbounds.selectSimilarByExposure(maxmmi,nmmi,deaths,search='low',time=etime,avoid_ids=[high['EventID']])
+    #     else:
+    #         low = inbounds.selectSimilarByExposure(maxmmi,nmmi,deaths,search='low',time=etime)
+    #     print('%19s %3s %9s %10s %10s %10s' % ('Event Time','Mag','Deaths','MMI7','MMI8','MMI9+'))
+    #     dstr = commify(deaths)
+    #     mmi7 = commify(event['MMI7'])
+    #     mmi8 = commify(event['MMI8'])
+    #     mmi9 = commify(event['MMI9+'])
+    #     print('%19s %3.1f %9s %10s %10s %10s' % (str(etime),emag,dstr,mmi7,mmi8,mmi9))
+    #     if high is not None:
+    #         dstr = commify(high['ShakingDeaths'])
+    #         mmi7 = commify(high['MMI7'])
+    #         mmi8 = commify(high['MMI8'])
+    #         mmi9 = commify(high['MMI9+'])
+    #         print('%19s %3.1f %9s %10s %10s %10s - HIGH' % (str(high['Time']),high['Magnitude'],dstr,mmi7,mmi8,mmi9))
+    #     else:
+    #         print('None')
+    #     if low is not None:
+    #         dstr = commify(low['ShakingDeaths'])
+    #         mmi7 = commify(low['MMI7'])
+    #         mmi8 = commify(low['MMI8'])
+    #         mmi9 = commify(low['MMI9+'])
+    #         print('%19s %3.1f %9s %10s %10s %10s - LOW' % (str(low['Time']),low['Magnitude'],dstr,mmi7,mmi8,mmi9))
+    #     else:
+    #         print('None')
+    #     print()
               
     
     

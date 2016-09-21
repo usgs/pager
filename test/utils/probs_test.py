@@ -15,7 +15,8 @@ sys.path.insert(0,pagerdir) #put this at the front of the system path, ignoring 
 import numpy as np
 
 #local imports
-from losspager.utils.probs import phi,invphi,calcEmpiricalProbFromValue,calcEmpiricalValueFromProb,calcEmpiricalProbFromRange
+from losspager.utils.probs import *
+
 
 def test():
     print('Testing all probs functions...')

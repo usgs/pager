@@ -79,14 +79,22 @@ def pandify_exposure(exposure,human_readable=False):
             rows['Country Code'].append(ccode)
         for arrvalue,mmicol in zip(array,mmi):
             rows[mmicol].append(int(arrvalue))
-    df = pd.DataFrame(rows,columns=columns,dtype=np.int32)
+    df = pd.DataFrame(rows,columns=columns,dtype=np.int64)
     df = df.set_index('Country Code')
 
     #shuffle the rows so that they are sorted by country codes, then total at the end
     ccols = df.index.tolist()
-    ccols.remove('TotalExposure')
+    is_economic = False
+    if ccols.count('TotalExposure'):
+        ccols.remove('TotalExposure')
+    if ccols.count('TotalEconomicExposure'):
+        is_economic = True
+        ccols.remove('TotalEconomicExposure')
     ccols.sort()
-    ccols += ['TotalExposure']
+    if is_economic:
+        ccols += ['TotalEconomicExposure']
+    else:
+        ccols += ['TotalExposure']
     df = df.reindex(ccols)
     
     if human_readable:
@@ -126,7 +134,7 @@ def pandify_losses(lossdict,losstype='fatality',human_readable=False):
         else:
             rows['Country Code'].append(ccode)
         rows[losscol].append(lossvalue)
-    df = pd.DataFrame(rows,columns=columns,dtype=np.int32)
+    df = pd.DataFrame(rows,columns=columns,dtype=np.uint64)
     df = df.set_index('Country Code')
     #shuffle the rows so that they are sorted by country codes, then total at the end
     ccols = df.index.tolist()
@@ -149,8 +157,7 @@ def main(pargs,configfile):
     config.read(configfile)
 
     #Make sure MODEL_DATA_FILES section exists
-    required_files = ['population_file','iso_file','growth_file','gdp_file',
-                      'fatality_file','economic_file']
+    required_files = ['population_file','iso_file']
     if 'MODEL_DATA_FILES' not in config.sections():
         print('Config file %s missing [MODEL_DATA_FILES] section.  Exiting.' % configfile)
         sys.exit(1)
@@ -190,11 +197,10 @@ def main(pargs,configfile):
     #Now we can start running the models
 
     #Get exposure results
-    growth = PopulationGrowth.loadFromUNSpreadsheet(config['MODEL_DATA_FILES']['growth_file'])
+    growth = PopulationGrowth.fromDefault()
     popfile = config['MODEL_DATA_FILES']['population_file']
     isofile = config['MODEL_DATA_FILES']['iso_file']
-    gdpfile = config['MODEL_DATA_FILES']['gdp_file']
-    expomodel = Exposure(popfile,2012,isofile,growth)
+    expomodel = Exposure(popfile,2012,isofile)
     exposure = expomodel.calcExposure(pargs.gridfile)
     expdf = pandify_exposure(exposure,human_readable=pargs.readable)
     print('Population Exposure to Shaking:\n')
@@ -203,8 +209,7 @@ def main(pargs,configfile):
     
     #get fatality results, if requested
     if pargs.fatalities:
-        fatfile = config['MODEL_DATA_FILES']['fatality_file']
-        fatmodel = EmpiricalLoss.loadFromXML(fatfile)
+        fatmodel = EmpiricalLoss.fromDefaultFatality()
         fatdict = fatmodel.getLosses(exposure)
         fatdf = pandify_losses(fatdict,losstype='fatality',human_readable=pargs.readable)
         print('Fatalities Due to Shaking:\n')
@@ -213,10 +218,12 @@ def main(pargs,configfile):
     
     #get economic results, if requested
     if pargs.econloss:
-        ecofile = config['MODEL_DATA_FILES']['economic_file']
-        econexpmodel = EconExposure(popfile,popyear,isofile,growth,gdpfile,ecofile)
-        ecomodel = EmpiricalLoss.loadFromXML(ecofile)
+        econexpmodel = EconExposure(popfile,popyear,isofile)
+        ecomodel = EmpiricalLoss.fromDefaultEconomic()
         econexposure = econexpmodel.calcExposure(pargs.gridfile)
+        econexpdf = pandify_exposure(econexposure,human_readable=pargs.readable)
+        print('Population Economic Exposure to Shaking:\n')
+        print(econexpdf)
         ecodict = ecomodel.getLosses(econexposure)
         ecodf = pandify_losses(ecodict,losstype='economic',human_readable=pargs.readable)
         print('Dollar Losses Due to Shaking:\n')
@@ -224,13 +231,13 @@ def main(pargs,configfile):
 
     #Get semi-empirical losses, if requested
     if pargs.semiloss:
-        invfile = config['MODEL_DATA_FILES']['semi_inventory_file']
-        colfile = config['MODEL_DATA_FILES']['semi_collapse_file']
-        fatfile = config['MODEL_DATA_FILES']['semi_casualty_file']
-        workfile = config['MODEL_DATA_FILES']['semi_workforce_file']
-        growthfile = config['MODEL_DATA_FILES']['growth_file']
+        # invfile = config['MODEL_DATA_FILES']['semi_inventory_file']
+        # colfile = config['MODEL_DATA_FILES']['semi_collapse_file']
+        # fatfile = config['MODEL_DATA_FILES']['semi_casualty_file']
+        # workfile = config['MODEL_DATA_FILES']['semi_workforce_file']
+        # growthfile = config['MODEL_DATA_FILES']['growth_file']
         urbanfile = config['MODEL_DATA_FILES']['urban_rural_file']
-        semi = SemiEmpiricalFatality.loadFromFiles(invfile,colfile,fatfile,workfile,growthfile)
+        semi = SemiEmpiricalFatality.fromDefault()
         semi.setGlobalFiles(popfile,popyear,urbanfile,isofile)
         semiloss,resfat,nonresfat = semi.getLosses(pargs.gridfile)
         print('Fatalities according to Semi-Empirical model: %i\n' % semiloss)
@@ -309,7 +316,7 @@ if __name__ == '__main__':
     parser.add_argument('-f','--fatalities', action='store_true',
                         default=False, help='Calculate empirical fatalities')
     parser.add_argument('-e','--econloss', action='store_true',
-                        default=False, help='Calculate empirical economic losses')
+                        default=False, help='Calculate empirical economic exposures and losses')
     parser.add_argument('-s','--semiloss', action='store_true',
                         default=False, help='Calculate semi-empirical fatalities')
     parser.add_argument('-r','--readable', action='store_true',
