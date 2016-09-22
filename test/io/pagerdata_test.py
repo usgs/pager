@@ -13,7 +13,7 @@ sys.path.insert(0,pagerdir) #put this at the front of the system path, ignoring 
 import numpy as np
 
 #local imports
-from losspager.io.xml import PagerData
+from losspager.io.pagerdata import PagerData
 from losspager.models.emploss import EmpiricalLoss
 from losspager.models.exposure import Exposure
 from losspager.models.econexposure import EconExposure
@@ -49,7 +49,6 @@ def test():
     econexp = EconExposure(popfile,2012,isofile)
     fatmodel = EmpiricalLoss.fromDefaultFatality()
     expobject = Exposure(popfile,2012,isofile,popgrowth)
-
     
     expdict = expobject.calcExposure(shakefile)
     fatdict = fatmodel.getLosses(expdict)
@@ -73,8 +72,11 @@ def test():
     secondarycomment = '''Recent earthquakes in this area have caused secondary hazards 
     such as landslides that might have contributed to losses.'''
     doc = PagerData()
-    
-    
-
+    doc.setInputs(shakegrid,pagerversion,shakegrid.getEventDict()['event_id'])
+    doc.setExposure(expdict,econexpdict)
+    doc.setModelResults(fatmodel,ecomodel,
+                        fatdict,ecodict,
+                        semiloss,resfat,nonresfat)
+    doc.validate()
 if __name__ == '__main__':
     test()

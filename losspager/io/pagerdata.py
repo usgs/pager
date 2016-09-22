@@ -3,11 +3,14 @@ from lxml import etree
 from datetime import datetime
 from impactutils.time.timeutils import get_local_time,ElapsedTime
 from losspager.utils.expocat import ExpoCat
+import numpy as np
+import os.path
 
 DATETIMEFMT = '%Y-%m-%d %H:%M:%S'
 TIMEFMT = '%H:%M:%S'
 MINEXP = 1000 #minimum population required to declare maxmmi at a given intensity
 SOFTWARE_VERSION = '2.0b' #THIS SHOULD GET REPLACED WITH SOMETHING SET BY VERSIONEER
+EVENT_RADIUS = 400 #distance around epicenter to search for similar historical earthquakes
 
 class PagerData(object):
     def __init__(self):
@@ -73,9 +76,9 @@ class PagerData(object):
         
     def _setPager(self):
         pager = OrderedDict()
-        process_time = datetime.utcnow().strftime(DATETIMEFMT)
+        process_time = datetime.utcnow()
         pager['software_version'] = SOFTWARE_VERSION
-        pager['processing_time'] = process_time
+        pager['processing_time'] = process_time.strftime(DATETIMEFMT)
         pager['version_number'] = self._pagerversion
         pager['versioncode'] = self._event_dict['event_id']
         pager['eventcode'] = self._eventcode
@@ -88,12 +91,13 @@ class PagerData(object):
         pager['maxmmi'] = maxmmi
         self._nmmi = nmmi
         etime = ElapsedTime()
-        origin_time = self._edict['event_timestamp']
+        origin_time = self._event_dict['event_timestamp']
         etimestr = etime.getElapsedString(origin_time,process_time)
         pager['elapsed_time'] = etimestr
         #pager['tsunami'] = get_tsunami_info(self._eventcode,self._event_dict['magnitude'])
         #pager['ccode'] = get_epicenter_ccode(self._event_dict['lat'],self._event_dict['lon'])
-        localtime = get_local_time(edict['event_timestamp'],edict['lat'],edict['lon'])
+        localtime = get_local_time(self._event_dict['event_timestamp'],
+                                   self._event_dict['lat'],self._event_dict['lon'])
         ltimestr = localtime.strftime(DATETIMEFMT)
         pager['local_time_string'] = ltimestr
 
@@ -101,19 +105,19 @@ class PagerData(object):
 
     def _setEvent(self):
         event = OrderedDict()
-        event['time'] = self._edict['event_timestamp']
-        event['lat'] = self._edict['lat']
-        event['lon'] = self._edict['lon']
-        event['depth'] = self._edict['depth']
-        event['magnitude'] = self._edict['magnitude']
+        event['time'] = self._event_dict['event_timestamp']
+        event['lat'] = self._event_dict['lat']
+        event['lon'] = self._event_dict['lon']
+        event['depth'] = self._event_dict['depth']
+        event['magnitude'] = self._event_dict['magnitude']
 
         return event
 
     def _setShakeInfo(self):
         shakeinfo = OrderedDict()
-        shakeinfo['shake_version'] = self._sdict['shakemap_version']
-        shakeinfo['shake_code_version'] = self._sdict['code_version']
-        shakeinfo['shake_time'] = self._sdict['process_timestamp']
+        shakeinfo['shake_version'] = self._shake_dict['shakemap_version']
+        shakeinfo['shake_code_version'] = self._shake_dict['code_version']
+        shakeinfo['shake_time'] = self._shake_dict['process_timestamp']
 
         return shakeinfo
 
@@ -124,7 +128,7 @@ class PagerData(object):
                   '100-1000':'orange',
                   '1000-10000':'red',
                   '10000-100000':'red',
-                  '100000-1000000':'red'}
+                  '100000-10000000':'red'}
         leveldict = {'green':0,
                      'yellow':1,
                      'orange':2,
@@ -143,14 +147,14 @@ class PagerData(object):
         
         #Create the fatality alert level
         fat_gvalue = self._fatmodel.getCombinedG(self._fatmodel_results)
-        fatality = OrderedDict([('type','fatality')
+        fatality = OrderedDict([('type','fatality'),
                                 ('units','fatalities'),
                                 ('gvalue',fat_gvalue),
                                 ('summary',is_fat_summary),
                                 ('level',fatlevel),
                                 ])
         bins = []
-        fatprobs = self._fatmodel.getProbabilities(self._fatmodel_results,gvalue)
+        fatprobs = self._fatmodel.getProbabilities(self._fatmodel_results,fat_gvalue)
         for prange,pvalue in fatprobs.items():
             color = colors[prange]
             rmin,rmax = prange.split('-')
@@ -164,14 +168,14 @@ class PagerData(object):
 
         #Create the economic alert level
         eco_gvalue = self._ecomodel.getCombinedG(self._ecomodel_results)
-        economic = OrderedDict([('type','economic')
+        economic = OrderedDict([('type','economic'),
                                 ('units','USD'),
                                 ('gvalue',eco_gvalue),
                                 ('summary',is_eco_summary),
                                 ('level',ecolevel),
                                 ])
         bins = []
-        ecoprobs = self._ecomodel.getProbabilities(self._ecomodel_results,gvalue)
+        ecoprobs = self._ecomodel.getProbabilities(self._ecomodel_results,eco_gvalue)
         for prange,pvalue in ecoprobs.items():
             color = colors[prange]
             rmin,rmax = prange.split('-')
@@ -190,12 +194,12 @@ class PagerData(object):
         exposure['mmi'] = list(range(1,11))
         exposure['aggregated_exposure'] = list(self._exposure['TotalExposure'])
         country_exposures = []
-        for ccode,exposure in self._exposure.items():
+        for ccode,exparray in self._exposure.items():
             if ccode == 'TotalExposure':
                 continue
             expdict = OrderedDict()
             expdict['country_code'] = ccode
-            expdict['exposure'] = list(exposure)
+            expdict['exposure'] = list(exparray)
             country_exposures.append(expdict)
         exposure['country_exposures'] = country_exposures
         return exposure
@@ -205,12 +209,12 @@ class PagerData(object):
         exposure['mmi'] = list(range(1,11))
         exposure['aggregated_exposure'] = list(self._econ_exposure['TotalEconomicExposure'])
         country_exposures = []
-        for ccode,exposure in self._econ_exposure.items():
+        for ccode,exparray in self._econ_exposure.items():
             if ccode == 'TotalEconomicExposure':
                 continue
             expdict = OrderedDict()
             expdict['country_code'] = ccode
-            expdict['exposure'] = list(exposure)
+            expdict['exposure'] = list(exparray)
             country_exposures.append(expdict)
         exposure['country_exposures'] = country_exposures
         return exposure
@@ -251,8 +255,8 @@ class PagerData(object):
         #organize the semi-empirical model results
         semimodel = OrderedDict()
         semimodel['fatalities'] = self._semi_loss
-        semimodel['residental_fatalities'] = self._resfat
-        semimodel['non_residental_fatalities'] = self._resfat
+        semimodel['residental_fatalities'] = self._res_fat
+        semimodel['non_residental_fatalities'] = self._non_res_fat
         model_results['semi_empirical_fatalities'] = semimodel
 
         return model_results
@@ -260,12 +264,12 @@ class PagerData(object):
     def _getHistoricalEarthquakes(self):
         homedir = os.path.dirname(os.path.abspath(__file__)) #where is this file?
         expocat = ExpoCat.fromDefault()
-        clat,clon = self._edict['lat'],self._edict['lon']
+        clat,clon = self._event_dict['lat'],self._event_dict['lon']
         inbounds = expocat.selectByRadius(clat,clon,EVENT_RADIUS)
         maxmmi = self._pagerdict['pager']['maxmmi']
         nmmi = self._nmmi
         deaths = self._fatmodel_results['TotalFatalities']
-        etime = self._edict['event_timestamp']
+        etime = self._event_dict['event_timestamp']
         eventlist = inbounds.getHistoricalEvents(maxmmi,nmmi,clat,clon)
         return eventlist
             
