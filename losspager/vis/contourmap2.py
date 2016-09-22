@@ -15,7 +15,6 @@ from cartopy.io.img_tiles import StamenTerrain  # baselayer map
 
 from mapio.shake import ShakeGrid
 from mapio.gdal import GDALGrid
-from mapio.cartopycity import CartopyCities
 from mapio.grid2d import Grid2D
 
 from shapely.geometry import shape as sShape
@@ -27,6 +26,7 @@ import fiona
 from descartes import PolygonPatch
 from scipy.ndimage import gaussian_filter
 
+from impactutils.mapping.cartopycity import CartopyCities
 from impactutils.colors.cpalette import ColorPalette
 from impactutils.textformat.text import round_to_nearest
 from impactutils.mapping.scalebar import draw_scale
@@ -196,7 +196,7 @@ def draw_contour(shakefile,popfile,oceanfile,cityfile,outfilename,make_png=False
     oceanshapes = _clip_bounds(bbox,oceanfile)
 
     #load the cities data, limit to cities within shakemap bounds
-    allcities = CartopyCities.loadFromGeoNames(cityfile)
+    allcities = CartopyCities.fromDefault()
     cities = allcities.limitByBounds((gd.xmin,gd.xmax,gd.ymin,gd.ymax))
 
     # Define ocean/land masks to do the contours, since we want different contour line styles over land and water.

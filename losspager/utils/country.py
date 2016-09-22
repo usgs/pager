@@ -10,8 +10,8 @@ import numpy as np
 class Country(object):
     def __init__(self):
         homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
-        csvfile = os.path.abspath(os.path.join(homedir,'..','data','countries.csv'))
-        self._loadFromCSV(csvfile)        
+        excelfile = os.path.abspath(os.path.join(homedir,'..','data','countries.xlsx'))
+        self._loadFromExcel(excelfile)        
     
     def getUSCode(self,code):
         """Handle US-region specific codes for California, Eastern US, and Western US.
@@ -25,6 +25,11 @@ class Country(object):
             return 840
         else:
             return code
+
+    def _loadFromExcel(self,excelfile):
+        self._dataframe = pd.read_excel(excelfile)
+        idx = pd.isnull(self._dataframe['Name'])
+        self._dataframe.loc[idx,'Name'] = self._dataframe['LongName'][idx]
         
     def _loadFromCSV(self,csvfile):
         """Load from a CSV file containing five columns: LongName,ISO2,ISO3,ISON,Name.
@@ -70,6 +75,7 @@ class Country(object):
            - Three letter ISO 3166 country code (JPN,USA, etc.)
            - Numerical ISO 3166 country code (392,840, etc.)
            - Name or name fragment (Japan,united states of america, etc.)
+           
         :returns:
           Dictionary containing the following:
             - Name: Short name (i.e., Bolivia)
@@ -77,6 +83,7 @@ class Country(object):
             - ISO2: Two letter ISO country code (BO)
             - ISO3: Two letter ISO country code (BOL)
             - ISON: Numeric ISO country code (68)
+            - Population Number of people inside the country.
           or None if the input value does not match any known country data.
         
         """

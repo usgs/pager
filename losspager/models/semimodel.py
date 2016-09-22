@@ -269,19 +269,9 @@ def get_time_of_day(dtime,lon):
         timeofday = 'night'
     return (timeofday,event_year,event_hour)
 
-def make_test_semi_model(invfile,colfile,casfile,workfile,growthfile,ccode,timeofday,density,popvalue,mmi):
+def make_test_semi_model(ccode,timeofday,density,popvalue,mmi):
     """Run the semi-empirical model for a single value of input.  Intended for testing purposes.
 
-    :param invfile:
-      HDF inventory file (see SemiEmpiricalFatality.loadFromFiles())
-    :param colfile:
-      HDF collapse file (see SemiEmpiricalFatality.loadFromFiles())
-    :param casfile:
-      HDF casualty file (see SemiEmpiricalFatality.loadFromFiles())
-    :param workfile:
-      HDF workforce file (see SemiEmpiricalFatality.loadFromFiles())
-    :param growthfile:
-      HDF population growth file (see SemiEmpiricalFatality.loadFromFiles())
     :param ccode:
       Two letter ISO country code ('US', 'JP', etc.) to be used to extract inventory, collapse rates, etc.
     :param timeofday:
@@ -356,7 +346,7 @@ def make_test_semi_model(invfile,colfile,casfile,workfile,growthfile,ccode,timeo
         urbgrid.save(urbfile)
         mmigrid.save(shakefile)
         
-        semi = SemiEmpiricalFatality.loadFromFiles(invfile,colfile,casfile,workfile,growthfile)
+        semi = SemiEmpiricalFatality.fromDefault()
         semi.setGlobalFiles(popfile,popyear,urbfile,isofile)
         t,resfat,nonresfat = semi.getLosses(shakefile)
         popsum = 0
@@ -431,6 +421,44 @@ class SemiEmpiricalFatality(object):
         self._workforce = workforce
         self._popgrowth = growth
         self._country = Country()
+
+    @classmethod
+    def fromDefault(cls):
+        homedir = os.path.dirname(os.path.abspath(__file__)) #where is this module?
+        inventory_file = os.path.join(homedir,'..','data','semi_inventory.hdf')
+        collapse_file = os.path.join(homedir,'..','data','semi_collapse_mmi.hdf')
+        casualty_file = os.path.join(homedir,'..','data','semi_casualty.hdf')
+        workforce_file = os.path.join(homedir,'..','data','semi_workforce.hdf')
+        return cls.fromFiles(inventory_file,collapse_file,casualty_file,workforce_file)
+    
+    @classmethod
+    def fromFiles(cls,inventory_file,collapse_file,casualty_file,workforce_file):
+        """Create SemiEmpiricalFatality object from a number of input files.
+
+        :param inventory_file:
+          HDF5 file containing Semi-Empirical building inventory data in a Pandas Panel. (described in __init__).
+        :param collapse_file:
+          HDF5 file containing Semi-Empirical collapse rate data  in a Pandas Panel. (described in __init__).
+        :param casualty_file:
+          HDF5 file containing Semi-Empirical casualty rate data in a Pandas Panel.(described in __init__).
+        :param workforce_file:
+          HDF5 file containing Semi-Empirical workforce data in a Pandas Panel. (described in __init__).
+        :param growth_file:
+          Excel spreadsheet containing population growth rate data (described in PopulationGrowth.fromUNSpreadsheet()).
+        :returns:
+          SemiEmpiricalFatality object.
+        """
+        #turn the inventory,collapse, and casualty spreadsheets into Panels...
+        inventory = pd.read_hdf(inventory_file)
+        collapse = pd.read_hdf(collapse_file)
+        casualty = pd.read_hdf(casualty_file)
+        workforce = pd.read_hdf(workforce_file)
+        workforce = workforce.Workforce #extract the one dataframe from the Panel
+
+        #read the growth spreadsheet into a PopulationGrowth object...
+        popgrowth = PopulationGrowth.fromDefault()
+
+        return cls(inventory,collapse,casualty,workforce,popgrowth)
 
     def setGlobalFiles(self,popfile,popyear,urbanfile,isofile):
         """Set the global data files (population,urban/rural, country code) for use of model with ShakeMaps.
@@ -556,36 +584,8 @@ class SemiEmpiricalFatality(object):
         nresrow = nresrow[nresrow > 0]
 
         return (resrow,nresrow)
-        
-    @classmethod
-    def loadFromFiles(cls,inventory_file,collapse_file,casualty_file,workforce_file,
-                      growth_file):
-        """Create SemiEmpiricalFatality object from a number of input files.
 
-        :param inventory_file:
-          HDF5 file containing Semi-Empirical building inventory data in a Pandas Panel. (described in __init__).
-        :param collapse_file:
-          HDF5 file containing Semi-Empirical collapse rate data  in a Pandas Panel. (described in __init__).
-        :param casualty_file:
-          HDF5 file containing Semi-Empirical casualty rate data in a Pandas Panel.(described in __init__).
-        :param workforce_file:
-          HDF5 file containing Semi-Empirical workforce data in a Pandas Panel. (described in __init__).
-        :param growth_file:
-          Excel spreadsheet containing population growth rate data (described in PopulationGrowth.loadFromUNSpreadsheet()).
-        :returns:
-          SemiEmpiricalFatality object.
-        """
-        #turn the inventory,collapse, and casualty spreadsheets into Panels...
-        inventory = pd.read_hdf(inventory_file)
-        collapse = pd.read_hdf(collapse_file)
-        casualty = pd.read_hdf(casualty_file)
-        workforce = pd.read_hdf(workforce_file)
-        workforce = workforce.Workforce #extract the one dataframe from the Panel
-
-        #read the growth spreadsheet into a PopulationGrowth object...
-        popgrowth = PopulationGrowth.loadFromUNSpreadsheet(growth_file)
-
-        return cls(inventory,collapse,casualty,workforce,popgrowth)
+    
     
     def getLosses(self,shakefile):
         """Calculate number of fatalities using semi-empirical approach.
@@ -662,6 +662,8 @@ class SemiEmpiricalFatality(object):
         #loop over countries
         ucodes = np.unique(isodata)
         for ucode in ucodes:
+            if ucode == 0:
+                continue
             res_fatal_by_btype = {}
             nonres_fatal_by_btype = {}
 

@@ -36,9 +36,11 @@ def test():
         mmigrid = shakemap.getLayer('mmi')
         pc = PagerCities(cities,mmigrid)
         rows = pc.getCityTable()
+        print('Testing that number of cities retrieved is consistent...')
         assert len(rows) == lengths[ic]
         assert rows.iloc[0]['name'] == first_city[ic]
         assert rows.iloc[-1]['name'] == last_city[ic]
+        print('Passed.')
         ic += 1
     
 if __name__ == '__main__':

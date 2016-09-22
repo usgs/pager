@@ -51,8 +51,8 @@ def test():
         popfile = os.path.join(homedir,'..','data','eventdata',event,'%s_gpw.flt' % event)
         isofile = os.path.join(homedir,'..','data','eventdata',event,'%s_isogrid.bil' % event)
     
-        growth = PopulationGrowth.loadFromUNSpreadsheet(excelfile)
-        exp = Exposure(popfile,2012,isofile,growth)
+        growth = PopulationGrowth.fromDefault()
+        exp = Exposure(popfile,2012,isofile)
         results = exp.calcExposure(shakefile)
         cmpexposure = [0,0,1817,1767260,5840985,5780298,2738374,1559657,4094,0]
         np.testing.assert_almost_equal(cmpexposure,results['TotalExposure'])

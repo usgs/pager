@@ -7,10 +7,13 @@ import numpy as np
 
 #stdlib imports
 from xml.dom import minidom
+import re
+import os.path
 
 #local imports
 from .exposure import Exposure
 from .emploss import EmpiricalLoss
+from .growth import PopulationGrowth
 from losspager.utils.country import Country
 
 GLOBAL_GDP = 16100 #from https://en.wikipedia.org/wiki/Gross_world_product
@@ -25,13 +28,19 @@ class GDP(object):
           DataFrame({'Country Code':['AFG'],
                      '1960':[59.78768071],
                      '1961':[59.89003694],})
-          The above contains the GDP values for Afghanistan for 1960 and 1961.
+          The above contains the GDP values for Afghanistan for 1960 and 196
         """
         self._dataframe = dataframe
         self._country = Country()
 
     @classmethod
-    def loadFromWorldBank(cls,excelfile):
+    def fromDefault(cls):
+        homedir = os.path.dirname(os.path.abspath(__file__)) #where is this module?
+        excelfile = os.path.join(homedir,'..','data','API_NY.GDP.PCAP.CD_DS2_en_excel_v2.xls')
+        return cls.fromWorldBank(excelfile)
+        
+    @classmethod
+    def fromWorldBank(cls,excelfile):
         """Read in Excel data from the World Bank containing per capita GDP values for all countries in the world.
         Taken from: http://data.worldbank.org/indicator/NY.GDP.PCAP.CD
         
@@ -51,7 +60,7 @@ class GDP(object):
         :param year:
           Year of desired GDP value.  If this year is before the earliest year in the data source, 
           the earliest GDP value will be used. If this year is after the latest year in the data source, 
-          the latest GDP value will be used.
+          the latest non-NaN GDP value will be used.
         :returns:
           GDP value corresponding to country code and year, unless country code is not found, in which case
           a default global GDP value will be returned.
@@ -76,15 +85,18 @@ class GDP(object):
                 if res is not None:
                     years.append(res.group())
             if yearstr < min(years):
-                gdp = row[min(years)]
+                #assume that the years in the dataframe are sequential and increasing to the right
+                #get the first non-null GDP value
+                gdp = row[row.notnull()][0]
             else:
-                gdp = row[max(years)]
+                #get the last non-null GDP value
+                gdp = row[row.notnull()][-1]
 
         return gdp
         
 
 class EconExposure(Exposure):
-    def __init__(self,popfile,popyear,isofile,popgrowth,gdpfile,econxml):
+    def __init__(self,popfile,popyear,isofile):
         """Create instance of EconExposure class (subclass of Exposure, and shares methods of that class.)
 
         :param popfile:
@@ -93,17 +105,12 @@ class EconExposure(Exposure):
           Integer indicating year when population data is valid.
         :param isofile:
           Any GMT or ESRI style grid file supported by MapIO, containing country code data (ISO 3166-1 numeric).
-        :param popgrowth:
-          PopulationGrowth() instance.
-        :param gdpfile:
-          Excel spreadsheet as defined in documentation for GDP class.
-        :param econxml:
-          Economic loss XML file as described in EmpiricalLoss.loadFromXML().
         """
-        self._emploss = EmpiricalLoss.loadFromXML(econxml)
-        self._gdp = GDP.loadFromWorldBank(gdpfile)
+        self._emploss = EmpiricalLoss.fromDefaultEconomic()
+        self._gdp = GDP.fromDefault()
         self._econpopgrid = None
-        super(EconExposure,self).__init__(popfile,popyear,isofile,popgrowth)
+        popgrowth = PopulationGrowth.fromDefault()
+        super(EconExposure,self).__init__(popfile,popyear,isofile)
 
     def getEconPopulationGrid(self):
         """Return the internal economic exposure population grid, created during calcExposure().

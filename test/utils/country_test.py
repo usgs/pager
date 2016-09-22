@@ -20,7 +20,9 @@ from losspager.utils.country import Country
 def test():
     homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
     countryfile = os.path.abspath(os.path.join(homedir,'..','..','data','countries.csv'))
-    testdict = {'ISON': 840, 'ISO3': 'USA', 'ISO2': 'US', 'LongName': 'United States', 'Name': 'United States'}
+    testdict = {'ISON': 840, 'ISO3': 'USA', 
+                'ISO2': 'US', 'LongName': 'United States', 
+                'Name': 'United States', 'Population': 324515000}
 
     print('Test creating Country object from CSV file...')
     country = Country()

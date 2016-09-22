@@ -7,10 +7,12 @@ import os.path
 import sys
 import pprint
 import locale
+import json
 
 #third party imports
 import pandas as pd
 import numpy as np
+from mapio.shake import getHeaderData
 
 #local imports
 from losspager.models.exposure import Exposure
@@ -21,6 +23,7 @@ from losspager.models.growth import PopulationGrowth
 from losspager.utils.country import Country
 
 COUNTRY = Country()
+TIMEFMT = '%Y-%m-%d %H:%M:%S'
 
 def pandify_semi(fatbystruct):
     """Turn the fatalities by structure (either residential or non-residential) into DataFrame suitable for printing.
@@ -79,14 +82,22 @@ def pandify_exposure(exposure,human_readable=False):
             rows['Country Code'].append(ccode)
         for arrvalue,mmicol in zip(array,mmi):
             rows[mmicol].append(int(arrvalue))
-    df = pd.DataFrame(rows,columns=columns,dtype=np.int32)
+    df = pd.DataFrame(rows,columns=columns,dtype=np.int64)
     df = df.set_index('Country Code')
 
     #shuffle the rows so that they are sorted by country codes, then total at the end
     ccols = df.index.tolist()
-    ccols.remove('TotalExposure')
+    is_economic = False
+    if ccols.count('TotalExposure'):
+        ccols.remove('TotalExposure')
+    if ccols.count('TotalEconomicExposure'):
+        is_economic = True
+        ccols.remove('TotalEconomicExposure')
     ccols.sort()
-    ccols += ['TotalExposure']
+    if is_economic:
+        ccols += ['TotalEconomicExposure']
+    else:
+        ccols += ['TotalExposure']
     df = df.reindex(ccols)
     
     if human_readable:
@@ -126,7 +137,7 @@ def pandify_losses(lossdict,losstype='fatality',human_readable=False):
         else:
             rows['Country Code'].append(ccode)
         rows[losscol].append(lossvalue)
-    df = pd.DataFrame(rows,columns=columns,dtype=np.int32)
+    df = pd.DataFrame(rows,columns=columns,dtype=np.uint64)
     df = df.set_index('Country Code')
     #shuffle the rows so that they are sorted by country codes, then total at the end
     ccols = df.index.tolist()
@@ -143,58 +154,52 @@ def pandify_losses(lossdict,losstype='fatality',human_readable=False):
     return df
                 
 
-def main(pargs,configfile):
-    #parse config file
-    config = configparser.ConfigParser()
-    config.read(configfile)
-
-    #Make sure MODEL_DATA_FILES section exists
-    required_files = ['population_file','iso_file','growth_file','gdp_file',
-                      'fatality_file','economic_file']
-    if 'MODEL_DATA_FILES' not in config.sections():
-        print('Config file %s missing [MODEL_DATA_FILES] section.  Exiting.' % configfile)
-        sys.exit(1)
-
-    #make sure all files have been listed
-    notfound = set(required_files) - set(config['MODEL_DATA_FILES'].keys())
-    if len(notfound):
-        print('Config file %s is missing required files:' % configfile)
-        for n in notfound:
-            print('\t%s' % n)
-        sys.exit(1)
-
-    #Make sure that popyear exists
-    popyear = None
-    try:
-        popyear = int(config['MODEL_PARAMS']['population_year'])
-    except:
-        print('Config file %s is missing or has invalid population_year value' % configfile)
-        sys.exit(1)
-        
-    #make sure all files actually exist
-    notfiles = []
-    for key,value in config['MODEL_DATA_FILES'].items():
-        if not os.path.isfile(value):
-            notfiles.append((key,value))
-    if len(notfiles):
-        print('Some of the files specified in config file %s are invalid' % configfile)
-        for n in notfiles:
-            print('%s: %s NOT FOUND' % (n[0],n[1]))
-        sys.exit(1)
-
+def main(pargs,config):
     #Make sure grid.xml file exists
     if not os.path.isfile(pargs.gridfile):
         print('ShakeMap Grid file %s does not exist.' % pargs.gridfile)
         sys.exit(1)
-
-    #Now we can start running the models
+    
+    #get all the basic event information and print it, if requested
+    shake_tuple = getHeaderData(pargs.gridfile)
+    etime = shake_tuple[1]['event_timestamp']
+    elat = shake_tuple[1]['lat']
+    elon = shake_tuple[1]['lon']
+    edepth = shake_tuple[1]['depth']
+    emag = shake_tuple[1]['magnitude']
+    eid = shake_tuple[1]['event_id']
+    location = shake_tuple[1]['event_description']
+    if args.eventinfo:
+        print('Event Information:')
+        print('Location : %s' % location)
+        print('Time : %s' % etime.strftime(TIMEFMT))
+        print('Latitude : %.4f' % elat)
+        print('Longitude : %.4f' % elon)
+        print('Depth : %.1f' % edepth)
+        print('Magnitude : %.1f' % emag)
+        print('Event ID : %s' % eid)
+    
+    #get the year of the event
+    event_year = shake_tuple[1]['event_timestamp'].year
+    
+    #find the population data collected most closely to the event_year
+    pop_year = None
+    tmin = 10000000
+    popfile = None
+    for popdict in config['model_data']['population_data']:
+        popyear = popdict['population_year']
+        popgrid = popdict['population_grid']
+        if not os.path.isfile(popgrid):
+            print('Population grid file %s does not exist.' % popfile)
+            sys.exit(1)
+        if abs(popyear-event_year) < tmin:
+            tmin = abs(popyear-event_year)
+            pop_year = popyear
+            popfile = popgrid
 
     #Get exposure results
-    growth = PopulationGrowth.loadFromUNSpreadsheet(config['MODEL_DATA_FILES']['growth_file'])
-    popfile = config['MODEL_DATA_FILES']['population_file']
-    isofile = config['MODEL_DATA_FILES']['iso_file']
-    gdpfile = config['MODEL_DATA_FILES']['gdp_file']
-    expomodel = Exposure(popfile,2012,isofile,growth)
+    isofile = config['model_data']['country_grid']
+    expomodel = Exposure(popfile,pop_year,isofile)
     exposure = expomodel.calcExposure(pargs.gridfile)
     expdf = pandify_exposure(exposure,human_readable=pargs.readable)
     print('Population Exposure to Shaking:\n')
@@ -203,8 +208,7 @@ def main(pargs,configfile):
     
     #get fatality results, if requested
     if pargs.fatalities:
-        fatfile = config['MODEL_DATA_FILES']['fatality_file']
-        fatmodel = EmpiricalLoss.loadFromXML(fatfile)
+        fatmodel = EmpiricalLoss.fromDefaultFatality()
         fatdict = fatmodel.getLosses(exposure)
         fatdf = pandify_losses(fatdict,losstype='fatality',human_readable=pargs.readable)
         print('Fatalities Due to Shaking:\n')
@@ -213,10 +217,12 @@ def main(pargs,configfile):
     
     #get economic results, if requested
     if pargs.econloss:
-        ecofile = config['MODEL_DATA_FILES']['economic_file']
-        econexpmodel = EconExposure(popfile,popyear,isofile,growth,gdpfile,ecofile)
-        ecomodel = EmpiricalLoss.loadFromXML(ecofile)
+        econexpmodel = EconExposure(popfile,popyear,isofile)
+        ecomodel = EmpiricalLoss.fromDefaultEconomic()
         econexposure = econexpmodel.calcExposure(pargs.gridfile)
+        econexpdf = pandify_exposure(econexposure,human_readable=pargs.readable)
+        print('Population Economic Exposure to Shaking:\n')
+        print(econexpdf)
         ecodict = ecomodel.getLosses(econexposure)
         ecodf = pandify_losses(ecodict,losstype='economic',human_readable=pargs.readable)
         print('Dollar Losses Due to Shaking:\n')
@@ -224,13 +230,11 @@ def main(pargs,configfile):
 
     #Get semi-empirical losses, if requested
     if pargs.semiloss:
-        invfile = config['MODEL_DATA_FILES']['semi_inventory_file']
-        colfile = config['MODEL_DATA_FILES']['semi_collapse_file']
-        fatfile = config['MODEL_DATA_FILES']['semi_casualty_file']
-        workfile = config['MODEL_DATA_FILES']['semi_workforce_file']
-        growthfile = config['MODEL_DATA_FILES']['growth_file']
-        urbanfile = config['MODEL_DATA_FILES']['urban_rural_file']
-        semi = SemiEmpiricalFatality.loadFromFiles(invfile,colfile,fatfile,workfile,growthfile)
+        urbanfile = config['model_data']['urban_rural_grid']
+        if not os.path.isfile(urbanfile):
+            print('Urban-rural grid file %s does not exist.' % urbanfile)
+            sys.exit(1)
+        semi = SemiEmpiricalFatality.fromDefault()
         semi.setGlobalFiles(popfile,popyear,urbanfile,isofile)
         semiloss,resfat,nonresfat = semi.getLosses(pargs.gridfile)
         print('Fatalities according to Semi-Empirical model: %i\n' % semiloss)
@@ -245,19 +249,28 @@ def main(pargs,configfile):
 if __name__ == '__main__':
     desc = '''Calculate PAGER exposures and losses (fatalities or economic).
 
-    This program presumes that you have a configuration file in ~/.losspager/config.ini,
+    This program presumes that you have a configuration file in ~/.losspager/config.json,
     consisting of the following entries:
 
-    [MODEL_DATA_FILES]
-    population_file = /PATH/TO/POPULATION/FILE
-    iso_file = /PATH/TO/COUNTRY_CODE/FILE
-    growth_file = /PATH/TO/GROWTH/FILE
-    gdp_file = /PATH/TO/GDP/FILE
-    fatality_file = /PATH/TO/FATALITY_MODEL/FILE
-    economic_file = /PATH/TO/ECONOMIC_MODEL/FILE
-
-    [MODEL_PARAMS]
-    population_year = POPYEAR
+    {
+      "model_data": {
+        "population_data": [
+          {
+            "population_year": 2011,
+            "population_grid": "/Users/mhearne/pager/data/lspop2011.flt"
+          },
+          {
+            "population_year": 2012,
+            "population_grid": "/Users/mhearne/pager/data/lspop2011.flt"
+          }
+        ],
+        "country_grid": "/Users/mhearne/pager/data/isogrid.bil",
+        "urban_rural_grid": "/Users/mhearne/pager/data/glurextents.bil"
+    },
+      "database": {
+        "url": "sqlite:////Users/mhearne/.losspager/losspager_schema.db"
+      }
+    }
     
     
     Example usage:
@@ -309,16 +322,18 @@ if __name__ == '__main__':
     parser.add_argument('-f','--fatalities', action='store_true',
                         default=False, help='Calculate empirical fatalities')
     parser.add_argument('-e','--econloss', action='store_true',
-                        default=False, help='Calculate empirical economic losses')
+                        default=False, help='Calculate empirical economic exposures and losses')
     parser.add_argument('-s','--semiloss', action='store_true',
                         default=False, help='Calculate semi-empirical fatalities')
     parser.add_argument('-r','--readable', action='store_true',
                         default=False, help='Print all numbers in human readable format')
+    parser.add_argument('-i','--eventinfo', action='store_false',
+                        default=True, help='Turn off printing of basic event information')
     
     args = parser.parse_args()
 
     #get config file name, make sure it exists
-    configfilename = os.path.join(os.path.expanduser('~'),'.losspager','config.ini')
+    configfilename = os.path.join(os.path.expanduser('~'),'.losspager','config.json')
     if not os.path.isfile(configfilename):
         print('Config file could not be found at %s.  Exiting.\n\n' % configfilename)
         parser.print_help()
@@ -326,4 +341,19 @@ if __name__ == '__main__':
 
     pd.set_option('display.width', 1000)
     pd.set_option('precision', 2)
-    main(args,configfilename)
+
+    #parse config file
+    config = json.load(open(configfilename,'rt'))
+    
+    #Make sure model_data section exists
+    try:
+        config['model_data']['population_data'][0]['population_year']
+        config['model_data']['population_data'][0]['population_grid']
+        os.path.isfile(config['model_data']['country_grid'])
+        os.path.isfile(config['model_data']['urban_rural_grid'])
+    except:
+        errmsg = 'Config file %s is missing some or all of the required information.  See the help for the required format.\n'
+        sys.stderr.write(errmsg)
+        sys.exit(1)
+    
+    main(args,config)

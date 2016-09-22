@@ -4,7 +4,7 @@
 
 #third  party imports
 import numpy as np
-from mapio.basemapcity import BasemapCities
+from impactutils.mapping.city import Cities
 import pandas as pd
 
 #local imports
@@ -42,7 +42,7 @@ class PagerCities(object):
         lon = dataframe['lon'].as_matrix()
         mmi = mmigrid.getValue(lat,lon)
         dataframe['mmi'] = mmi
-        self._cities = BasemapCities(dataframe)
+        self._cities = Cities(dataframe)
 
     def getCityTable(self):
         """
