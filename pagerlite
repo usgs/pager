@@ -199,7 +199,7 @@ def main(pargs,config):
         popyear = popdict['population_year']
         popgrid = popdict['population_grid']
         if not os.path.isfile(popgrid):
-            print('Population grid file %s does not exist.' % popfile)
+            print('Population grid file %s does not exist.' % popgrid)
             sys.exit(1)
         if abs(popyear-event_year) < tmin:
             tmin = abs(popyear-event_year)
