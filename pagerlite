@@ -13,6 +13,7 @@ import json
 import pandas as pd
 import numpy as np
 from mapio.shake import getHeaderData
+import yaml
 
 #local imports
 from losspager.models.exposure import Exposure
@@ -24,6 +25,14 @@ from losspager.utils.country import Country
 
 COUNTRY = Country()
 TIMEFMT = '%Y-%m-%d %H:%M:%S'
+
+def read_config(configfile):
+    """Read in configuration parameters from config .py file.
+    
+    """
+    config = yaml.load(open(configfile,'rt'))
+    return config
+    
 
 def pandify_semi(fatbystruct):
     """Turn the fatalities by structure (either residential or non-residential) into DataFrame suitable for printing.
@@ -197,6 +206,10 @@ def main(pargs,config):
             pop_year = popyear
             popfile = popgrid
 
+    if pargs.debug:
+        sys.stderr.write('Population year: %i Population file: %s\n' % (pop_year,popfile))
+
+        
     #Get exposure results
     isofile = config['model_data']['country_grid']
     expomodel = Exposure(popfile,pop_year,isofile)
@@ -327,13 +340,15 @@ if __name__ == '__main__':
                         default=False, help='Calculate semi-empirical fatalities')
     parser.add_argument('-r','--readable', action='store_true',
                         default=False, help='Print all numbers in human readable format')
+    parser.add_argument('-d','--debug', action='store_true',
+                        default=False, help='Print debug information (mostly useful to developers)')
     parser.add_argument('-i','--eventinfo', action='store_false',
                         default=True, help='Turn off printing of basic event information')
     
     args = parser.parse_args()
 
     #get config file name, make sure it exists
-    configfilename = os.path.join(os.path.expanduser('~'),'.losspager','config.json')
+    configfilename = os.path.join(os.path.expanduser('~'),'.losspager','config.yml')
     if not os.path.isfile(configfilename):
         print('Config file could not be found at %s.  Exiting.\n\n' % configfilename)
         parser.print_help()
@@ -343,7 +358,7 @@ if __name__ == '__main__':
     pd.set_option('precision', 2)
 
     #parse config file
-    config = json.load(open(configfilename,'rt'))
+    config = read_config(configfilename)
     
     #Make sure model_data section exists
     try:
