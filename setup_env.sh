@@ -3,7 +3,7 @@
 VENV=pager
 PYVER=3.5
 
-DEPARRAY=(numpy scipy matplotlib jupyter rasterio fiona xlrd xlwt pandas cartopy shapely h5py gdal==1.11.4 descartes sphinx configobj pyproj pytest pytables pytest pytest-cov pytest-mpl cartopy)
+DEPARRAY=(numpy scipy matplotlib jupyter rasterio fiona xlrd xlwt pandas shapely h5py gdal==1.11.4 descartes sphinx configobj pyproj pytest pytables pytest pytest-cov pytest-mpl cartopy pyyaml)
 
 #turn off whatever other virtual environment user might be in
 source deactivate
