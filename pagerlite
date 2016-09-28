@@ -213,7 +213,10 @@ def main(pargs,config):
     #Get exposure results
     isofile = config['model_data']['country_grid']
     expomodel = Exposure(popfile,pop_year,isofile)
-    exposure = expomodel.calcExposure(pargs.gridfile)
+    try:
+        exposure = expomodel.calcExposure(pargs.gridfile)
+    except Exception as e:
+        sys.stderr.write('Failed to calculate exposure using {} as input:  "{}"\n'.format(pargs.gridfile,e))
     expdf = pandify_exposure(exposure,human_readable=pargs.readable)
     print('Population Exposure to Shaking:\n')
     print(expdf)
