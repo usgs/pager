@@ -217,6 +217,7 @@ def main(pargs,config):
         exposure = expomodel.calcExposure(pargs.gridfile)
     except Exception as e:
         sys.stderr.write('Failed to calculate exposure using {} as input:  "{}"\n'.format(pargs.gridfile,e))
+        sys.exit(0)
     expdf = pandify_exposure(exposure,human_readable=pargs.readable)
     print('Population Exposure to Shaking:\n')
     print(expdf)

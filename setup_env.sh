@@ -3,7 +3,7 @@
 VENV=pager
 PYVER=3.5
 
-DEPARRAY=(numpy scipy matplotlib jupyter rasterio fiona xlrd xlwt pandas shapely h5py gdal==1.11.4 descartes sphinx configobj pyproj pytest pytables pytest pytest-cov pytest-mpl cartopy pyyaml)
+DEPARRAY=(numpy scipy matplotlib jupyter rasterio fiona xlrd xlwt pandas shapely h5py gdal descartes sphinx configobj pyproj pytest pytables pytest pytest-cov pytest-mpl cartopy pyyaml)
 
 #turn off whatever other virtual environment user might be in
 source deactivate
@@ -15,7 +15,7 @@ conda remove --name $VENV --all -y
 cd $CWD
     
 #create a new virtual environment called $VENV with the below list of dependencies installed into it
-conda create --name $VENV --yes --channel conda-forge python=3.5 ${DEPARRAY[*]} -y
+conda create --name $VENV --yes --channel conda-forge python=$PYVER ${DEPARRAY[*]} -y
 
 #activate the new environment
 source activate $VENV
@@ -25,12 +25,11 @@ source activate $VENV
 conda install -y psutil
 
 #do pip installs of those things that are not available via conda.
-#do pip installs of those things that are not available via conda.
 pip install 'SQLAlchemy==1.1.0b3' #installs any sqlalchemy greater than 1.1.0
 pip install SQLAlchemy-Utils
-pip -v install git+git://github.com/gem/oq-hazardlib.git
-pip install git+git://github.com/usgs/MapIO.git
-pip install git+git://github.com/usgs/earthquake-impact-utils.git
+pip -v install https://github.com/gem/oq-hazardlib/archive/master.zip
+pip install https://github.com/usgs/MapIO/archive/master.zip
+pip install https://github.com/usgs/earthquake-impact-utils/archive/master.zip
 pip install sphinx_rtd_theme
 pip install flake8
 pip install pep8-naming

@@ -601,13 +601,13 @@ class SemiEmpiricalFatality(object):
         #get shakemap geodict
         shakedict = ShakeGrid.getFileGeoDict(shakefile,adjust='res')
         #get population geodict
-        popdict = self._pop_class.getFileGeoDict(self._popfile)
+        popdict,t = self._pop_class.getFileGeoDict(self._popfile)
 
         #get country code geodict
-        isodict = self._iso_class.getFileGeoDict(self._isofile)
+        isodict,t = self._iso_class.getFileGeoDict(self._isofile)
 
         #get urban grid geodict
-        urbdict = self._urban_class.getFileGeoDict(self._urbanfile)
+        urbdict,t = self._urban_class.getFileGeoDict(self._urbanfile)
 
         #load all of the grids we need
         if popdict == shakedict == isodict == urbdict:
