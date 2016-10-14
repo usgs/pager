@@ -89,11 +89,12 @@ class Exposure(object):
         """
         #get shakemap geodict
         shakedict = ShakeGrid.getFileGeoDict(shakefile,adjust='res')
+            
         #get population geodict
-        popdict = self._pop_class.getFileGeoDict(self._popfile)
+        popdict,t = self._pop_class.getFileGeoDict(self._popfile)
 
         #get country code geodict
-        isodict = self._iso_class.getFileGeoDict(self._isofile)
+        isodict,t = self._iso_class.getFileGeoDict(self._isofile)
         
         if popdict == shakedict == isodict:
             #special case, probably for testing...
