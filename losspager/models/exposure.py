@@ -103,9 +103,12 @@ class Exposure(object):
             self._isogrid = self._iso_class.load(self._isofile)
         else:
             sampledict = popdict.getBoundsWithin(shakedict)
-            self._shakegrid = ShakeGrid.load(shakefile,samplegeodict=sampledict,resample=True,method='linear',adjust='res')
-            self._popgrid = self._pop_class.load(self._popfile,samplegeodict=sampledict,resample=False)
-            self._isogrid = self._iso_class.load(self._isofile,samplegeodict=sampledict,resample=True,method='nearest')
+            self._shakegrid = ShakeGrid.load(shakefile,samplegeodict=sampledict,resample=True,
+                                             method='linear',adjust='res')
+            self._popgrid = self._pop_class.load(self._popfile,samplegeodict=sampledict,
+                                                 resample=False,doPadding=True,padValue=np.nan)
+            self._isogrid = self._iso_class.load(self._isofile,samplegeodict=sampledict,
+                                                 resample=True,method='nearest',doPadding=True,padValue=0)
 
         mmidata = self._shakegrid.getLayer('mmi').getData()
         popdata = self._popgrid.getData()
