@@ -16,3 +16,4 @@ def get_file_type(file):
             pass
     else:
         return GMTGrid
+    return None

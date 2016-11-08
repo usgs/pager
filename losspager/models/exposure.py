@@ -95,6 +95,12 @@ class Exposure(object):
 
         #get country code geodict
         isodict,t = self._iso_class.getFileGeoDict(self._isofile)
+
+        #special case for very high latitude events that may be outside the bounds
+        #of our population data...
+        if not popdict.intersects(shakedict):
+            expdict = {'UK':np.zeros((10,)),'TotalExposure':np.zeros((10,))}
+            return expdict
         
         if popdict == shakedict == isodict:
             #special case, probably for testing...
