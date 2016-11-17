@@ -1,9 +1,14 @@
+#third party imports
 from scipy.special import erf
 import numpy as np
+import pandas as pd
+
+#local imports
 from losspager.models.emploss import EmpiricalLoss
 from losspager.models.econexposure import GDP
 from losspager.utils.country import Country
 from losspager.utils.mathutil import invphi
+from losspager.utils.region import PagerRegions
 from impactutils.textformat.text import set_num_precision
 
 GREEN_FAT_HIGH = 'There is a low likelihood of casualties.'
@@ -50,7 +55,24 @@ YELLOW_ECON_EQUAL = '[GDPCOMMENT]'
 ORANGE_ECON_EQUAL = '[GDPCOMMENT]'
 RED_ECON_EQUAL = '[GDPCOMMENT]'
 
+EPS = 1e-12 #if expected value is zero, take the log of this instead
+
 def get_gdp_comment(ecodict,ecomodel,econexposure,event_year):
+    """Create a comment on the GDP impact of a given event in the most impacted country.
+
+    :param ecodict:
+      Dictionary containing country code keys and integer population estimations of economic loss.
+    :param ecomodel:
+      Instance of the EmpiricalLoss class.
+    :param econexposure:
+      Dictionary containing country code (ISO2) keys, and values of
+      10 element arrays representing population exposure to MMI 1-10.
+      Dictionary will contain an additional key 'Total', with value of exposure across all countries.
+    :param event_year:
+      Year in which event occurred.
+    :returns:
+      A string which indicates what fraction of the country's GDP the losses represent.
+    """
     #get the gdp comment
     #get the G value for the economic losses
     eco_gvalue = ecomodel.getCombinedG(ecodict)
@@ -75,9 +97,9 @@ def get_gdp_comment(ecodict,ecomodel,econexposure,event_year):
                 dmax = emploss
                 dccode = ccode
     gdp_obj = GDP.fromDefault()
-    gdp = gdp_obj.getGDP(dccode,event_year)
+    gdp,outccode = gdp_obj.getGDP(dccode,event_year)
     country = Country()
-    cinfo = country.getCountry(dccode)
+    cinfo = country.getCountry(outccode)
     if cinfo is not None:
         pop = cinfo['Population']
     else:
@@ -86,8 +108,8 @@ def get_gdp_comment(ecodict,ecomodel,econexposure,event_year):
     if T == 0:
         return ''
     percent = erf(1/np.sqrt(2))
-    plow = round(np.exp(np.log(expected)-eco_gvalue * invphi(percent)))
-    phigh =round(np.exp(eco_gvalue * invphi(percent) + np.log(expected)))
+    plow = round(np.exp(np.log(max(expected,EPS))-eco_gvalue * invphi(percent)))
+    phigh =round(np.exp(eco_gvalue * invphi(percent) + np.log(max(expected,EPS))))
     if plow != 0:
         ptlow = int(plow*1e2/T)
     else:
@@ -119,6 +141,22 @@ def get_gdp_comment(ecodict,ecomodel,econexposure,event_year):
     
 
 def get_impact_comments(fatdict,ecodict,econexposure,event_year):
+    """Create comments for a given event, describing economic and human (fatality) impacts.
+
+    :param fatdict:
+      Dictionary containing country code keys and integer population estimations of human loss.
+    :param ecodict:
+      Dictionary containing country code keys and integer population estimations of economic loss.
+    :param econexposure:
+      Dictionary containing country code (ISO2) keys, and values of
+      10 element arrays representing population exposure to MMI 1-10.
+      Dictionary will contain an additional key 'Total', with value of exposure across all countries.
+    :param event_year:
+      Year in which event occurred.
+    :returns:
+      A tuple of two strings which describe the economic and human impacts.  The most impactful
+      of these will be the first string.  Under certain situations, the second comment could be blank.
+    """
     #first, figure out what the alert levels are for each loss result
     
     fatmodel = EmpiricalLoss.fromDefaultFatality()
@@ -192,4 +230,91 @@ def get_impact_comments(fatdict,ecodict,econexposure,event_year):
     impact1 = impact1.replace('\n',' ')
     impact2 = impact2.replace('\n',' ')
     return (impact1,impact2)
+
+def _add_dicts(d1,d2):
+    """Add two dictionaries of losses per building type together.  Dictionaries must contain identical keys.
+
+    :param d1:
+      Dictionary of losses by building type.
+    :param d2:
+      Dictionary of losses by building type.
+    :returns:
+      Pandas Series object with summed losses per building type.
+    """
+    #operating under assumption that both d1 and d2 have the same keys
+    df1 = pd.DataFrame(d1,index=['fats'])
+    df2 = pd.DataFrame(d2,index=['fats'])
+    df3 = df1 + df2
+    df4 = df3.sort_values('fats',axis=1,ascending=False)
+    return df4.loc['fats']
+
+def get_structure_comment(resfat,nonresfat,semimodel):
+    """Create a paragraph describing the vulnerability of buildings in the most impacted country.
+
+    :param resfat:
+      Dictionary of losses by building type in residential areas.
+    :param nonresfat:
+      Dictionary of losses by building type in non-residential areas.
+    :param semimodel:
+      Instance of SemiEmpiricalFatality class.
+    :returns:
+      Paragraph of text describing the vulnerability of buildings in the most impacted country.
+    """
+    maxccode = ''
+    maxfat = 0
+    ccodes = resfat.keys()
+    for ccode in ccodes:
+        resfatdict = resfat[ccode]
+        nonresfatdict = nonresfat[ccode]
+        resfatsum = np.array(list(resfatdict.values())).sum()
+        nonresfatsum = np.array(list(resfatdict.values())).sum()
+        fatsum = resfatsum + nonresfatsum
+        if fatsum >= maxfat:
+            maxfat = fatsum
+            maxccode = ccode
+
+    #get a pandas Series of all the unique building types in the 
+    #country of greatest impact, sorted by losses (high to low).
+    stypes = _add_dicts(resfat[maxccode],nonresfat[maxccode])
         
+    pregions = PagerRegions()
+    regioncode = pregions.getRegion(maxccode)
+    default = pregions.getComment(regioncode)
+    if len(stypes) == 0:
+        if default != '':
+            return default
+        else:
+            return 'There are likely to be no affected structures in this region.'
+
+    tstarts = ['W*','S*','C*','P*','RM*','MH','M*','A*','RE','RS*','DS*','UFB*','UCB','MS','TU','INF','UNK']
+    categories = []
+    btypes = []
+    for stype in stypes.index:
+        if stype in tstarts:
+            btypes.append(stype)
+            categories.append(stype)
+        else:
+            nc = 1
+            while nc <= len(stype):
+                ns = stype[0:nc] + '*'
+                if ns in tstarts and ns not in categories:
+                    btypes.append(stype)
+                    categories.append(ns)
+                    break
+                nc += 1
+        if len(btypes) == 2:
+            break
+
+    fmt1 = 'The predominant vulnerable building type is %s construction.'
+    fmt2 = 'The predominant vulnerable building types are %s and %s construction.'
+    if len(btypes) == 2:
+        b1 = semimodel.getBuildingDesc(btypes[0])
+        b2 = semimodel.getBuildingDesc(btypes[1])
+        if b1.strip() == b2.strip():
+            comment = fmt1 % (b1)
+        else:
+            regtext = fmt % (b1,b2)
+    else:
+        b1 = semimodel.getBuildingDesc(btypes[0])
+        regtext = fmt1 % b1
+    return default + '  ' + regtext

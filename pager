@@ -1,0 +1,181 @@
+#!/usr/bin/env python
+
+#stdlib imports
+import argparse
+import configparser
+import os.path
+import sys
+import pprint
+import locale
+import json
+
+#third party imports
+import pandas as pd
+import numpy as np
+from mapio.shake import getHeaderData
+import yaml
+
+#local imports
+from losspager.models.exposure import Exposure
+from losspager.models.econexposure import EconExposure
+from losspager.models.emploss import EmpiricalLoss
+from losspager.models.semimodel import SemiEmpiricalFatality
+from losspager.models.growth import PopulationGrowth
+from losspager.utils.country import Country
+from losspager.onepager.comment import get_impact_comments,get_structure_comment
+from losspager.io.pagerdata import PagerData
+
+COUNTRY = Country()
+TIMEFMT = '%Y-%m-%d %H:%M:%S'
+
+def read_config(configfile):
+    """Read in configuration parameters from config .py file.
+    
+    """
+    config = yaml.load(open(configfile,'rt'))
+    return config
+
+
+def main(pargs,config):
+    #Make sure grid.xml file exists
+    if not os.path.isfile(pargs.gridfile):
+        print('ShakeMap Grid file %s does not exist.' % pargs.gridfile)
+        sys.exit(1)
+    
+    #get all the basic event information and print it, if requested
+    shake_tuple = getHeaderData(pargs.gridfile)
+    etime = shake_tuple[1]['event_timestamp']
+    elat = shake_tuple[1]['lat']
+    elon = shake_tuple[1]['lon']
+    edepth = shake_tuple[1]['depth']
+    emag = shake_tuple[1]['magnitude']
+    eid = shake_tuple[1]['event_id']
+    location = shake_tuple[1]['event_description']
+    
+    #get the year of the event
+    event_year = shake_tuple[1]['event_timestamp'].year
+    
+    #find the population data collected most closely to the event_year
+    pop_year = None
+    tmin = 10000000
+    popfile = None
+    for popdict in config['model_data']['population_data']:
+        popyear = popdict['population_year']
+        popgrid = popdict['population_grid']
+        if not os.path.isfile(popgrid):
+            print('Population grid file %s does not exist.' % popgrid)
+            sys.exit(1)
+        if abs(popyear-event_year) < tmin:
+            tmin = abs(popyear-event_year)
+            pop_year = popyear
+            popfile = popgrid
+
+    if pargs.debug:
+        sys.stderr.write('Population year: %i Population file: %s\n' % (pop_year,popfile))
+
+        
+    #Get exposure results
+    isofile = config['model_data']['country_grid']
+    expomodel = Exposure(popfile,pop_year,isofile)
+    exposure = None
+    try:
+        exposure = expomodel.calcExposure(pargs.gridfile)
+    except Exception as e:
+        sys.stderr.write('Failed to calculate exposure using {} as input:  "{}"\n'.format(pargs.gridfile,e))
+        sys.exit(0)
+    
+    #get fatality results, if requested
+    fatmodel = EmpiricalLoss.fromDefaultFatality()
+    fatdict = fatmodel.getLosses(exposure)
+    
+    #get economic results, if requested
+    econexpmodel = EconExposure(popfile,popyear,isofile)
+    ecomodel = EmpiricalLoss.fromDefaultEconomic()
+    econexposure = econexpmodel.calcExposure(pargs.gridfile)
+    ecodict = ecomodel.getLosses(econexposure)
+    shakegrid = econexpmodel.getShakeGrid()
+
+    #Get semi-empirical losses, if requested
+    urbanfile = config['model_data']['urban_rural_grid']
+    if not os.path.isfile(urbanfile):
+        print('Urban-rural grid file %s does not exist.' % urbanfile)
+        sys.exit(1)
+    semi = SemiEmpiricalFatality.fromDefault()
+    semi.setGlobalFiles(popfile,popyear,urbanfile,isofile)
+    semiloss,resfat,nonresfat = semi.getLosses(pargs.gridfile)
+                  
+    #get all of the other components of PAGER
+    #get the fatality and economic comments
+    impact1,impact2 = get_impact_comments(fatdict,ecodict,econexposure,event_year)
+    structcomment = get_structure_comment(resfat,nonresfat,semi)
+
+    #figure out versioning later
+    pagerversion = 1
+    
+    doc = PagerData()
+    doc.setInputs(shakegrid,pagerversion,shakegrid.getEventDict()['event_id'])
+    doc.setExposure(exposure,econexposure)
+    doc.setModelResults(fatmodel,ecomodel,
+                        fatdict,ecodict,
+                        semiloss,resfat,nonresfat)
+    
+if __name__ == '__main__':
+    desc = '''Run PAGER loss models and create all PAGER products.
+
+    This program presumes that you have a configuration file in ~/.losspager/config.json,
+    consisting of the following entries:
+
+    model_data:
+      population_data:
+        - population_year: 1998
+          population_grid: /Users/user/pager/data/lspop1998.flt
+        - population_year: 2011
+          population_grid: /Users/user/pager/data/lspop2011.flt
+        - population_year: 2012
+          population_grid: /Users/user/pager/data/lspop2012.flt
+        - population_year: 2013
+          population_grid: /Users/user/pager/data/lspop2013.flt
+
+
+      country_grid: /Users/user/pager/data/isogrid.bil
+      urban_rural_grid: /Users/user/pager/data/glurextents.bil
+
+    database:
+        url: sqlite:////Users/user/.losspager/losspager_schema.db
+    
+    
+    Example usage:
+    %(prog)s grid.xml
+    '''
+    parser = argparse.ArgumentParser(description=desc,formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('gridfile',
+                        help='The path to a ShakeMap grid.xml file')
+    parser.add_argument('-d','--debug', action='store_true',
+                        default=False, help='Print debug information (mostly useful to developers)')
+    parser.add_argument('-i','--eventinfo', action='store_false',
+                        default=True, help='Turn off printing of basic event information')
+    
+    args = parser.parse_args()
+
+    #get config file name, make sure it exists
+    configfilename = os.path.join(os.path.expanduser('~'),'.losspager','config.yml')
+    if not os.path.isfile(configfilename):
+        print('Config file could not be found at %s.  Exiting.\n\n' % configfilename)
+        parser.print_help()
+        sys.exit(1)
+
+    #parse config file
+    config = read_config(configfilename)
+    
+    #Make sure model_data section exists
+    try:
+        config['model_data']['population_data'][0]['population_year']
+        config['model_data']['population_data'][0]['population_grid']
+        os.path.isfile(config['model_data']['country_grid'])
+        os.path.isfile(config['model_data']['urban_rural_grid'])
+    except:
+        errmsg = 'Config file %s is missing some or all of the required information.  See the help for the required format.\n'
+        sys.stderr.write(errmsg)
+        sys.exit(1)
+    
+    main(args,config)

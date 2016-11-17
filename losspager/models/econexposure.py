@@ -62,17 +62,23 @@ class GDP(object):
           the earliest GDP value will be used. If this year is after the latest year in the data source, 
           the latest non-NaN GDP value will be used.
         :returns:
-          GDP value corresponding to country code and year, unless country code is not found, in which case
-          a default global GDP value will be returned.
+          Tuple of: 
+            - GDP value corresponding to country code and year, unless country code is not found, in which case
+            a default global GDP value will be returned.
+            - The country code which is most applicable to the output GDP.  For example, if the GDP value chosen 
+              is the global value, then this country code will be None.  If the input country code is XF (California),
+              then the output country code will be 'US'.
         """
         #first make sure the ccode is valid...
         countrydict = self._country.getCountry(ccode)
         if countrydict is None:
-            return GLOBAL_GDP
+            return (GLOBAL_GDP,None)
         if countrydict['ISO2'] in ['XF','EU','WU']:
             ccode = 'USA'
+            outccode = 'US'
         else:
             ccode = countrydict['ISO3']
+            outccode = ccode
         yearstr = str(year)
         row = self._dataframe[self._dataframe['Country Code'] == ccode].iloc[0]
         if yearstr in row:
@@ -92,7 +98,7 @@ class GDP(object):
                 #get the last non-null GDP value
                 gdp = row[row.notnull()][-1]
 
-        return gdp
+        return (gdp,outccode)
         
 
 class EconExposure(Exposure):
@@ -149,7 +155,7 @@ class EconExposure(Exposure):
             if ccode == 'UK': #unknown
                 continue
             lossmodel = self._emploss.getModel(ccode)
-            gdp = self._gdp.getGDP(ccode,eventyear)
+            gdp,outccode = self._gdp.getGDP(ccode,eventyear)
             isocode = self._country.getCountry(ccode)['ISON']
             alpha = lossmodel.alpha
             econarray = exparray * gdp * alpha
