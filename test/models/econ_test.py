@@ -80,7 +80,7 @@ def test():
     expdict = econexp.calcExposure(shakefile)
     ecomodel = EmpiricalLoss.fromDefaultEconomic()
     lossdict = ecomodel.getLosses(expdict)
-    testdict = {'XF':23088376142}
+    testdict = {'XF':23172277187}
     assert lossdict['XF'] == testdict['XF']
     print('Passed calculating total economic losses for Northridge...')
 
@@ -89,7 +89,7 @@ def test():
     popdata = econexp.getEconPopulationGrid().getData()
     isodata = econexp.getCountryGrid().getData()
     ecogrid = ecomodel.getLossGrid(mmidata,popdata,isodata)
-    ecosum = 23088374816.38406
+    ecosum = 23172275857.095039
     assert np.nansum(ecogrid) == ecosum
     print('Passed creating a economic loss grid.')
 
@@ -102,7 +102,7 @@ def test():
     f.close()
     ecoshapes,toteco = ecomodel.getLossByShapes(mmidata,popdata,isodata,shapes,popdict)
     ecoshapes = sorted(ecoshapes,key=lambda shape:shape['properties']['dollars_lost'],reverse=True)
-    lalosses = 17378337638
+    lalosses = 17323352577
     for shape in ecoshapes:
         if shape['id'] == '312': #Los Angeles
             cname = shape['properties']['CITY_NAME']

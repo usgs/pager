@@ -71,9 +71,6 @@ class PagerData(object):
         self._pagerdict['model_results'] = self._setModelResults()
         self._pagerdict['historical_earthquakes'] = self._getHistoricalEarthquakes()
         
-
-        
-        
     def _setPager(self):
         pager = OrderedDict()
         process_time = datetime.utcnow()

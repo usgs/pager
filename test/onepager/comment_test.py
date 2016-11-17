@@ -13,9 +13,10 @@ sys.path.insert(0,pagerdir) #put this at the front of the system path, ignoring 
 import numpy as np
 
 #local imports
-from losspager.onepager.comment import get_impact_comments
+from losspager.models.semimodel import SemiEmpiricalFatality
+from losspager.onepager.comment import get_impact_comments,get_structure_comment
 
-def test():
+def test_impact():
     #both impacts are green
     tz_exp = np.array([0,0,0,102302926316,13976446978,9127080479,7567231,0,0,0])
     ug_exp = np.array([0,0,240215309,255785480321,33062696103,1965288263,0,0,0,0])
@@ -163,6 +164,18 @@ def test():
     impact2_c5 = 'Estimated economic losses are 1-10% GDP of Uganda.'
     assert impact1 == impact1_c5
     assert impact2 == impact2_c5
-    
+
+def test_structure():
+    resfat = {'IN':{'A1':434,'A2':837},
+              'NP':{'UFB':200,'W1':100}}
+    nonresfat = {'IN':{'A1':434,'A2':837},
+                 'NP':{'UFB':200,'W1':100}}
+    semimodel = SemiEmpiricalFatality.fromDefault()
+    structure_comment = get_structure_comment(resfat,nonresfat,semimodel)
+    cmpstr = 'Overall, the population in this region resides in structures that are vulnerable to earthquake shaking, though resistant structures exist.  The predominant vulnerable building type is adobe block with light roof construction.'
+    assert structure_comment == cmpstr
+
 if __name__ == '__main__':
-    test()
+    test_structure()
+    test_impact()
+    

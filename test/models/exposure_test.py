@@ -54,7 +54,7 @@ def test():
         growth = PopulationGrowth.fromDefault()
         exp = Exposure(popfile,2012,isofile)
         results = exp.calcExposure(shakefile)
-        cmpexposure = [0,0,1446,1792682,5861055,5761477,2715655,1556364,3806,0]
+        cmpexposure = [0,0,1817,1767260,5840985,5780298,2738374,1559657,4094,0]
         np.testing.assert_almost_equal(cmpexposure,results['TotalExposure'])
     print('Passed Northridge exposure check (with GPW data).')
         
