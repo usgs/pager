@@ -11,10 +11,13 @@ sys.path.insert(0,pagerdir) #put this at the front of the system path, ignoring 
 
 #third party imports 
 import numpy as np
+from impactutils.textformat.text import commify
 
 #local imports
 from losspager.models.semimodel import SemiEmpiricalFatality
-from losspager.onepager.comment import get_impact_comments,get_structure_comment
+from losspager.utils.expocat import ExpoCat
+from losspager.onepager.comment import get_impact_comments,get_structure_comment,get_secondary_hazards
+from losspager.onepager.comment import get_historical_comment,get_secondary_comment,SEARCH_RADIUS
 
 def test_impact():
     #both impacts are green
@@ -175,7 +178,36 @@ def test_structure():
     cmpstr = 'Overall, the population in this region resides in structures that are vulnerable to earthquake shaking, though resistant structures exist.  The predominant vulnerable building type is adobe block with light roof construction.'
     assert structure_comment == cmpstr
 
+def test_hazards():
+    clat = 0.37
+    clon = -79.94
+    mag = 7.8
+    expocat = ExpoCat.fromDefault()
+    minicat = expocat.selectByRadius(clat,clon,SEARCH_RADIUS)
+    hazards = get_secondary_hazards(minicat,mag)
+    comment = get_secondary_comment(clat,clon,mag)
+    for hazard in hazards:
+        print('Looking for %s in comment string...' % hazard)
+        assert comment.find(hazard) > -1
+    
+def test_historical():
+    clat = 0.37
+    clon = -79.94
+    expodict = {'EC':[0,0,115000,5238000,5971000,2085000,1760000,103000,0,0],
+                'TotalExposure':[0,0,115000,5238000,5971000,2085000,1760000,103000,0,0]}
+    fatdict = {'EC':98,
+               'TotalDeaths':98}
+    ccode = 'EC'
+    histcomment = get_historical_comment(clat,clon,7.8,expodict,fatdict,ccode)
+    expocat = ExpoCat.fromDefault()
+    minicat = expocat.selectByRadius(clat,clon,SEARCH_RADIUS)
+    df = minicat.getDataFrame()
+    df = df.sort_values(['TotalDeaths','MaxMMI','NumMaxMMI'],ascending=False)
+    assert histcomment.find(commify(int(df.iloc[0]['TotalDeaths']))) > -1
+    
 if __name__ == '__main__':
+    test_hazards()
+    test_historical()
     test_structure()
     test_impact()
     

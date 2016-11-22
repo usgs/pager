@@ -38,7 +38,7 @@ def test(outfolder=None):
         if not hasfolder:
             outfolder = tempfile.mkdtemp()
         outfile = os.path.join(outfolder,'output.pdf')
-        pngfile = draw_contour(shakefile,popfile,oceanfile,cityfile,outfile,make_png=True)
+        pngfile,mapcities = draw_contour(shakefile,popfile,oceanfile,cityfile,outfile,make_png=True)
         print('Output pdf is %s, output png is %s.' % (outfile,pngfile))
 
         assert os.path.isfile(pngfile) and os.path.isfile(outfile)
@@ -51,4 +51,5 @@ def test(outfolder=None):
      
 if __name__ == '__main__':
     warnings.filterwarnings("ignore")
-    test(outfolder=os.path.expanduser('~'))
+    outfolder = os.path.expanduser('~')
+    test(outfolder=outfolder)

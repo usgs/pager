@@ -27,9 +27,21 @@ def sort_data_frame(df,columns,ascending=True):
         df = df.sort_values(by=columns,ascending=ascending)
     return df
 
+def _flag_map_cities(rows,mapcities):
+    on_map = np.zeros(len(rows))
+    mapnames = mapcities._dataframe['name']
+    i = 0
+    for index,row in rows.iterrows():
+        if mapnames.isin([row['name']]).any():
+            on_map[i] = 1
+        i += 1
+
+    rows['on_map'] = on_map
+    return rows
+
 class PagerCities(object):
     def __init__(self,cities,mmigrid):
-        """Create a PagerCities object with a BasemapCities instance and a Grid2 object containing MMI data.
+        """Create a PagerCities object with a MapIO Cities instance and a Grid2 object containing MMI data.
 
         :param cities:
           BasemapCities instance.
@@ -44,7 +56,7 @@ class PagerCities(object):
         dataframe['mmi'] = mmi
         self._cities = Cities(dataframe)
 
-    def getCityTable(self):
+    def getCityTable(self,mapcities):
         """
         Return a list of cities suitable for the onePAGER table of cities.
         
@@ -55,8 +67,11 @@ class PagerCities(object):
         3. If N+M < 11, sort cities by inverse population, then select (up to) P= 11 - (M+N) cities that are not already in the list.  Combine
            list of P cities with list of N and list of M.
         4. Sort combined list of cities by inverse MMI and return.
-        
-        :returns: DataFrame of up to 11 cities, sorted by algorithm described above.
+
+        :param mapcities:
+          MapIO Cities instance which contains list of cities that have been rendered on PAGER exposure map.
+        :returns: DataFrame of up to 11 cities, sorted by algorithm described above.  'on_map' column indicates 
+                  whether the city also was found in the input mapcities.
         """
         #pandas changed how dataframes get sorted, so we have a convenience function here to hide the 
         #ugliness
@@ -68,6 +83,7 @@ class PagerCities(object):
             df = df.iloc[6:]
         else:
             df = sort_data_frame(df,'pop',ascending=True)
+            df = _flag_map_cities(df,mapcities)
             return df
 
         #2. Sort cities by capital status and population, and select M (up to 5) from beginning of the list that are not in the first list.
@@ -79,10 +95,12 @@ class PagerCities(object):
             df = df.iloc[5:]
             if len(rows) == 11:
                 rows = sort_data_frame(rows,'mmi',ascending=False)
+                rows = _flag_map_cities(rows,mapcities)
                 return rows
         else:
             rows = pd.concat([rows,df])
             rows = sort_data_frame(rows,'mmi',ascending=False)
+            rows = _flag_map_cities(rows,mapcities)
             return rows
 
         #3. If N+M < 11, sort cities by inverse population, then select (up to) P= 11 - (M+N) cities that are 
@@ -94,5 +112,8 @@ class PagerCities(object):
 
         #4. Sort combined list of cities by inverse MMI and return.
         rows = sort_data_frame(rows,'mmi',ascending=False)
+
+        #Add a column indicating whether the city was rendered on the map
+        rows = _flag_map_cities(rows,mapcities)
         return rows
         
