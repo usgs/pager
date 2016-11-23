@@ -39,6 +39,7 @@ class ExpoCat(object):
           Pandas dataframe containing columns:
             - EventID  14 character event ID based on time: (YYYYMMDDHHMMSS).
             - Time Pandas Timestamp object.
+            - Name Name of earthquake (not always filled in).
             - Lat  Event latitude.
             - Lon  Event longitude.
             - Depth  Event depth.
@@ -85,9 +86,15 @@ class ExpoCat(object):
         :returns:
           ExpoCat object.
         """
-        df = pd.read_csv(csvfile,parse_dates=[2],dtype={'EventID':str})
-        df = df.drop('Unnamed: 0',1)
+        df = pd.read_csv(csvfile,parse_dates=[1],dtype={'EventID':str})
+        #df = df.drop('Unnamed: 0',1)
 
+        cols = ['EventID','Time','Name','Lat','Lon','Depth','Magnitude','CountryCode',
+                'ShakingDeaths','TotalDeaths','Injured','Fire','Liquefaction','Tsunami',
+                'Landslide','Waveheight',
+                'MMI1','MMI2','MMI3','MMI4','MMI5','MMI6','MMI7','MMI8','MMI9+',]
+        df = df[cols]
+        
         mmicols = ['MMI1','MMI2','MMI3','MMI4','MMI5','MMI6','MMI7','MMI8','MMI9+']
         mmicols.reverse()
         maxmmi = np.zeros(len(df))
@@ -131,6 +138,25 @@ class ExpoCat(object):
         """
         return self._dataframe.copy()
 
+    def selectByHazard(self,hazard):
+        """Select down the events in the ExpoCat by restricting to events with input hazard.
+
+        :param hazard:
+          String, one of 'fire','liquefaction','landslide', or 'tsunami'.
+        :returns:
+          List consisting of zero or more of the above hazard strings.
+        :raises:
+           PagerException when input hazard does not match one of the four accepted types.
+        :returns:
+          New instance of ExpoCat.
+        """
+        haztypes = ['fire','liquefaction','landslide','tsunami']
+        if hazard not in haztypes:
+            raise PagerException('Input hazard %s not one of accepted hazard types: %s' % (hazard,str(haztypes)))
+        colname = hazard.capitalize()
+        newdf = self._dataframe[self._dataframe[colname] == 1]
+        return ExpoCat(newdf)
+    
     def selectByTime(self,mintime,maxtime):
         """Select down the events in the ExpoCat by restricting to events between two input times.
 

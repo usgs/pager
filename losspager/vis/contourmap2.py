@@ -171,7 +171,9 @@ def draw_contour(shakefile,popfile,oceanfile,cityfile,outfilename,make_png=False
       Boolean indicating whether a PNG version of the file should also be created in the
       same output folder as the PDF.
     :returns:
-      Name of PNG file created, or None if PNG output not specified.
+      Tuple containing: 
+        - Name of PNG file created, or None if PNG output not specified.
+        - CartopyCities object containing the cities that were rendered on the contour map.
     """
     #load the shakemap - for the time being, we're interpolating the 
     #population data to the shakemap, which would be important
@@ -345,5 +347,5 @@ def draw_contour(shakefile,popfile,oceanfile,cityfile,outfilename,make_png=False
         pngfile = os.path.join(fpath,fbase+'.png')
         plt.savefig(pngfile)
     
-    return pngfile
+    return (pngfile,mapcities)
 

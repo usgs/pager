@@ -1,15 +1,21 @@
+#stdlib imports
+import re
+
 #third party imports
 from scipy.special import erf
 import numpy as np
 import pandas as pd
+from impactutils.textformat.text import set_num_precision,commify,round_to_nearest
+from openquake.hazardlib.geo.geodetic import geodetic_distance
 
 #local imports
 from losspager.models.emploss import EmpiricalLoss
 from losspager.models.econexposure import GDP
 from losspager.utils.country import Country
+from losspager.utils.compass import get_compass_dir
+from losspager.utils.expocat import ExpoCat
 from losspager.utils.mathutil import invphi
 from losspager.utils.region import PagerRegions
-from impactutils.textformat.text import set_num_precision
 
 GREEN_FAT_HIGH = 'There is a low likelihood of casualties.'
 YELLOW_FAT_HIGH = '''Some casualties are possible and the impact should be relatively localized.
@@ -56,6 +62,7 @@ ORANGE_ECON_EQUAL = '[GDPCOMMENT]'
 RED_ECON_EQUAL = '[GDPCOMMENT]'
 
 EPS = 1e-12 #if expected value is zero, take the log of this instead
+SEARCH_RADIUS = 400 #kilometer radius to search for historical earthquakes
 
 def get_gdp_comment(ecodict,ecomodel,econexposure,event_year):
     """Create a comment on the GDP impact of a given event in the most impacted country.
@@ -318,3 +325,137 @@ def get_structure_comment(resfat,nonresfat,semimodel):
         b1 = semimodel.getBuildingDesc(btypes[0])
         regtext = fmt1 % b1
     return default + '  ' + regtext
+
+def get_secondary_hazards(expocat,mag):
+    WAVETHRESH = .50
+    fireevents = expocat.selectByHazard('fire')
+    liquidevents = expocat.selectByHazard('liquefaction')
+    slideevents = expocat.selectByHazard('landslide')
+    waveevents = expocat.selectByHazard('tsunami')
+    #get numbers of each type of secondary event
+    nwaves = len(waveevents)
+    nslides = len(slideevents)
+    nfires = len(fireevents)
+    nliquids = len(liquidevents)
+    tmpevents = []
+    wavedf = waveevents.getDataFrame()
+    for index, event in wavedf.iterrows():
+        if event['WaveHeight'] >= WAVETHRESH:
+            tmpevents.append(event)
+    waveevents = tmpevents
+    nsec = 0
+    if len(fireevents):
+        nsec += 1
+    if len(waveevents):
+        nsec += 1
+    if len(liquidevents):
+        nsec += 1
+    if len(slideevents):
+        nsec += 1
+    hazards = []
+    if nwaves and mag >= 7:
+        hazards.append('tsunamis')
+    if nslides:
+        hazards.append('landslides')
+    if nfires:
+        hazards.append('fires')
+    if nliquids:
+        hazards.append('liquefaction')
+
+    return hazards
+
+def get_secondary_comment(lat,lon,mag):
+    expocat = ExpoCat.fromDefault()
+    expocat = expocat.selectByRadius(lat,lon,SEARCH_RADIUS)
+    hazards = get_secondary_hazards(expocat,mag)
+    if len(hazards) == 0:
+        return ''
+
+    nhazards = len(hazards)
+    allhazardstrings = ['tsunamis','landslides','fires','liquefaction']
+
+    sfmt = 'Recent earthquakes in this area have caused secondary hazards such as %s that might have contributed to losses.'
+    if nhazards == 1:
+        fstr = hazards[0]
+    elif nhazards == 2:
+        fstr = ' and '.join(hazards)
+    elif nhazards == 3:
+        fstr = ', '.join(hazards[0:1]) + 'and %s' % hazards[2]
+    else:
+        fstr = ', '.join(hazards[0:2]) + 'and %s' % hazards[3]
+
+    hazcomm = sfmt % fstr
+    return hazcomm
+
+def get_historical_comment(lat,lon,mag,expodict,fatdict,ccode):
+    default = """There were no earthquakes with significant population exposure to shaking within a 400 km radius of this event."""
+    expocat = ExpoCat.fromDefault()
+    expocat = expocat.selectByRadius(lat,lon,SEARCH_RADIUS)
+
+    df = expocat.getDataFrame()
+
+    #sort df by totaldeaths (inverse), then by maxmmmi, then by nmaxmmi.
+    df = df.sort_values(['TotalDeaths','MaxMMI','NumMaxMMI'],ascending=False)
+    
+    if len(df) == 0:
+        return default
+    if len(df) >= 1:
+        worst_event = df.iloc[0]
+        desc = get_quake_desc(worst_event,lat,lon,True)
+        return desc
+
+def get_quake_desc(event,lat,lon,isMainEvent):
+    ndeaths = event['TotalDeaths']
+    #summarize the exposure values
+    exposures = np.array([event['MMI1'],event['MMI2'],event['MMI3'],event['MMI4'],event['MMI5'],
+                         event['MMI6'],event['MMI7'],event['MMI8'],event['MMI9+']])
+    exposures = np.array([round_to_nearest(exp,1000) for exp in exposures])
+    #get the highest two exposures greater than zero
+    iexp = np.where(exposures > 0)[0][::-1]
+
+    romans = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX or greater']
+    if len(iexp) >= 2:
+        exposures = [exposures[iexp[1]],exposures[iexp[0]]]
+        ilevels = [romans[iexp[1]],romans[iexp[0]]]
+        expfmt = ', with estimated population exposures of %s at intensity'
+        expfmt = expfmt + ' %s and %s at intensity %s'
+        exptxt = expfmt % (commify(int(exposures[0])),ilevels[0],commify(int(exposures[1])),ilevels[1])
+    else:
+        exptxt = ''
+
+    #create string describing this most impactful event
+    dfmt = 'A magnitude %.1f earthquake %i km %s of this event struck %s on %s (UTC)%s'
+
+    mag = event['Magnitude']
+    etime = event['Time'].strftime('%B %d, %Y')
+    etime = re.sub(' 0',' ',etime)
+    country = Country()
+    if not event['Name']:
+        if event['CountryCode'] == 'UM' and event['Latitude'] > 40: #hack for persistent error in expocat
+            cdict = country.getCountryCode('US')
+        else:
+            cdict = country.getCountryCode(event['CountryCode'])
+        if cdict:
+            cname = cdict['Name']
+        else:
+            cname = 'in the open ocean'
+    else:
+        cname = event['Name'].replace('"','')
+        
+    cdist = round(geodetic_distance(event['Lat'],event['Lon'],lat,lon))
+    cdir = get_compass_dir(lat,lon,event['Lat'],event['Lon'],format='long').lower()
+    if ndeaths and str(ndeaths) != "nan":
+        dfmt = dfmt + ', resulting in a reported %s %s.'
+        
+        if ndeaths > 1:
+            dstr = 'fatalities'
+        else:
+            dstr = 'fatality'
+
+        ndeathstr = commify(int(ndeaths))
+        eqdesc = dfmt % (mag,cdist,cdir,cname,etime,exptxt,ndeathstr,dstr)
+    else:
+        dfmt = dfmt + ', with no reported fatalities.'
+        eqdesc = dfmt % (mag,cdist,cdir,cname,etime,exptxt)
+
+    return eqdesc

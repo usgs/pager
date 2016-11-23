@@ -1,10 +1,17 @@
+#stdlib imports
 from collections import OrderedDict
-from lxml import etree
 from datetime import datetime
-from impactutils.time.timeutils import get_local_time,ElapsedTime
-from losspager.utils.expocat import ExpoCat
-import numpy as np
 import os.path
+
+#third party libraries
+from lxml import etree
+import numpy as np
+from impactutils.time.timeutils import get_local_time,ElapsedTime
+from mapio.city import Cities
+
+#local imports
+from losspager.utils.expocat import ExpoCat
+from losspager.onepager.pagercity import PagerCities
 
 DATETIMEFMT = '%Y-%m-%d %H:%M:%S'
 TIMEFMT = '%H:%M:%S'
@@ -18,14 +25,16 @@ class PagerData(object):
         self._input_set = False
         self._exposure_set = False
         self._models_set = False
+        self._comments_set = False
 
+    #########Setters########
     def setInputs(self,shakegrid,pagerversion,eventcode):
         self._event_dict = shakegrid.getEventDict()
         self._shake_dict = shakegrid.getShakeDict()
+        self._shakegrid = shakegrid
         self._pagerversion = pagerversion
         self._eventcode = eventcode
         self._input_set = True
-        
 
     def setExposure(self,exposure,econ_exposure):
         nmmi,self._maxmmi = self._get_maxmmi(exposure)
@@ -33,13 +42,16 @@ class PagerData(object):
         self._econ_exposure = econ_exposure
         self._exposure_set = True
 
-    def _get_maxmmi(self,exposure):
-        for i in range(9,-1,-1):
-            exp = exposure['TotalExposure'][i]
-            if exp >= MINEXP:
-                maxmmi = i + 1
-                break
-        return (maxmmi,exp)
+    def setComments(self,impact1,impact2,struct_comment,hist_comment,secondary_comment):
+        """Set the comments.
+
+        """
+        self._impact1 = impact1
+        self._impact2 = impact2
+        self._struct_comment = struct_comment
+        self._hist_comment = hist_comment
+        self._secondary_comment = secondary_comment
+        self._comments_set = True
 
     def setModelResults(self,fatmodel,ecomodel,
                         fatmodel_results,ecomodel_results,
@@ -52,7 +64,10 @@ class PagerData(object):
         self._res_fat = res_fat
         self._non_res_fat = non_res_fat
         self._models_set = True
-        pass
+
+    def setMapInfo(self,cityfile,mapcities):
+        self._city_file = cityfile
+        self._map_cities = mapcities
 
     def validate(self):
         if not self._input_set:
@@ -61,15 +76,157 @@ class PagerData(object):
             raise PagerException('You must call setExposure() first.')
         if not self._models_set:
             raise PagerException('You must call setExposure() first.')
+        if not self._comments_set:
+            raise PagerException('You must call setComments() first.')
 
-        self._pagerdict['event'] = self._setEvent()
+        self._pagerdict['event_info'] = self._setEvent()
         self._pagerdict['pager'] = self._setPager()
-        self._pagerdict['shakeinfo'] = self._setShakeInfo()
+        self._pagerdict['shake_info'] = self._setShakeInfo()
         self._pagerdict['alerts'] = self._setAlerts()
         self._pagerdict['population_exposure'] = self._setPopulationExposure()
         self._pagerdict['economic_exposure'] = self._setEconomicExposure()
         self._pagerdict['model_results'] = self._setModelResults()
+        self._pagerdict['city_table'] = self._getCityTable()
         self._pagerdict['historical_earthquakes'] = self._getHistoricalEarthquakes()
+        self._pagerdict['comments'] = self._getComments()
+    #########Setters########
+
+    #########Getters########
+    def getEventInfo(self):
+        """Return event summary information.
+
+        :returns:
+          Dictionary containing fields:
+            - eventid Event ID.
+            - time datetime object of origin.
+            - lat Float latitude of origin.
+            - lon Float longitude of origin.
+            - depth Float depth of origin, km.
+            - mag Float earthquake magnitude.
+            - version Integer PAGER version number.
+            - location String describing the location of the earthquake.
+        """
+        return self._pagerdict['event_info']
+
+    def getImpactComments(self):
+        """Return a tuple of the two impact comments.
+
+        :returns:
+          Tuple of impact comments, where first is most impactful, second is least.  In cases where the
+          impact levels for fatalities and economic losses are the same, the second comment will be empty.
+        """
+        return(self._pagerdict['comments']['impact1'],self._pagerdict['comments']['impact2'])
+
+    def getSoftwareVersion(self):
+        """Return the Software version used to create this data structure.
+
+        :returns:
+          String describing PAGER software version.
+        """
+        return self._pagerdict['pager']['software_version']
+
+    def getElapsed(self):
+        """Return the string that summarizes the time elapsed between origin time and time of PAGER run.
+
+        :returns:
+          string summarizing time elapsed between origin time and time of PAGER run.
+        """
+        return self._pagerdict['pager']['elapsed_time']
+
+    def getTotalExposure(self):
+        """Return the array of aggregated (all countries) population exposure to shaking.
+
+        :returns:
+          List of aggregated (all countries) population exposure to shaking.
+        """
+        return self._pagerdict['population_exposure']['aggregated_exposure']
+
+    def getHistoricalTable(self):
+        """Return the list of representative historical earthquakes (if any).
+
+        :returns:
+          List of three dictionaries, containing fields:
+            - EventID  14 character event ID based on time: (YYYYMMDDHHMMSS).
+            - Time Pandas Timestamp object.
+            - Lat  Event latitude.
+            - Lon  Event longitude.
+            - Depth  Event depth.
+            - Magnitude  Event magnitude.
+            - CountryCode  Two letter country code in which epicenter is located.
+            - ShakingDeaths Number of fatalities due to shaking.
+            - TotalDeaths Number of total fatalities.
+            - Injured Number of injured.
+            - Fire Integer (0 or 1) indicating if any fires occurred as a result of this earthquake.
+            - Liquefaction Integer (0 or 1) indicating if any liquefaction occurred as a result of this earthquake.
+            - Tsunami Integer (0 or 1) indicating if any tsunamis occurred as a result of this earthquake.
+            - Landslide Integer (0 or 1) indicating if any landslides occurred as a result of this earthquake.
+            - MMI1 - Number of people exposed to Mercalli intensity 1.
+            - MMI2 - Number of people exposed to Mercalli intensity 2.
+            - MMI3 - Number of people exposed to Mercalli intensity 3.
+            - MMI4 - Number of people exposed to Mercalli intensity 4.
+            - MMI5 - Number of people exposed to Mercalli intensity 5.
+            - MMI6 - Number of people exposed to Mercalli intensity 6.
+            - MMI7 - Number of people exposed to Mercalli intensity 7.
+            - MMI8 - Number of people exposed to Mercalli intensity 8.
+            - MMI9+ Number of people exposed to Mercalli intensity 9 and above.
+            - MaxMMI  Highest intensity level with at least 1000 people exposed.
+            - NumMaxMMI Number of people exposed at MaxMMI.
+            - Distance Distance of this event from input event, in km.
+            - Color The hex color that should be used for row color in historical events table.
+
+        """
+        return self._pagerdict['historical_earthquakes']
+
+    def getStructureComment(self):
+        """Return a paragraph describing the vulnerability of buildings in the most impacted country.
+
+        :returns:
+          Paragraph of text describing the vulnerability of buildings in the most impacted country.
+        """
+        return self._pagerdict['comments']['struct_comment']
+
+    def getHistoricalComment(self):
+        """Return a string describing the most impactful historical earthquake near the current event.
+
+        :returns:
+          string describing the most impactful historical earthquake near the current event.
+        """
+        return self._pagerdict['comments']['historical_comment']
+
+    def getCityTable(self):
+        return self._pagerdict['city_table']
+
+    def getSummaryAlert(self):
+        return self._pagerdict['pager']['alert_level']
+    #########Getters########
+
+    #########Savers/Loaders########
+    def saveToJSON(self):
+        pass
+    def saveToLegacyXML(self):
+        pass
+    def loadFromJSON(self):
+        pass
+    def loadFromLegacyXML(self):
+        pass
+    #########Savers/Loaders########
+    
+    def _get_maxmmi(self,exposure):
+        for i in range(9,-1,-1):
+            exp = exposure['TotalExposure'][i]
+            if exp >= MINEXP:
+                maxmmi = i + 1
+                break
+        return (maxmmi,exp)
+
+    def _getComments(self):
+        comment_dict = {}
+        comment_dict['impact1'] = self._impact1
+        comment_dict['impact2'] = self._impact2
+        comment_dict['struct_comment'] = self._struct_comment
+        comment_dict['historical_comment'] = self._hist_comment
+        comment_dict['secondary_comment'] = self._secondary_comment
+        return comment_dict
         
     def _setPager(self):
         pager = OrderedDict()
@@ -102,12 +259,14 @@ class PagerData(object):
 
     def _setEvent(self):
         event = OrderedDict()
+        event['eventid'] = self._event_dict['event_id']
         event['time'] = self._event_dict['event_timestamp']
         event['lat'] = self._event_dict['lat']
         event['lon'] = self._event_dict['lon']
         event['depth'] = self._event_dict['depth']
-        event['magnitude'] = self._event_dict['magnitude']
-
+        event['mag'] = self._event_dict['magnitude']
+        event['version'] = self._pagerversion
+        event['location'] = self._event_dict['event_description']
         return event
 
     def _setShakeInfo(self):
@@ -259,7 +418,6 @@ class PagerData(object):
         return model_results
 
     def _getHistoricalEarthquakes(self):
-        homedir = os.path.dirname(os.path.abspath(__file__)) #where is this file?
         expocat = ExpoCat.fromDefault()
         clat,clon = self._event_dict['lat'],self._event_dict['lon']
         inbounds = expocat.selectByRadius(clat,clon,EVENT_RADIUS)
@@ -269,316 +427,9 @@ class PagerData(object):
         etime = self._event_dict['event_timestamp']
         eventlist = inbounds.getHistoricalEvents(maxmmi,nmmi,clat,clon)
         return eventlist
-            
-        
-        
-        
-        
-#     #TODO - think about whether this class should also be instantiable from JSON
-#     #that it creates.  Talk to Eric and Bruce (web team?) about how to organize the data in it.
-#     #if we make a json loader from a file as a class method, how ugly is the constructor going to be?
-#     def __init__(self,shakegrid,pagerversion,exposure,econexp,fatmodel,fatdict,
-#                  ecomodel,ecodict,semiloss,semires,seminonres,cities,impact1,impact2,
-#                  structcomment,histeq,secondarycomment):
-#         """Assemble PAGER model results into a data structure that can be rendered in multiple formats.
 
-        
-
-#         :param shakegrid:
-#           ShakeGrid object.
-#         :param pagerversion:
-#           Integer indicating the PAGER version.
-#         :param exposure:
-#           PAGER Exposure object dictionary.
-#         :param econexp:
-#           PAGER EconExposure object dictionary.
-#         :param fatmodel:
-#           PAGER LossModel object, containing fatality information.
-#         :param fatdict:
-#           PAGER fatality results dictionary.
-#         :param ecomodel:
-#           PAGER LossModel object, containing dollar loss information.
-#         :param ecodict:
-#           PAGER economic results dictionary.
-#         :param semiloss:
-#           PAGER semi-empirical loss model results value (integer number of fatalities).
-#         :param semires:
-#           PAGER semi-empirical loss model results by residential buildings, per country.
-#         :param seminonres:
-#           PAGER semi-empirical loss model results by non-residential buildings, per country.
-#         :param cities:
-#           An instance of the MapIO Cities object.
-#         :param impact1:
-#           String containing first impact comment.
-#         :param impact2:
-#           String containing second impact comment.
-#         :param structcomment:
-#           String comment describing vulnerability of structures in the region.
-#         :param histeq:
-#           List of historical earthquake dictionaries deemed to be similar to 
-#           the current event (described in shakegrid).
-#           Attributes?
-#         :param secondarycomment:
-#           String comment describing secondary hazards in the area.
-#         :returns:
-#           PAGERData object, which can be rendered as JSON or XML.
-#           Details?
-#         """
-#         #Internally, this thing will be a big dictionary, making it really easy to render as JSON,
-#         #and easy-ish to render as XML using lxml.
-        
-#         self._pager_dict = OrderedDict()
-#         self._pager_dict['pager'] = {'software_version':SOFTWARE_VERSION}
-#         #impact has:
-#         # aggregated exposures
-#         # exposures
-#         # aggregated economic exposures
-#         # economic exposures
-#         # empirical fatality model results (median and median per country)
-#         # empirical economic model results (median and median per country)
-#         # semi-empirical, maybe this stuff:
-#         # <results_by_country ccode="EC">
-# 		# 		<buildings>
-# 		# 			<building pagertype="W2" collapses="0.463680619841" deaths="0.0038960854833"/>
-# 		# 			<building pagertype="M" collapses="1.61855163028" deaths="0.0627688234684"/>
-# 		# 			<building pagertype="UFB" collapses="37.3896126762" deaths="1.93333509105"/>
-# 		# 		</buildings>
-# 		# 	</results_by_country>
-# 		# 	<population_by_structure A="29.5873394756" UFB="1618.09476028" M="14.0090775204" W2="40.1330277425" W="42.2701241386" INF="3.3270903828"/>
-#         self._pager_dict['pager']['impact'] = self._get_impact(exposure,econexp,
-#                                                                fatdict,ecodict,
-#                                                                semiloss,semires,seminonres)
-#         #event is just the one element
-#         self._pager_dict['pager']['event'] = self._get_event(shakegrid,pagerversion,maxmmi)
-#         #alerts have the loss probability information
-#         self._pager_dict['pager']['fatality_alert'] = self._get_alert(fatmodel,fatdict,'fatality')
-#         self._pager_dict['pager']['economic_alert'] = self._get_alert(ecomodel,ecodict,'economic')
-#         #empirical_loss_rates:
-#         #  fatalities
-#         #    ccode1 - mmi, rates
-#         #    ccode2 - mmi, rates
-#         #  economic
-#         #    ccode1 - mmi, rates
-#         #    ccode2 - mmi, rates
-#         self._pager_dict['pager']['empirical_loss_rates'] = self._get_loss_rates(fatmodel,ecomodel,fatdict,ecodict)
-#         #historical events:
-#         # <historical_events>
-# 		# <historical_event distance="200.727179547" color="#ffff00" magnitude="5.7" maxmmi="6" shakingdeaths="0" date="2005-01-30 07:06:49" maxmmiexp="168068"/>
-# 		# <historical_event distance="276.915490212" color="#ffff00" magnitude="5.5" maxmmi="6" shakingdeaths="1" date="2000-09-20 08:37:18" maxmmiexp="99064"/>
-# 		# <historical_event distance="223.234677742" color="#ff0000" magnitude="7.1" maxmmi="9" shakingdeaths="1000" date="1987-03-06 04:10:44" maxmmiexp="2341"/>
-#         self._pager_dict['pager']['hist_eq'] = self._get_hist_eq(histeq)
-#         #     <comments>
-#         # 	<structure_comment>
-#         # 		Overall, the population in this region resides in structures that are vulnerable to earthquake shaking, though some resistant structures exist.  The predominant vulnerable building types are unreinforced brick masonry and mud wall construction.
-#         # 	</structure_comment>
-#         # 	<impact1 type="fatality">
-#         # 		Green alert for shaking-related fatalities and economic losses.  There is a low likelihood of casualties and damage.
-#         # 	</impact1>
-#         # 	<impact2 type="economic">
-#         # 	</impact2>
-#         # 	<secondary_comment>
-#         # 		Recent earthquakes in this area have caused secondary hazards such as landslides that might have contributed to losses.
-#         # 	</secondary_comment>
-#         # </comments>
-#         self._pager_dict['pager']['comments'] = self._get_comments(impact1,impact2,structcomment,secondary_comment)
-#         self._pager_dict['pager']['cities'] = self._get_comments(cities)
-
-#     def _get_maxmmi(self,exposure):
-#         for i in range(9,-1,-1):
-#             exp = exposure['TotalExposure'][i]
-#             if exp >= MINEXP:
-#                 maxmmi = i + 1
-#                 break
-#         return (maxmmi,exp)
-        
-#     def _get_impact(self,exposure,econexp,fatdict,ecodict,semiloss,resfat,nonresfat):
-#         impact = OrderedDict()
-#         impact['aggregated_exposures'] = exposure['TotalExposure']
-#         impact['exposures_by_country'] = OrderedDict()
-#         for ccode,expolist in exposure.items():
-#             if ccode == 'TotalExposure':
-#                 continue
-#             impact['exposures_by_country'][ccode] = expolist
-
-#         #do economic exposure
-#         impact['aggregated_economic_exposures'] = econexp['TotalEconomicExposure']
-#         impact['economic_exposures_by_country'] = OrderedDict()
-#         for ccode,expolist in econexp.items():
-#             if ccode == 'TotalEconomicExposure':
-#                 continue
-#             impact['economic_exposures_by_country'][ccode] = expolist
-
-#         #do empirical fatality model
-#         empfat = OrderedDict()
-#         empfat['median_total_losses'] = fatdict['TotalFatalities']
-#         for ccode,value in fatdict.items():
-#             if ccode == 'TotalFatalities':
-#                 continue
-#             empfat['%s_losses' % ccode] = value
-
-#         impact['empirical_fatality_model'] = empfat
-            
-#         #do empirical economic model
-#         empeco = OrderedDict()
-#         empeco['median_total_losses'] = ecodict['TotalDollars']
-#         for ccode,value in ecodict.items():
-#             if ccode == 'TotalDollars':
-#                 continue
-#             empeco['%s_losses' % ccode] = value
-
-#         impact['empirical_economic_model'] = empeco
-
-#         #do semi-empirical fatality model
-#         semi = OrderedDict()
-#         semi['median_total_losses'] = semiloss
-#         semi['residential_fatalities'] = resfat
-#         semi['non_residential_fatalities'] = nonresfat
-#         return impact
-
-#     def _get_event(self,shakegrid,pagerversion,maxmmi):
-#         edict = shakegrid.getEventDict()
-#         sdict = shakegrid.getShakeDict()
-#         etime = edict['event_timestamp'].strftime(DATETIMEFMT)
-#         shaketime = sdict['process_timestamp'].strftime(DATETIMEFMT)
-#         localtime = get_local_time(edict['event_timestamp'],edict['lat'],edict['lon'])
-#         ltimestr = localtime.strftime(DATETIMEFMT)
-#         event = OrderedDict()
-#         event['eventcode'] = sdict['event_id']
-#         event['versioncode'] = sdict['event_id']
-#         event['number'] = '{:d}'.format(pagerversion)
-#         event['shakeversion'] = '{:d}'.format(sdict['shakemap_version'])
-#         event['magnitude'] = '{:.1f}'.format(edict['magnitude'])
-#         event['depth'] = '{:.1f}'.format(edict['depth'])
-#         event['lat'] = '{:.4f}'.format(edict['lat'])
-#         event['lon'] = '{:.4f}'.format(edict['lon'])
-#         event['event_timestamp'] = etime
-#         event['event_description'] = edict['event_description']
-#         event['maxmmi'] = '{:.1f}'.format(maxmmi)
-#         event['shaketime'] = shaketime
-#         event['localtime'] = ltimestr
-
-#         return event
-        
-#     def renderToJSON(self,jsonfile):
-#         f = open(jsonfile,'wt')
-#         json.dump(self._pager_dict,f,indent=2)
-#         f.close()
-    
-
-
-
-# def add_alert(parent,lossmodel,lossdict,losstype,alertlevel,summary=False):
-#     #     <alert type="economic" level="red" summary="yes" units="USD">
-#     # <bin min="0" max="999999" probability="0" color="green"/>
-#     # <bin min="1000000" max="9999999" probability="1" color="yellow"/>
-#     # <bin min="10000000" max="99999999" probability="8" color="yellow"/>
-#     # <bin min="100000000" max="999999999" probability="26" color="orange"/>
-#     # <bin min="1000000000" max="9999999999" probability="35" color="red"/>
-#     # <bin min="10000000000" max="99999999999" probability="22" color="red"/>
-#     # <bin min="100000000000" max="999999999999" probability="6" color="red"/>
-#     # </alert>
-#     yesdict = {True:'yes',False:'no'}
-    
-#     #what is the alert level?
-#     gvalue = lossmodel.getCombinedG(lossdict)
-#     if losstype == 'fatality':
-#         leveldict = {'0':'green',
-#                      '9':'yellow',
-#                      '99':'yellow',
-#                      '999':'orange',
-#                      '999999':'red',
-#                      '9999999':'red',
-#                      '99999999':'red',
-#                      '999999999':'red',}
-#         key = 'TotalFatalities'
-#         units = 'fatalities'
-#     else:
-#         leveldict = {'999999':'green',
-#                      '9999999':'yellow',
-#                      '99999999':'yellow',
-#                      '999999999':'orange',
-#                      '9999999999':'red',
-#                      '99999999999':'red',
-#                      '999999999999':'red',
-#                      '10000000000000000':'red'}
-#         key = 'TotalDollars'
-#         units = 'USD'
-#     expected = lossdict[key]
-#     alert = etree.SubElement(parent,'alert',type=losstype,summary=yesdict[summary],units=units)
-#     probs = lossmodel.getProbabilities(lossdict,gvalue)
-#     for probrange,value in probs.items():
-#         pmin,pmax = probrange.split('-')
-#         pvaluestr = '{:.1f}'.format(value*100)
-#         pmax = '{:d}'.format(int(pmax)-1)
-#         for lvalue,color in leveldict.items():
-#             if pmax == lvalue:
-#                 pcolor = color
-#         bintag = etree.SubElement(alert,'bin',min=pmin,max=pmax,probability=pvaluestr,color=pcolor)
-#     return alert
-
-# def get_pagerdoc(shakegrid,pagerversion,exposure,econexp,fatmodel,fatdict,
-#                  ecomodel,ecodict,cities,impact1,impact2,
-#                  structcomment,histeq,secondarycomment):
-#     """Assemble PAGER model data and metadata into an lxml ElementTree object.
-
-#     This XML file will be the legacy PAGER XML.  The expanded content will either
-#     be in another XML file or a JSON file.
-
-#     :param shakegrid:
-#       ShakeGrid object.
-#     :param pagerversion:
-#       Integer indicating the PAGER version.
-#     :param exposure:
-#       PAGER Exposure object dictionary.
-#     :param econexp:
-#       PAGER EconExposure object dictionary.
-#     :param fatmodel:
-#       PAGER LossModel object, containing fatality information.
-#     :param fatdict:
-#       PAGER fatality results dictionary.
-#     :param ecomodel:
-#       PAGER LossModel object, containing dollar loss information.
-#     :param ecodict:
-#       PAGER economic results dictionary.
-#     :param cities:
-#       An instance of the MapIO Cities object.
-#     :param impact1:
-#       String containing first impact comment.
-#     :param impact2:
-#       String containing second impact comment.
-#     :param structcomment:
-#       String comment describing vulnerability of structures in the region.
-#     :param histeq:
-#       List of historical earthquake dictionaries deemed to be similar to 
-#       the current event (described in shakegrid).
-#       Attributes?
-#     :param secondarycomment:
-#       String comment describing secondary hazards in the area.
-#     :returns:
-#       lxml ElementTree object, containing the PAGER results in XML form.
-#       Details?
-#     """
-#     leveldict = {'green':0,
-#                  'yellow':1,
-#                  'orange':2,
-#                  'red':3}
-#     pager = etree.Element('pager')
-#     doc = etree.ElementTree(pager)
-#     exp = exposure['TotalExposure']
-#     for i in range(9,-1,-1):
-#         exp = exposure['TotalExposure'][i]
-#         if exp >= MINEXP:
-#             maxmmi = i
-#             break
-        
-#     event = get_event(pager,shakegrid,pagerversion,maxmmi)
-#     alerts = etree.SubElement(event,'alerts')
-#     fatalertlevel = fatmodel.getAlertLevel(fatdict)
-#     ecoalertlevel = ecomodel.getAlertLevel(ecodict)
-#     isfathigher = leveldict[fatalertlevel] >= leveldict[ecoalertlevel]
-#     isecohigher = leveldict[ecoalertlevel] > leveldict[fatalertlevel]
-#     fatalert = add_alert(alerts,fatmodel,'fatality',summary=isfathigher)
-#     ecoalert = add_alert(alerts,fatmodel,'fatality',fatalertlevel,summary=isecohigher)
-#     impact = etree.SubElement(pager,'impact')
-#     exposure = add_exposure(impact,expdict)
-    
+    def _getCityTable(self):
+        cities = Cities.loadFromGeoNames(self._city_file)
+        pcities = PagerCities(cities,self._shakegrid.getLayer('mmi'))
+        city_table = pcities.getCityTable(self._map_cities)
+        return city_table

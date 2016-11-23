@@ -15,6 +15,7 @@ sys.path.insert(0,pagerdir) #put this at the front of the system path, ignoring 
 #third party imports 
 import numpy as np
 from mapio.basemapcity import BasemapCities
+from mapio.city import Cities
 from mapio.shake import ShakeGrid
 
 #local imports
@@ -30,12 +31,19 @@ def test():
     first_city = ['Santa Clarita','Lexington Hills']
     last_city = ['Bakersfield','Fresno']
     ic = 0
+    cities = Cities.loadFromGeoNames(cityfile)
     for shakefile in shakefiles:
-        cities = BasemapCities.loadFromGeoNames(cityfile)
         shakemap = ShakeGrid.load(shakefile,adjust='res')
+
+        #get the top ten (by population) nearby cities
+        clat = shakemap.getEventDict()['lat']
+        clon = shakemap.getEventDict()['lon']
+        nearcities = cities.limitByRadius(clat,clon,100)
+        nearcities.sortByColumns('pop',ascending=False)
+        nearcities = Cities(nearcities._dataframe.iloc[0:10])
         mmigrid = shakemap.getLayer('mmi')
         pc = PagerCities(cities,mmigrid)
-        rows = pc.getCityTable()
+        rows = pc.getCityTable(nearcities)
         print('Testing that number of cities retrieved is consistent...')
         assert len(rows) == lengths[ic]
         assert rows.iloc[0]['name'] == first_city[ic]
