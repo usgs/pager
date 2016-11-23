@@ -120,7 +120,7 @@ def test():
     assert citytable.iloc[0]['name'] == 'Santa Clarita'
 
     summary = doc.getSummaryAlert()
-    assert summary == yellow
+    assert summary == 'yellow'
     
     
 if __name__ == '__main__':
