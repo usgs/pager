@@ -736,8 +736,8 @@ class SemiEmpiricalFatality(object):
                     #sum the fatalities per building through all cells
                     resfatbybuilding = np.nansum(resfat,axis=1)
                     nonresfatbybuilding = np.nansum(nonresfat,axis=1)
-                    resfdict = dict(zip(resrow.index,resfatbybuilding))
-                    nonresfdict = dict(zip(nresrow.index,nonresfatbybuilding))
+                    resfdict = dict(zip(resrow.index,resfatbybuilding.tolist()))
+                    nonresfdict = dict(zip(nresrow.index,nonresfatbybuilding.tolist()))
                     res_fatal_by_btype = add_dicts(res_fatal_by_btype,resfdict)
                     nonres_fatal_by_btype = add_dicts(nonres_fatal_by_btype,nonresfdict)
 

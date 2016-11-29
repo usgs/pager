@@ -19,8 +19,19 @@ MIN_MMI = 1000
 def to_ordered_dict(series):
     keys = series.index
     mydict = OrderedDict()
+
+    np_int_types = (np.int8,np.int16,np.int32,np.int64,
+                    np.uint8,np.uint16,np.uint32,np.uint64)
+    np_float_types = (np.float32,np.float64)
+    
     for key in keys:
-        mydict[key] = series[key]
+        if isinstance(series[key],np_int_types):
+            svalue = int(series[key])
+        elif isinstance(series[key],np_float_types):
+            svalue = float(series[key])
+        else:
+            svalue = series[key]
+        mydict[key] = svalue
     return mydict
 
 def _select_by_max_mmi(df,mmi,minimum=1000):

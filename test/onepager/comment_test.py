@@ -198,7 +198,7 @@ def test_historical():
     fatdict = {'EC':98,
                'TotalDeaths':98}
     ccode = 'EC'
-    histcomment = get_historical_comment(clat,clon,7.8,expodict,fatdict,ccode)
+    histcomment = get_historical_comment(clat,clon,7.8,expodict,fatdict)
     expocat = ExpoCat.fromDefault()
     minicat = expocat.selectByRadius(clat,clon,SEARCH_RADIUS)
     df = minicat.getDataFrame()

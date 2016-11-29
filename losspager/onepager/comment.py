@@ -320,7 +320,7 @@ def get_structure_comment(resfat,nonresfat,semimodel):
         if b1.strip() == b2.strip():
             comment = fmt1 % (b1)
         else:
-            regtext = fmt % (b1,b2)
+            regtext = fmt2 % (b1,b2)
     else:
         b1 = semimodel.getBuildingDesc(btypes[0])
         regtext = fmt1 % b1
@@ -387,7 +387,7 @@ def get_secondary_comment(lat,lon,mag):
     hazcomm = sfmt % fstr
     return hazcomm
 
-def get_historical_comment(lat,lon,mag,expodict,fatdict,ccode):
+def get_historical_comment(lat,lon,mag,expodict,fatdict):
     default = """There were no earthquakes with significant population exposure to shaking within a 400 km radius of this event."""
     expocat = ExpoCat.fromDefault()
     expocat = expocat.selectByRadius(lat,lon,SEARCH_RADIUS)

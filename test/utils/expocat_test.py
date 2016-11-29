@@ -61,10 +61,5 @@ def test():
     print('Passed.')
     
     
-
-              
-    
-    
-    
 if __name__ == '__main__':
     test()
