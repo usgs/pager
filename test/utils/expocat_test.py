@@ -35,14 +35,15 @@ def test():
     clat = 0.37
     clon = -79.94
     radius = 400
+    ndeaths = 9
     minicat = expocat.selectByRadius(clat,clon,radius)
     
     print('Testing that historical events returned are correct...')
     maxmmi = 8
     nmaxmmi = 103000
-    events = minicat.getHistoricalEvents(maxmmi,nmaxmmi,clat,clon)
-    assert events[0]['EventID'] == '197610060912'
-    assert events[1]['EventID'] == '199603282303'
+    events = minicat.getHistoricalEvents(maxmmi,nmaxmmi,ndeaths,clat,clon)
+    assert events[0]['EventID'] == '199603282303'
+    assert events[1]['EventID'] == '197912120759'
     assert events[2]['EventID'] == '198703060410'
     print('Passed.')
 

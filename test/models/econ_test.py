@@ -89,7 +89,7 @@ def test():
     popdata = econexp.getEconPopulationGrid().getData()
     isodata = econexp.getCountryGrid().getData()
     ecogrid = ecomodel.getLossGrid(mmidata,popdata,isodata)
-    ecosum = 23172275857.095039
+    ecosum = 23172275857.094917
     assert np.nansum(ecogrid) == ecosum
     print('Passed creating a economic loss grid.')
 

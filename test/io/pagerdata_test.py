@@ -5,6 +5,7 @@ import os.path
 import sys
 import tempfile
 import shutil
+from datetime import datetime
 
 #hack the path so that I can debug these functions if I need to
 homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
@@ -24,6 +25,43 @@ from losspager.models.semimodel import SemiEmpiricalFatality
 from losspager.vis.contourmap2 import draw_contour
 from mapio.city import Cities
 
+DATETIMEFMT = '%Y-%m-%d %H:%M:%S'
+
+def tdoc(doc,shakegrid,impact1,impact2,expdict,struct_comment,hist_comment,):
+    eventinfo = doc.getEventInfo()
+    assert eventinfo['mag'] == shakegrid.getEventDict()['magnitude']
+    
+    imp1,imp2 = doc.getImpactComments()
+    assert imp1 == impact1 and imp2 == impact2
+
+    version = doc.getSoftwareVersion()
+    elapsed = doc.getElapsed()
+
+    exp = doc.getTotalExposure()
+    assert np.isclose(np.array(exp),expdict['TotalExposure']).all()
+
+    hist_table = doc.getHistoricalTable()
+    assert hist_table[0]['EventID'] == '198411261621'
+
+    scomm = doc.getStructureComment()
+    assert scomm == struct_comment
+    
+    hcomm = doc.getHistoricalComment()
+    assert hcomm == hist_comment
+
+    citytable = doc.getCityTable()
+    assert citytable.iloc[0]['name'] == 'Santa Clarita'
+
+    summary = doc.getSummaryAlert()
+    assert summary == 'yellow'
+
+    #test property methods
+    assert doc.magnitude == shakegrid.getEventDict()['magnitude']
+    assert doc.time == shakegrid.getEventDict()['event_timestamp']
+    assert doc.alert == 'yellow'
+    assert doc.processing_time == datetime.strptime(doc._pagerdict['pager']['processing_time'],DATETIMEFMT)
+    assert doc.version == doc._pagerdict['pager']['version_number']
+
 def test():
     homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
     fatfile = os.path.join(homedir,'..','data','fatality.xml')
@@ -35,6 +73,7 @@ def test():
     isofile = os.path.join(homedir,'..','data','eventdata',event,'%s_isogrid.bil' % event)
     urbanfile = os.path.join(homedir,'..','data','eventdata','northridge','northridge_urban.bil')
     oceanfile = os.path.join(homedir,'..','data','eventdata','northridge','northridge_ocean.json')
+    oceangridfile = os.path.join(homedir,'..','data','eventdata','northridge','northridge_ocean.bil')
     
     invfile = os.path.join(homedir,'..','data','semi_inventory.hdf')
     colfile = os.path.join(homedir,'..','data','semi_collapse_mmi.hdf')
@@ -42,8 +81,8 @@ def test():
     workfile = os.path.join(homedir,'..','data','semi_workforce.hdf')
 
     tdir = tempfile.mkdtemp()
-    outfile = os.path.join(tdir,'output.pdf')
-    pngfile,mapcities = draw_contour(shakefile,popfile,oceanfile,cityfile,outfile,make_png=True)
+    basename = os.path.join(tdir,'output')
+    pdffile,pngfile,mapcities = draw_contour(shakefile,popfile,oceanfile,oceangridfile,cityfile,basename)
     shutil.rmtree(tdir)
     
     popyear = 2012
@@ -95,32 +134,24 @@ def test():
     doc.setMapInfo(cityfile,mapcities)
     doc.validate()
 
-    eventinfo = doc.getEventInfo()
-    assert eventinfo['mag'] == shakegrid.getEventDict()['magnitude']
+    #let's test the property methods
     
-    imp1,imp2 = doc.getImpactComments()
-    assert imp1 == impact1 and imp2 == impact2
-
-    version = doc.getSoftwareVersion()
-    elapsed = doc.getElapsed()
-
-    exp = doc.getTotalExposure()
-    assert np.isclose(np.array(exp),expdict['TotalExposure']).all()
-
-    hist_table = doc.getHistoricalTable()
-    assert hist_table[0]['EventID'] == '199206281505'
-
-    scomm = doc.getStructureComment()
-    assert scomm == struct_comment
     
-    hcomm = doc.getHistoricalComment()
-    assert hcomm == hist_comment
+    tdoc(doc,shakegrid,impact1,impact2,expdict,struct_comment,hist_comment)
+    
 
-    citytable = doc.getCityTable()
-    assert citytable.iloc[0]['name'] == 'Santa Clarita'
+    #see if we can save this to a bunch of files then read them back in
+    try:
+        tdir = tempfile.mkdtemp()
+        doc.saveToJSON(tdir)
+        newdoc = PagerData()
+        newdoc.loadFromJSON(tdir)
+        tdoc(newdoc,shakegrid,impact1,impact2,expdict,struct_comment,hist_comment)
+    except Exception as e:
+        assert 1==2
+    finally:
+        shutil.rmtree(tdir)
 
-    summary = doc.getSummaryAlert()
-    assert summary == 'yellow'
     
     
 if __name__ == '__main__':

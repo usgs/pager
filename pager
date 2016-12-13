@@ -18,7 +18,7 @@ import io
 import pandas as pd
 import numpy as np
 from mapio.shake import getHeaderData
-import yaml
+from impactutils.comcat.query import ComCatInfo
 
 #local imports
 from losspager.models.exposure import Exposure
@@ -27,6 +27,7 @@ from losspager.models.emploss import EmpiricalLoss
 from losspager.models.semimodel import SemiEmpiricalFatality
 from losspager.models.growth import PopulationGrowth
 from losspager.utils.country import Country
+from losspager.utils.eventpath import get_event_folder
 from losspager.utils.logger import PagerLogger
 from losspager.onepager.comment import get_impact_comments
 from losspager.onepager.comment import get_structure_comment
@@ -35,16 +36,11 @@ from losspager.onepager.comment import get_historical_comment
 from losspager.io.pagerdata import PagerData
 from losspager.vis.impactscale import drawImpactScale
 from losspager.vis.contourmap2 import draw_contour
+from losspager.utils.config import read_config
 
 COUNTRY = Country()
 TIMEFMT = '%Y-%m-%d %H:%M:%S'
-
-def read_config(configfile):
-    """Read in configuration parameters from config .py file.
-    
-    """
-    config = yaml.load(open(configfile,'rt'))
-    return config
+TSUNAMI_MAG_THRESH = 7.3
 
 def _get_pop_year(event_year,popyears):
     pop_year = None
@@ -108,7 +104,8 @@ def main(pargs,config):
         #stdout will now be logged as INFO, stderr will be logged as WARNING
         mail_host = config['mail_host']
         mail_from = config['mail_from']
-        plog = PagerLogger(pager_folder,redirect=True,
+        logfile = os.path.join(pager_folder,'pager.log')
+        plog = PagerLogger(logfile,redirect=True,
                            from_address=mail_from,
                            mail_host=mail_host)
         
@@ -117,11 +114,31 @@ def main(pargs,config):
     try:
         #get all the basic event information and print it, if requested
         shake_tuple = getHeaderData(pargs.gridfile)
-        #TODO - older shakemaps do not include network in event ID - account for this!
         eid = shake_tuple[1]['event_id']
+        if not len(eid):
+            eid = shake_tuple[0]['event_id']
+        network = shake_tuple[1]['event_network']
+        if network == '':
+            network = 'us'
+        if not eid.startswith(network):
+            eid = network + eid
+        
 
+        #Create a ComcatInfo object to hopefully tell us a number of things about this event
+        try:
+            ccinfo = ComCatInfo(eid)
+            location = ccinfo.getLocation()
+            tsunami = ccinfo.getLocation()
+            authid,allids = ccinfo.getAssociatedIds()
+        except: #fail over to what we can determine locally
+            location = shake_tuple[1]['event_description']
+            tsunami = shake_tuple[1]['magnitude'] >= TSUNAMI_MAG_THRESH
+            authid = eid
+            allids = []
+            
         #create the event directory (if it does not exist), and start logging there
-        event_folder = os.path.join(pager_folder,eid)
+        print('Creating event directory')
+        event_folder = get_event_folder(eid,pager_folder)
         pager_version = get_pager_version(event_folder)
         version_folder = os.path.join(event_folder,'version.%03d' % pager_version)
         os.makedirs(version_folder)
@@ -135,7 +152,7 @@ def main(pargs,config):
         elon = shake_tuple[1]['lon']
         edepth = shake_tuple[1]['depth']
         emag = shake_tuple[1]['magnitude']
-        location = shake_tuple[1]['event_description']
+        
 
         #get the year of the event
         event_year = shake_tuple[1]['event_timestamp'].year
@@ -146,16 +163,19 @@ def main(pargs,config):
         print('Population year: %i Population file: %s\n' % (pop_year,popfile))
 
         #Get exposure results
+        print('Calculating population exposure.')
         isofile = config['model_data']['country_grid']
         expomodel = Exposure(popfile,pop_year,isofile)
         exposure = None
         exposure = expomodel.calcExposure(pargs.gridfile)
 
         #get fatality results, if requested
+        print('Calculating empirical fatalities.')
         fatmodel = EmpiricalLoss.fromDefaultFatality()
         fatdict = fatmodel.getLosses(exposure)
 
         #get economic results, if requested
+        print('Calculating economic exposure.')
         econexpmodel = EconExposure(popfile,pop_year,isofile)
         ecomodel = EmpiricalLoss.fromDefaultEconomic()
         econexposure = econexpmodel.calcExposure(pargs.gridfile)
@@ -163,6 +183,7 @@ def main(pargs,config):
         shakegrid = econexpmodel.getShakeGrid()
 
         #Get semi-empirical losses, if requested
+        print('Calculating semi-empirical fatalities.')
         urbanfile = config['model_data']['urban_rural_grid']
         if not os.path.isfile(urbanfile):
             raise PagerException('Urban-rural grid file %s does not exist.' % urbanfile)
@@ -172,6 +193,7 @@ def main(pargs,config):
         semiloss,resfat,nonresfat = semi.getLosses(pargs.gridfile)
 
         #get all of the other components of PAGER
+        print('Getting all comments.')
         #get the fatality and economic comments
         impact1,impact2 = get_impact_comments(fatdict,ecodict,econexposure,event_year)
         #get comment describing vulnerable structures in the region.
@@ -182,31 +204,45 @@ def main(pargs,config):
         historical_comment = get_historical_comment(elat,elon,emag,exposure,fatdict)
 
         #generate the probability plots
+        print('Drawing probability plots.')
         fat_probs_file,eco_probs_file = _draw_probs(fatmodel,fatdict,
                                                     ecomodel,ecodict,
                                                     version_folder)
 
         #generate the exposure map
-        exposure_pdf = os.path.join(version_folder,'exposure.pdf')
+        exposure_base = os.path.join(version_folder,'exposure')
+        print('Generating exposure map...')
         oceanfile = config['model_data']['ocean_vectors']
+        oceangrid = config['model_data']['ocean_grid']
         cityfile = config['model_data']['city_file']
-        pngfile,mapcities = draw_contour(pargs.gridfile,popfile,
-                                         oceanfile,cityfile,exposure_pdf,
-                                         make_png=True)
+        pdf_file,png_file,mapcities = draw_contour(pargs.gridfile,popfile,
+                                         oceanfile,oceangrid,cityfile,
+                                         exposure_base)
+        print('Generated exposure map %s' % pdf_file)
         
         
+        #Create a data object to encapsulate everything we know about the PAGER
+        #results, and then serialize that to disk in the form of a number of JSON files.
+        print('Making PAGER Data object.')
         doc = PagerData()
         doc.setInputs(shakegrid,pager_version,shakegrid.getEventDict()['event_id'])
+        print('Setting inputs.')
         doc.setExposure(exposure,econexposure)
+        print('Setting exposure.')
         doc.setModelResults(fatmodel,ecomodel,
                             fatdict,ecodict,
                             semiloss,resfat,nonresfat)
+        print('Setting comments.')
         doc.setComments(impact1,impact2,struct_comment,historical_comment,secondary_comment)
+        print('Setting map info.')
         doc.setMapInfo(cityfile,mapcities)
+        print('Validating.')
         doc.validate()
         json_folder = os.path.join(version_folder,'json')
         os.makedirs(json_folder)
+        print('Saving output to JSON.')
         doc.saveToJSON(json_folder)
+        print('Done.')
     except Exception as e:
         if plog is not None:
             f = io.StringIO()
@@ -268,15 +304,8 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
 
-    #get config file name, make sure it exists
-    configfilename = os.path.join(os.path.expanduser('~'),'.losspager','config.yml')
-    if not os.path.isfile(configfilename):
-        print('Config file could not be found at %s.  Exiting.\n\n' % configfilename)
-        parser.print_help()
-        sys.exit(1)
-
-    #parse config file
-    config = read_config(configfilename)
+    #read in the config - should be in a predictable place - this will error out if not.
+    config = read_config()
     
     #Make sure model_data section exists
     try:

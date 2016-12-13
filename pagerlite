@@ -22,17 +22,10 @@ from losspager.models.emploss import EmpiricalLoss
 from losspager.models.semimodel import SemiEmpiricalFatality
 from losspager.models.growth import PopulationGrowth
 from losspager.utils.country import Country
+from losspager.utils.config import read_config
 
 COUNTRY = Country()
 TIMEFMT = '%Y-%m-%d %H:%M:%S'
-
-def read_config(configfile):
-    """Read in configuration parameters from config .py file.
-    
-    """
-    config = yaml.load(open(configfile,'rt'))
-    return config
-    
 
 def pandify_semi(fatbystruct):
     """Turn the fatalities by structure (either residential or non-residential) into DataFrame suitable for printing.
@@ -351,18 +344,11 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
 
-    #get config file name, make sure it exists
-    configfilename = os.path.join(os.path.expanduser('~'),'.losspager','config.yml')
-    if not os.path.isfile(configfilename):
-        print('Config file could not be found at %s.  Exiting.\n\n' % configfilename)
-        parser.print_help()
-        sys.exit(1)
-
     pd.set_option('display.width', 1000)
     pd.set_option('precision', 2)
 
-    #parse config file
-    config = read_config(configfilename)
+    #read config file
+    config = read_config()
     
     #Make sure model_data section exists
     try:

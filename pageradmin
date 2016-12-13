@@ -1,0 +1,262 @@
+#!/usr/bin/env python
+
+#stdlib imports
+import argparse
+import sys
+import configparser
+import os.path
+import datetime
+import collections
+import zipfile
+import shutil
+import glob
+import re
+from operator import attrgetter
+
+#local imports
+from losspager.utils.config import read_config,write_config
+from losspager.utils.eventpath import get_event_folder
+from losspager.io.pagerdata import PagerData
+from losspager.utils.exception import PagerException
+
+#third party imports
+from impactutils.io.cmd import get_command_output
+from impactutils.textformat.text import pop_round_short,dollar_round,round_to_nearest,commify
+
+
+NDAYS = 7
+MAX_DAYS = 300*365 #maximum number of days to do queries for events
+PAGER_SCRIPT = 'runpager.py' #this is a system call hack until I can refactor runpager to export a run function
+TIMEFMT = '%Y-%m-%d %H:%M:%S'
+HDRDICT = collections.OrderedDict([('ID','%-10s'),
+                                  ('Ver','%-3s'),
+                                  ('Time','%-19s'),
+                                  ('Mag','%-4s'),
+                                  ('Depth','%-8s'),
+                                  ('Level','%-7s'),
+                                  ('MMI','%-3s'),
+                                  ('Tsunami?','%-8s'),
+                                  ('Stopped?','%-8s'),
+                                  ('Location','%-42s')])
+
+LEVELS = {'green':0,
+          'yellow':1,
+          'orange':2,
+          'red':3}
+def order_event_data(event_data,sort_by=('time',)):
+    if not isinstance(sort_by,tuple):
+        raise PagerException('sort_by option must be a tuple of strings.')
+    sort_options = ('time','magnitude','alert','processing_time')
+    for option in sort_by:
+       if option not in sort_options:
+           raise PagerException('Sort option %s not allowed.' % option)
+    event_data = sorted(event_data,key=attrgetter(*sort_by))
+    return event_data
+
+def archive_event(event,archive_folder,output_folder):
+    eventfolder = get_event_folder(event,output_folder)
+    if eventfolder is None:
+        return False
+    zipname = os.path.join(archive_folder,event+'.zip')
+    myzip = zipfile.ZipFile(zipname,mode='w',compression=zipfile.ZIP_DEFLATED)
+    for root,dirs,files in os.walk(eventfolder):
+        arcfolder = root[root.find(event):]
+        for fname in files:
+            arcfile = os.path.join(arcfolder,fname)
+            fullfile = os.path.join(root,fname)
+            myzip.write(fullfile,arcfile)
+
+    myzip.close()
+    shutil.rmtree(eventfolder)
+    return True
+
+def get_all_events(outfolder):
+    allevents = os.listdir(outfolder)
+    events = []
+    for event in allevents:
+        if os.path.isdir(os.path.join(outfolder,event)):
+            events.append(event)
+    return events
+
+def get_event_data(eventfolder):
+    data_blobs = []
+    for versionfolder in glob.glob(os.path.join(eventfolder,'version.*')):
+        jsonfolder = os.path.join(versionfolder,'json')
+        vdata = PagerData()
+        vdata.loadFromJSON(jsonfolder)
+        data_blobs.append(vdata)
+    return data_blobs
+
+def main(args):
+    #Get config file loaded
+    config = read_config()
+    
+    #figure out where the output data goes
+    outdir = config['output_folder']
+
+    if args.stop:
+        folder = get_event_folder(args.stop,outdir)
+        if folder is None:
+            print('Event %s could not be found on the system. Exiting.' % args.stop)
+            sys.exit(1)
+        open(os.path.join(folder,'stop'),'wt').write('stop\n')
+        print('A "stop" file was placed in %s.' % (folder))
+        sys.exit(0)
+
+    if args.unstop:
+        folder = get_event_folder(args.unstop,outdir)
+        if folder is None:
+            print('Event %s could not be found on the system. Exiting.' % args.stop)
+            sys.exit(1)
+        stopfile = os.path.join(folder,'stop')
+        if os.path.isfile(stopfile):
+            os.remove(stopfile)
+            print('A "stop" file was removed from %s.' % (folder))
+        else:
+            print('No "stop" file found in %s.  Exiting.' % (folder))
+        sys.exit(0)
+
+    if args.archive:
+        events = args.archive
+        archive_folder = config['archive_folder']
+        not_archived = []
+        if events[0] == 'all':
+            events = get_all_events(outdir)
+        for event in events:
+            archived = archive_event(event,archive_folder,outdir)
+            if not archived:
+                not_archived.append(event)
+        if len(not_archived):
+            print('The following %i events could not be archived: %s' % str(not_archived))
+            sys.exit(1)
+        print('%i events archived to %s' % (len(events),archive_folder))
+        sys.exit(0)
+
+    if args.tsunami is not None:
+        pass
+        
+    if args.status is not None:
+        if 'status' not in config:
+            current_status = 'secondary'
+        
+        current_status = config['status']
+        if not len(args.status):
+            if current_status == 'primary':
+                print('This system WILL transfer products (it is primary).')
+            else:
+                print('This system WILL NOT transfer products (it is secondary).')
+            sys.exit(0)
+        else:
+            desired_status = args.status[0]
+            allowed_status = ['primary','secondary']
+            if desired_status not in allowed_status:
+                print('Status "%s" is not supported.  Must be one of %s.' % (desired_status,str(allowed_status)))
+                sys.exit(1)
+            if desired_status == current_status:
+                print('System status is already %s.' % current_status)
+                sys.exit(0)
+            config['status'] = desired_status
+            write_config(config)
+            if desired_status == 'primary':
+                fmt = 'System status changed to %s - this system is now configured to transfer products.'
+            else:
+                fmt = 'System status changed to %s - this system is now configured to NOT transfer products.'
+            print(fmt % desired_status)
+            sys.exit(0)
+
+    if args.query:
+        minmag = 0.0
+        magmax = 9.9
+        minalert = 'green'
+        if len(args.query) >= 1:
+            ndays = int(args.query[0])
+            if ndays == 0:
+                ndays = MAX_DAYS
+        if len(args.query) >= 2:
+            minmag = float(args.query[1])
+        if len(args.query) >= 3:
+            minalert = args.query[2]
+
+        start_date = datetime.datetime.utcnow() - datetime.timedelta(days=ndays)
+        all_events = get_all_events(outdir)
+        data_blobs = []
+        for event in all_events:
+            event_folder = get_event_folder(event,outdir)
+            dblobs = get_event_data(event_folder)
+            data_blobs.append(dblobs[-1]) #only get the last version
+        data_blobs = order_event_data(data_blobs)
+        for dblob in data_blobs:
+            is_recent = dblob.time >= start_date
+            is_high = LEVELS[dblob.alert] >= LEVELS[minalert]
+            is_mag = dblob.magnitude >= minmag
+            if is_recent and is_high and is_mag:
+                print(dblob)
+    
+if __name__ == '__main__':
+    desc='Administer the PAGER system with a series of subcommands.'
+    usage = '''
+    To query the system status: "pageradmin --status"
+    To switch the system from being primary to secondary: "pageradmin --status secondary"
+    To switch the system from being secondary to primary: "pageradmin --status primary"
+    To prevent an event from being automatically updated: "pageradmin --stop EVENTID"
+    To re-allow an event to be automatically updated: "pageradmin --unstop EVENTID"
+    To archive an event: "pageradmin --archive EVENTID"
+    To delete ALL events:"pageradmin --archive all"
+    To release an event: "pageradmin --release EVENTID"
+    To toggle the tsunami flag ON for an event: "pageradmin --tsunami EVENTID on"
+    To toggle the tsunami flag OFF for an event: "pageradmin --tsunami EVENTID off"
+    To print a list of the events from the last 7 days: "pageradmin --recent"
+    To see the version history of an event: "pageradmin --history EVENTID"
+
+    Query Syntax:
+    All events from the last 14 days, do pageradmin --query 14
+    All events from the last 14 days with magnitude >= 6.5, do pageradmin --query 14 6.5
+    All events *ever* with magnitude >= 6.5, do pageradmin --query 0 6.5
+    All events *ever* with any magnitude and alert level >= yellow, do pageradmin --query 0 0 yellow
+    All events *ever* with any magnitude, any alert level, and maxmmi >= 7, do pageradmin --query 0 0 green 7 
+    '''
+    argparser = argparse.ArgumentParser(description=desc,
+                                        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+                                        usage=usage)
+    argparser.add_argument("--archive", nargs='*',
+                           help='''Archive event(s) from file system. Passing "all" as an argument will archive all events!''',metavar='EVENT')
+    argparser.add_argument("--stop", nargs=1,
+                           help="Prevent event(s) from being re-run automatically.",
+                           metavar='EVENT')
+    argparser.add_argument("--unstop", nargs=1,
+                           help="Allow stopped event(s) to be re-run automatically.",
+                           metavar='EVENT')
+    argparser.add_argument("--status", nargs='*',
+                           help="Print or change PAGER primary/secondary status.",
+                           metavar='STATUS')
+    argparser.add_argument("--tsunami", nargs=2,
+                           help="Toggle tsunami warning on PAGER alert",
+                           metavar=('EVENT','on/off'))
+    argparser.add_argument('--query',nargs='+',metavar='PARAM',
+                           help="List events that match the query. Params are NDAYS [MAG ALERT MAXMMI]")
+    
+    # argparser.add_argument("--release", nargs='*',
+    #                        help="Release orange/red alert level event.",
+    #                        metavar='EVENT')
+    # argparser.add_argument("--renotify", nargs=1,
+    #                        help="Send renotify message to ENS for given event.",
+    #                        metavar='EVENT')
+    
+    
+    # argparser.add_argument('--recent',action="store_true",default=False,
+    #                        help="List events that have occurred within the last %i days" % NDAYS)
+
+    # argparser.add_argument('--ofda',metavar='NDAYS',type=int,
+    #                        help="""List events that are likely to have caused alerts on ANY version
+    # of an event (EIS Yellow+, MMI 7+, Mag 7+) within the last NDAYS.""")
+    # argparser.add_argument("--history", nargs=1,
+    #                        help="Print PAGER event history.",
+    #                        metavar='EVENT')
+    
+    
+
+    args = argparser.parse_args()
+    main(args)
+
+    
+                           

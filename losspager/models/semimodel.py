@@ -621,7 +621,7 @@ class SemiEmpiricalFatality(object):
             shakegrid = ShakeGrid.load(shakefile,samplegeodict=sampledict,resample=True,method='linear',adjust='res')
             popgrid = self._pop_class.load(self._popfile,samplegeodict=sampledict,resample=False)
             isogrid = self._iso_class.load(self._isofile,samplegeodict=sampledict,resample=True,method='nearest')
-            urbgrid = self._urban_class.load(self._urbanfile,samplegeodict=sampledict,resample=True,method='nearest')
+            urbgrid = self._urban_class.load(self._urbanfile,samplegeodict=sampledict,resample=True,method='nearest',doPadding=True,padValue=RURAL)
         
         #determine the local apparent time of day (based on longitude)
         edict = shakegrid.getEventDict()
