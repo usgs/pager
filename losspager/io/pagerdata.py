@@ -2,12 +2,14 @@
 from collections import OrderedDict
 from datetime import datetime
 import os.path
+import json
 
 #third party libraries
 from lxml import etree
 import numpy as np
 from impactutils.time.timeutils import get_local_time,ElapsedTime
 from mapio.city import Cities
+import pandas as pd
 
 #local imports
 from losspager.utils.expocat import ExpoCat
@@ -26,7 +28,22 @@ class PagerData(object):
         self._exposure_set = False
         self._models_set = False
         self._comments_set = False
+        self._mapinfo_set = True
+        self._is_validated = False
 
+    def __repr__(self):
+        if not self._is_validated:
+            return 'Unfilled PagerData object.'
+        else:
+            fmt = 'PagerData: ID %s Version %i Time %s Mag %.1f Fatality Alert %s Economic Alert %s'
+            eid = self._pagerdict['event_info']['eventid']
+            eversion = self._pagerdict['pager']['version_number']
+            etime = self._pagerdict['event_info']['time']
+            emag = self._pagerdict['event_info']['mag']
+            fatalert = self._pagerdict['alerts']['fatality']['level']
+            ecoalert = self._pagerdict['alerts']['economic']['level']
+            return fmt % (eid,eversion,etime,emag,fatalert,ecoalert)
+        
     #########Setters########
     def setInputs(self,shakegrid,pagerversion,eventcode):
         self._event_dict = shakegrid.getEventDict()
@@ -38,8 +55,15 @@ class PagerData(object):
 
     def setExposure(self,exposure,econ_exposure):
         nmmi,self._maxmmi = self._get_maxmmi(exposure)
-        self._exposure = exposure
-        self._econ_exposure = econ_exposure
+        #convert all numpy integers to python integers
+        new_exposure = {}
+        for key,value in exposure.items():
+            new_exposure[key] = value.tolist()
+        new_econ_exposure = {}
+        for key,value in econ_exposure.items():
+            new_econ_exposure[key] = value.tolist()
+        self._exposure = new_exposure
+        self._econ_exposure = new_econ_exposure
         self._exposure_set = True
 
     def setComments(self,impact1,impact2,struct_comment,hist_comment,secondary_comment):
@@ -68,6 +92,7 @@ class PagerData(object):
     def setMapInfo(self,cityfile,mapcities):
         self._city_file = cityfile
         self._map_cities = mapcities
+        self._mapinfo_set = True
 
     def validate(self):
         if not self._input_set:
@@ -78,6 +103,8 @@ class PagerData(object):
             raise PagerException('You must call setExposure() first.')
         if not self._comments_set:
             raise PagerException('You must call setComments() first.')
+        if not self._mapinfo_set:
+            raise PagerException('You must call setComments() first.')
 
         self._pagerdict['event_info'] = self._setEvent()
         self._pagerdict['pager'] = self._setPager()
@@ -86,9 +113,13 @@ class PagerData(object):
         self._pagerdict['population_exposure'] = self._setPopulationExposure()
         self._pagerdict['economic_exposure'] = self._setEconomicExposure()
         self._pagerdict['model_results'] = self._setModelResults()
+        print('In pagerdata, getting city table.')
         self._pagerdict['city_table'] = self._getCityTable()
+        print('In pagerdata, getting historical earthquakes.')
         self._pagerdict['historical_earthquakes'] = self._getHistoricalEarthquakes()
+        print('In pagerdata, getting comments.')
         self._pagerdict['comments'] = self._getComments()
+        self._is_validated = True
     #########Setters########
 
     #########Getters########
@@ -103,9 +134,12 @@ class PagerData(object):
             - lon Float longitude of origin.
             - depth Float depth of origin, km.
             - mag Float earthquake magnitude.
-            - version Integer PAGER version number.
             - location String describing the location of the earthquake.
         """
+        if not self._is_validated:
+            raise PagerException('PagerData object has not yet been validated.')
+        event_info = self._pagerdict['event_info'].copy()
+        event_info['time'] = datetime.strptime(event_info['time'],DATETIMEFMT)
         return self._pagerdict['event_info']
 
     def getImpactComments(self):
@@ -115,6 +149,8 @@ class PagerData(object):
           Tuple of impact comments, where first is most impactful, second is least.  In cases where the
           impact levels for fatalities and economic losses are the same, the second comment will be empty.
         """
+        if not self._is_validated:
+            raise PagerException('PagerData object has not yet been validated.')
         return(self._pagerdict['comments']['impact1'],self._pagerdict['comments']['impact2'])
 
     def getSoftwareVersion(self):
@@ -123,6 +159,8 @@ class PagerData(object):
         :returns:
           String describing PAGER software version.
         """
+        if not self._is_validated:
+            raise PagerException('PagerData object has not yet been validated.')
         return self._pagerdict['pager']['software_version']
 
     def getElapsed(self):
@@ -131,6 +169,8 @@ class PagerData(object):
         :returns:
           string summarizing time elapsed between origin time and time of PAGER run.
         """
+        if not self._is_validated:
+            raise PagerException('PagerData object has not yet been validated.')
         return self._pagerdict['pager']['elapsed_time']
 
     def getTotalExposure(self):
@@ -139,6 +179,8 @@ class PagerData(object):
         :returns:
           List of aggregated (all countries) population exposure to shaking.
         """
+        if not self._is_validated:
+            raise PagerException('PagerData object has not yet been validated.')
         return self._pagerdict['population_exposure']['aggregated_exposure']
 
     def getHistoricalTable(self):
@@ -175,6 +217,8 @@ class PagerData(object):
             - Color The hex color that should be used for row color in historical events table.
 
         """
+        if not self._is_validated:
+            raise PagerException('PagerData object has not yet been validated.')
         return self._pagerdict['historical_earthquakes']
 
     def getStructureComment(self):
@@ -183,6 +227,8 @@ class PagerData(object):
         :returns:
           Paragraph of text describing the vulnerability of buildings in the most impacted country.
         """
+        if not self._is_validated:
+            raise PagerException('PagerData object has not yet been validated.')
         return self._pagerdict['comments']['struct_comment']
 
     def getHistoricalComment(self):
@@ -191,27 +237,163 @@ class PagerData(object):
         :returns:
           string describing the most impactful historical earthquake near the current event.
         """
+        if not self._is_validated:
+            raise PagerException('PagerData object has not yet been validated.')
         return self._pagerdict['comments']['historical_comment']
 
     def getCityTable(self):
+        if not self._is_validated:
+            raise PagerException('PagerData object has not yet been validated.')
         return self._pagerdict['city_table']
 
     def getSummaryAlert(self):
+        if not self._is_validated:
+            raise PagerException('PagerData object has not yet been validated.')
         return self._pagerdict['pager']['alert_level']
     #########Getters########
 
+    #########Accessors########
+    @property
+    def time(self):
+        return datetime.strptime(self._pagerdict['event_info']['time'],DATETIMEFMT)
+    @property
+    def magnitude(self):
+        return self._pagerdict['event_info']['mag']
+    @property
+    def alert(self):
+        if self._pagerdict['alerts']['fatality']['summary']:
+            return self._pagerdict['alerts']['fatality']['level']
+        else:
+            return self._pagerdict['alerts']['economic']['level']
+    @property
+    def processing_time(self):
+        return datetime.strptime(self._pagerdict['pager']['processing_time'],DATETIMEFMT)
+
+    @property
+    def version(self):
+        return self._pagerdict['pager']['version_number']
+    
+    #########Accessors########
+    
     #########Savers/Loaders########
-    def saveToJSON(self):
-        pass
+    def saveToJSON(self,jsonfolder):
+        if not self._is_validated:
+            raise PagerException('PagerData object has not yet been validated.')
+
+        #one file to contain event summary, pager summary, and shakemap summary info
+        event_info_file = os.path.join(jsonfolder,'event.json')
+        f = open(event_info_file,'wt')
+        infodict = {'event':self._pagerdict['event_info'],
+                    'pager':self._pagerdict['pager'],
+                    'shakemap':self._pagerdict['shake_info']}
+        json.dump(infodict,f)
+        f.close()
+
+        #one file for alert information
+        alert_info_file = os.path.join(jsonfolder,'alerts.json')
+        f = open(alert_info_file,'wt')
+        json.dump(self._pagerdict['alerts'],f)
+        f.close()
+
+        #one file for exposure information (population and economic)
+        exposure_info_file = os.path.join(jsonfolder,'exposures.json')
+        f = open(exposure_info_file,'wt')
+        expdict = {'population_exposure':self._pagerdict['population_exposure'],
+                   'economic_exposure':self._pagerdict['economic_exposure']}
+        json.dump(expdict,f)
+        f.close()
+
+        #one file for loss model results
+        loss_info_file = os.path.join(jsonfolder,'losses.json')
+        f = open(loss_info_file,'wt')
+        json.dump(self._pagerdict['model_results'],f)
+        f.close()
+
+        #one file for the table of affected cities
+        city_file = os.path.join(jsonfolder,'cities.json')
+        f = open(city_file,'wt')
+        self._pagerdict['city_table'].to_json(f,orient='records')
+        f.close()
+
+        #one file for the table of historical earthquakes (if any)
+        historical_info_file = os.path.join(jsonfolder,'historical_earthquakes.json')
+        f = open(historical_info_file,'wt')
+        json.dump(self._pagerdict['historical_earthquakes'],f)
+        f.close()
+
+        #one file for all comments
+        comment_file = os.path.join(jsonfolder,'comments.json')
+        f = open(comment_file,'wt')
+        json.dump(self._pagerdict['comments'],f)
+        f.close()
+        
+        
     def saveToLegacyXML(self):
+        if not self._is_validated:
+            raise PagerException('PagerData object has not yet been validated.')
         pass
-    def loadFromJSON(self):
-        pass
+
+    def loadFromJSON(self,jsonfolder):
+        jsonfiles = ['event.json','alerts.json','exposures.json',
+                     'losses.json','cities.json','historical_earthquakes.json',
+                     'comments.json']
+        missing = []
+        for jf in jsonfiles:
+            jsonfile = os.path.join(jsonfolder,jf)
+            if not os.path.isfile(jsonfile):
+                missing.append(jf)
+        if len(missing):
+            fmt = 'Could not load PagerData from %s: Missing required files %s'
+            raise PagerException(fmt % jsonfolder,str(missing))
+
+        #load event, shakemap, and pager basic information
+        f = open(os.path.join(jsonfolder,'event.json'),'rt')
+        event = json.load(f)
+        f.close()
+        self._pagerdict['event_info'] = event['event'].copy()
+        self._pagerdict['pager'] = event['pager'].copy()
+        self._pagerdict['shake_info'] = event['shakemap'].copy()
+
+        #load the information about the alerts
+        f = open(os.path.join(jsonfolder,'alerts.json'),'rt')
+        self._pagerdict['alerts'] = json.load(f)
+        f.close()
+
+        #load the information about the exposures
+        f = open(os.path.join(jsonfolder,'exposures.json'),'rt')
+        expo = json.load(f)
+        f.close()
+        self._pagerdict['population_exposure'] = expo['population_exposure']
+        self._pagerdict['economic_exposure'] = expo['economic_exposure']
+
+        #load the information about the losses
+        f = open(os.path.join(jsonfolder,'losses.json'),'rt')
+        self._pagerdict['model_results'] = json.load(f)
+        f.close()
+
+        #load in the information about affected cities
+        f = open(os.path.join(jsonfolder,'cities.json'),'rt')
+        self._pagerdict['city_table'] = pd.read_json(f)
+        f.close()
+
+        #load in the information about historical earthquakes
+        f = open(os.path.join(jsonfolder,'historical_earthquakes.json'),'rt')
+        self._pagerdict['historical_earthquakes'] = json.load(f)
+        f.close()
+
+        #load in the information about comments
+        f = open(os.path.join(jsonfolder,'comments.json'),'rt')
+        self._pagerdict['comments'] = json.load(f)
+        f.close()
+        
+        self._is_validated = True
+        
     def loadFromLegacyXML(self):
         pass
     #########Savers/Loaders########
     
     def _get_maxmmi(self,exposure):
+        maxmmi = 0
         for i in range(9,-1,-1):
             exp = exposure['TotalExposure'][i]
             if exp >= MINEXP:
@@ -260,12 +442,11 @@ class PagerData(object):
     def _setEvent(self):
         event = OrderedDict()
         event['eventid'] = self._event_dict['event_id']
-        event['time'] = self._event_dict['event_timestamp']
+        event['time'] = self._event_dict['event_timestamp'].strftime(DATETIMEFMT)
         event['lat'] = self._event_dict['lat']
         event['lon'] = self._event_dict['lon']
         event['depth'] = self._event_dict['depth']
         event['mag'] = self._event_dict['magnitude']
-        event['version'] = self._pagerversion
         event['location'] = self._event_dict['event_description']
         return event
 
@@ -273,7 +454,7 @@ class PagerData(object):
         shakeinfo = OrderedDict()
         shakeinfo['shake_version'] = self._shake_dict['shakemap_version']
         shakeinfo['shake_code_version'] = self._shake_dict['code_version']
-        shakeinfo['shake_time'] = self._shake_dict['process_timestamp']
+        shakeinfo['shake_processing_time'] = self._shake_dict['process_timestamp'].strftime(DATETIMEFMT)
 
         return shakeinfo
 
@@ -420,12 +601,17 @@ class PagerData(object):
     def _getHistoricalEarthquakes(self):
         expocat = ExpoCat.fromDefault()
         clat,clon = self._event_dict['lat'],self._event_dict['lon']
+        print('Select events by radius.')
         inbounds = expocat.selectByRadius(clat,clon,EVENT_RADIUS)
         maxmmi = self._pagerdict['pager']['maxmmi']
         nmmi = self._nmmi
         deaths = self._fatmodel_results['TotalFatalities']
         etime = self._event_dict['event_timestamp']
-        eventlist = inbounds.getHistoricalEvents(maxmmi,nmmi,clat,clon)
+        print('Select historical earthquakes.')
+        eventlist = inbounds.getHistoricalEvents(maxmmi,nmmi,deaths,clat,clon)
+        for event in eventlist:
+            if event is not None:
+                event['Time'] = event['Time'].strftime(DATETIMEFMT)
         return eventlist
 
     def _getCityTable(self):

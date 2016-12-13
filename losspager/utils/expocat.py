@@ -19,8 +19,19 @@ MIN_MMI = 1000
 def to_ordered_dict(series):
     keys = series.index
     mydict = OrderedDict()
+
+    np_int_types = (np.int8,np.int16,np.int32,np.int64,
+                    np.uint8,np.uint16,np.uint32,np.uint64)
+    np_float_types = (np.float32,np.float64)
+    
     for key in keys:
-        mydict[key] = series[key]
+        if isinstance(series[key],np_int_types):
+            svalue = int(series[key])
+        elif isinstance(series[key],np_float_types):
+            svalue = float(series[key])
+        else:
+            svalue = series[key]
+        mydict[key] = svalue
     return mydict
 
 def _select_by_max_mmi(df,mmi,minimum=1000):
@@ -235,7 +246,7 @@ class ExpoCat(object):
         return ExpoCat(newdf)
         
 
-    def getHistoricalEvents(self,maxmmi,nmmi,clat,clon):
+    def getHistoricalEvents(self,maxmmi,nmmi,ndeaths,clat,clon):
         """Select three earthquakes from internal list that are "representative" and similar to input event.
 
         First event should be the event "most similar" in exposure, and with the fewest fatalities.
@@ -243,13 +254,17 @@ class ExpoCat(object):
         Third event should be the deadliest and/or highest population exposure event.
 
         :param maxmmi:
-          
+          MMI level of maximum exposure.
+        :param nmmi:
+          Number of people exposure to maxmmi.
+        :param ndeaths:
+          Number of estimated people killed from shaking.
         :param clat:
           Origin latitude.
         :param clon:
           Origin latitude.
         :returns:
-          List of three dictionaries, containing fields:
+          List of three dictionaries (or three None values), containing fields:
             - EventID  14 character event ID based on time: (YYYYMMDDHHMMSS).
             - Time Pandas Timestamp object.
             - Lat  Event latitude.
@@ -280,14 +295,19 @@ class ExpoCat(object):
         """
         #get the worst event first
         newdf = self._dataframe.sort_values(['ShakingDeaths','MaxMMI','NumMaxMMI'],ascending=False)
+        if not len(newdf):
+            return [None,None,None]
         worst = newdf.iloc[0]
         newdf = newdf.drop(newdf.index[[0]]) #get rid of that first row, so we don't re-include the same event
-        
-        #get the similar but less bad event
-        less_bad,newdf = self.getSimilarEvent(newdf,maxmmi,go_down=True)
+        if not len(newdf):
+            less_bad = None
+        else:#get the similar but less bad event
+            less_bad,newdf = self.getSimilarEvent(newdf,maxmmi,nmmi,ndeaths,go_down=True)
 
-        #get the similar but worse event
-        more_bad,newdf = self.getSimilarEvent(newdf,maxmmi,go_down=False)
+        if not len(newdf):
+            more_bad = None
+        else:#get the similar but worse event
+            more_bad,newdf = self.getSimilarEvent(newdf,maxmmi,nmmi,ndeaths,go_down=False)
 
         events = []
         colormap = ColorPalette.fromPreset('mmi')
@@ -314,39 +334,56 @@ class ExpoCat(object):
 
         return events
 
-    def getSimilarEvent(self,df,maxmmi,go_down=True):
+    def getSimilarEvent(self,df,maxmmi,nmmi,ndeaths,go_down=True):
+        #Algorithm description: if go_down == True
+        #1)find any events in df where maxmmi == input maxmmi and deaths > ndeaths.
+        #if there are any of these, find the event where deaths is closest to ndeaths and return.
+        #2)while maxmmi >= 1, decrement maxmmi and find any events in df where maxmmi == new maxmmi
+        #and deaths > ndeaths.  If any, find event where deaths is closest to ndeaths and return.
+        #3)while maxmmi <= 9, increment maxmmi and find any events in df where maxmmi == new maxmmi
+        #and deaths > ndeaths.  If any, find event where deaths is closest to ndeaths and return.
+        #4)Sort df by shaking fatalities, maxmmi and nmmi in descending order.  Return the first event.
+
+        #if go_down == False
+        #do the same thing as above except #2 increment maxmmi and #3 decrement maxmmi.
+        
         #get all of the events with the same maxmmi as input
         newdf = df[df.MaxMMI == maxmmi]
-
+        
         #if we're searching for the most similar but less bad event, go_down is True
         newmaxmmi = maxmmi
         if go_down:
-            incop = operator.sub
-            mmi1 = 1
-            mmi2 = 9
+            mmi1 = 0
+            mmi2 = 10
+            inc1 = -1
+            inc2 = 1
             ascending = True
-            compop = operator.gt
-            decop = operator.add
         else:
-            incop = operator.sub
-            mmi1 = 9
-            mmi2 = 1
+            mmi1 = 10
+            mmi2 = 0
+            inc1 = 1
+            inc2 = -1
             ascending = False
-            compop = operator.gt
-            decop = operator.add
-        while not len(newdf) and compop(newmaxmmi,mmi1):
-            newmaxmmi = incop(newmaxmmi,1)
-            newdf = df[df.MaxMMI == newmaxmmi]
 
-        if not len(newdf):
-            newdf = df[df.MaxMMI == maxmmi]
-        newmaxmmi = maxmmi
-        while not len(newdf) and compop(newmaxmmi,mmi2):
-            newmaxmmi = decop(newmaxmmi,1)
-            newdf = df[df.MaxMMI == newmaxmmi]
-        if not len(newdf):
-            return None
-        newdf = newdf.sort_values(['ShakingDeaths','MaxMMI','NumMaxMMI'],ascending=ascending)
+        #if go_down is True, we're going down here (up if not)
+        for newmaxmmi in range(maxmmi,mmi1,inc1):
+            newdf = df[(df.MaxMMI == newmaxmmi) & (df.ShakingDeaths > ndeaths)]
+            if len(newdf):
+                ismall = ((newdf.ShakingDeaths - ndeaths).abs()).as_matrix().argmin()
+                similar = newdf.iloc[ismall]
+                newdf = df.drop(similar.name)
+                return (similar,newdf)
+
+        #if go_down is True, we're going up here (down if not)
+        for newmaxmmi in range(maxmmi,mmi2,inc2):
+            newdf = df[(df.MaxMMI == newmaxmmi) & (df.ShakingDeaths > ndeaths)]
+            if len(newdf):
+                ismall = ((newdf.ShakingDeaths - ndeaths).abs()).as_matrix().argmin()
+                similar = newdf.iloc[ismall]
+                newdf = df.drop(similar.name)
+                return (similar,newdf)
+
+        newdf = df.sort_values(['ShakingDeaths','MaxMMI','NumMaxMMI'],ascending=ascending)
         similar = newdf.iloc[0]
         newdf = df.drop(similar.name)
         return (similar,newdf)

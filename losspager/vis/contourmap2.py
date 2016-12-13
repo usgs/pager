@@ -6,12 +6,14 @@ from datetime import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
+import matplotlib.patheffects as path_effects
 
 import cartopy
 import cartopy.crs as ccrs  # projections
 import cartopy.feature as cfeature   # features such as coast 
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from cartopy.io.img_tiles import StamenTerrain  # baselayer map
+from cartopy.feature import ShapelyFeature
 
 from mapio.shake import ShakeGrid
 from mapio.gdal import GDALGrid
@@ -20,6 +22,9 @@ from mapio.grid2d import Grid2D
 from shapely.geometry import shape as sShape
 from shapely.geometry import Polygon as sPolygon
 from shapely.geometry import MultiPolygon as mPolygon
+from shapely.geometry import GeometryCollection
+
+import pyproj
 
 import fiona
 
@@ -35,6 +40,30 @@ from impactutils.mapping.scalebar import draw_scale
 WATERCOLOR = '#7AA1DA'
 FIGWIDTH = 7.0
 FILTER_SMOOTH = 5.0
+XOFFSET = 4 #how many pixels between the city dot and the city text
+
+#define the zorder values for various map components
+POP_ZORDER = 8
+COAST_ZORDER = 11
+LANDC_ZORDER = 10
+OCEANC_ZORDER = 11
+CLABEL_ZORDER = 50
+OCEAN_ORDER = 10
+GRID_ZORDER = 20
+EPICENTER_ZORDER = 30
+CITIES_ZORDER = 12
+
+#define dictionary of MMI integer values to Roman numeral equivalents
+MMI_LABELS = {'1':'I',
+              '2':'II',
+              '3':'III',
+              '4':'IV',
+              '5':'V',
+              '6':'VI',
+              '7':'VII',
+              '8':'VIII',
+              '9':'IX',
+              '10':'X'}
 
 def _clip_bounds(bbox,filename):
     """Clip input fiona-compatible vector file to input bounding box.
@@ -46,18 +75,69 @@ def _clip_bounds(bbox,filename):
     :returns:
       Shapely Geometry object (Polygon or MultiPolygon).
     """
-    #returns a clipped shapely object
-    xmin,ymin,xmax,ymax = bbox
-    bboxpoly = sPolygon([(xmin,ymax),(xmax,ymax),(xmax,ymin),(xmin,ymin),(xmin,ymax)])
-    vshapes = []
     f = fiona.open(filename,'r')
-    shapes = f.items(bbox=bbox)
-    for shapeidx,shape in shapes:
-        tshape = sShape(shape['geometry'])
-        intshape = tshape.intersection(bboxpoly)
-        vshapes.append(intshape)
+    shapes = list(f.items(bbox=bbox))
+    xmin,ymin,xmax,ymax = bbox
+    newshapes = []
+    bboxpoly = sPolygon([(xmin,ymax),(xmax,ymax),(xmax,ymin),(xmin,ymin),(xmin,ymax)])
+    for tshape in shapes:
+        myshape = sShape(tshape[1]['geometry'])
+        intshape = myshape.intersection(bboxpoly)
+        newshapes.append(intshape)
+        newshapes.append(myshape)
+    gc = GeometryCollection(newshapes)
     f.close()
-    return vshapes
+    return gc
+
+def _renderRow(row,ax,fontname='Bitstream Vera Sans',fontsize=10,zorder=10,shadow=False):
+    """Internal method to consistently render city names.
+    :param row:
+      pandas dataframe row.
+    :param ax:
+      Matplotlib Axes instance.
+    :param fontname:
+      String name of desired font.
+    :param fontsize:
+      Font size in points.
+    :param zorder:
+      Matplotlib plotting order - higher zorder is on top. 
+    :param shadow:
+      Boolean indicating whether "drop-shadow" effect should be used.
+    :returns:
+      Matplotlib Text instance.
+    """
+    ha = 'left'
+    va = 'center'
+    if 'placement' in row.index:
+        if row['placement'].find('E') > -1:
+            ha = 'left'
+        if row['placement'].find('W') > -1:
+            ha = 'right'
+        else:
+            ha = 'center'
+        if row['placement'].find('N') > -1:
+            ha = 'top'
+        if row['placement'].find('S') > -1:
+            ha = 'bottom'
+        else:
+            ha = 'center'
+
+    #data_x_offset = data2[0] - data1[0]
+    data_x_offset = 0
+    tx = row['lon'] + data_x_offset
+    ty = row['lat']
+    if shadow:  
+        th = ax.text(tx,ty,row['name'],fontname=fontname,color='black',
+                     fontsize=fontsize,ha=ha,va=va,zorder=zorder,
+                     transform=ccrs.Geodetic())
+        th.set_path_effects([path_effects.Stroke(linewidth=2.0, foreground='white'),
+                             path_effects.Normal()])
+    else:     
+        th = ax.text(tx,ty,row['name'],fontname=fontname,
+                     fontsize=fontsize,ha=ha,va=va,zorder=zorder,
+                    transform=ccrs.Geodetic())
+
+    return th
 
 def _get_open_corner(popgrid,ax,filled_corner=None,need_bottom=True):
     """Get the map corner (not already filled) with the lowest population.
@@ -153,8 +233,7 @@ def _get_open_corner(popgrid,ax,filled_corner=None,need_bottom=True):
     if imin == 3:
         return urbounds,'ur'
 
-
-def draw_contour(shakefile,popfile,oceanfile,cityfile,outfilename,make_png=False):
+def draw_contour(shakefile,popfile,oceanfile,oceangridfile,cityfile,basename):
     """Create a contour map showing population (greyscale) underneath contoured MMI.
 
     :param shakefile:
@@ -163,10 +242,13 @@ def draw_contour(shakefile,popfile,oceanfile,cityfile,outfilename,make_png=False
       String path to GDALGrid-compliant file containing population data.
     :param oceanfile:
       String path to file containing ocean vector data in a format compatible with fiona.
+    :param oceangridfile:
+      String path to file containing ocean grid data .
     :param cityfile:
       String path to file containing GeoNames cities data.
-    :param outfilename:
-      String path containing desired output PDF filename.
+    :param basename:
+      String path containing desired output PDF base name, i.e., /home/pager/exposure.  ".pdf" and ".png" files will
+      be made.
     :param make_png:
       Boolean indicating whether a PNG version of the file should also be created in the
       same output folder as the PDF.
@@ -180,96 +262,143 @@ def draw_contour(shakefile,popfile,oceanfile,cityfile,outfilename,make_png=False
     #if we were doing math with the pop values.  We're not, so I think it's ok.
     shakegrid = ShakeGrid.load(shakefile,adjust='res')
     gd = shakegrid.getGeoDict()
-    
-    #retrieve the epicenter - this will get used on the map
+
+    #Retrieve the epicenter - this will get used on the map
     clat = shakegrid.getEventDict()['lat']
     clon = shakegrid.getEventDict()['lon']
 
-    #load the population data, sample to shakemap
+    #Load the population data, sample to shakemap
     popgrid = GDALGrid.load(popfile,samplegeodict=gd,resample=True)
-    popdata = popgrid.getData()
-    
-    #smooth the MMI data for contouring
-    mmi = shakegrid.getLayer('mmi').getData()
-    smoothed_mmi = gaussian_filter(mmi,FILTER_SMOOTH)
 
-    #clip the ocean data to the shakemap
-    bbox = (gd.xmin,gd.ymin,gd.xmax,gd.ymax)
-    oceanshapes = _clip_bounds(bbox,oceanfile)
+    #load the ocean grid file (has 1s in ocean, 0s over land)
+    #having this file saves us almost 30 seconds!
+    oceangrid = GDALGrid.load(oceangridfile,samplegeodict=gd,resample=True)
 
     #load the cities data, limit to cities within shakemap bounds
     allcities = CartopyCities.fromDefault()
     cities = allcities.limitByBounds((gd.xmin,gd.xmax,gd.ymin,gd.ymax))
 
-    # Define ocean/land masks to do the contours, since we want different contour line styles over land and water.
-    oceangrid = Grid2D.rasterizeFromGeometry(oceanshapes,gd,burnValue=1.0,fillValue=0.0,
-                                             mustContainCenter=False,attribute=None)
-    oceanmask = np.ma.masked_where(oceangrid == 1.0,smoothed_mmi)
-    landmask = np.ma.masked_where(oceangrid == 0.0,smoothed_mmi)
+    #define the map
+    #first cope with stupid 180 meridian 
+    height = (gd.ymax-gd.ymin)*111.191
+    if gd.xmin < gd.xmax:
+        width = (gd.xmax-gd.xmin)*np.cos(np.radians(clat))*111.191
+        xmin,xmax,ymin,ymax = (gd.xmin,gd.xmax,gd.ymin,gd.ymax)
+    else:
+        xmin,xmax,ymin,ymax = (gd.xmin,gd.xmax,gd.ymin,gd.ymax)
+        xmax += 360
+        width = ((gd.xmax+360) - gd.xmin)*np.cos(np.radians(clat))*111.191
+
+    aspect = width/height
+    figheight = FIGWIDTH/aspect
+    fig = plt.figure(figsize=(FIGWIDTH,figheight))
+
+    bbox = (xmin,ymin,xmax,ymax)
+    clon = xmin + (xmax-xmin)/2
+    clat = ymin + (ymax-ymin)/2
+    geoproj = ccrs.PlateCarree()
+    proj = ccrs.Mercator(central_longitude=clon, 
+                         min_latitude=ymin, 
+                         max_latitude=ymax, 
+                         globe=None)
+
+    #project our population grid to the map projection
+    projstr = proj.proj4_init
+    popgrid_proj = popgrid.project(projstr)
+    popdata = popgrid_proj.getData()
+    newgd = popgrid_proj.getGeoDict()
 
     # Use our GMT-inspired palette class to create population and MMI colormaps 
     popmap = ColorPalette.fromPreset('pop')
     mmimap = ColorPalette.fromPreset('mmi')
 
-    #use the ShakeMap to determine the aspect ratio of the map
-    aspect = (gd.xmax-gd.xmin)/(gd.ymax-gd.ymin)
-    figheight = FIGWIDTH/aspect
-    fig = plt.figure(figsize=(FIGWIDTH,figheight))
-
-    # set up axes object with PlateCaree (non) projection.
-    ax = plt.axes([0.02,0.02,0.95,0.95],projection=ccrs.PlateCarree())
+    ax = plt.axes([0.02,0.02,0.95,0.95],projection=proj)
+    ax.set_extent([xmin, xmax, ymin, ymax])
 
     #set the image extent to that of the data
-    img_extent = (gd.xmin,gd.xmax,gd.ymin,gd.ymax)
+    img_extent = (newgd.xmin,newgd.xmax,newgd.ymin,newgd.ymax)
     plt.imshow(popdata,origin='upper',extent=img_extent,cmap=popmap.cmap,
-               vmin=popmap.vmin,vmax=popmap.vmax,zorder=9,interpolation='none')
+               vmin=popmap.vmin,vmax=popmap.vmax,zorder=POP_ZORDER,interpolation='nearest')
 
-    #define arrays of latitude and longitude we will use to plot MMI contours
-    lat = np.linspace(gd.ymin,gd.ymax,gd.ny)
-    lon = np.linspace(gd.xmin,gd.xmax,gd.nx)
+    #draw 10m res coastlines
+    ax.coastlines(resolution="10m",zorder=COAST_ZORDER);
 
-    #contour the masked land/ocean MMI data at half-integer levels
-    plt.contour(lon,lat,landmask,linewidths=3.0,linestyles='solid',zorder=10,
-                cmap=mmimap.cmap,vmin=mmimap.vmin,vmax=mmimap.vmax,
-                levels=np.arange(0.5,10.5,1.0))
+    #clip the ocean data to the shakemap
+    bbox = (gd.xmin,gd.ymin,gd.xmax,gd.ymax)
+    oceanshapes = _clip_bounds(bbox,oceanfile)
 
-    plt.contour(lon,lat,oceanmask,linewidths=2.0,linestyles='dashed',zorder=13,
-                cmap=mmimap.cmap,vmin=mmimap.vmin,vmax=mmimap.vmax,
-                levels=np.arange(0.5,10.5,1.0))
+    ax.add_feature(ShapelyFeature(oceanshapes,crs=geoproj),facecolor=WATERCOLOR,zorder=OCEAN_ORDER)
 
 
+    #It turns out that when presented with a map that crosses the 180 meridian,
+    #the matplotlib/cartopy contouring routine thinks that the 180 meridian is a map boundary
+    #and only plots one side of the contour.  Contouring the geographic MMI data and then
+    #projecting the resulting contour vectors does the trick.  Sigh. 
+
+    #define contour grid spacing
+    contoury = np.linspace(ymin,ymax,gd.ny)
+    contourx = np.linspace(xmin,xmax,gd.nx)
+
+    #smooth the MMI data for contouring
+    mmi = shakegrid.getLayer('mmi').getData()
+    smoothed_mmi = gaussian_filter(mmi,FILTER_SMOOTH)
+
+    #create masked arrays of the ocean grid
+    landmask = np.ma.masked_where(oceangrid._data == 0.0,smoothed_mmi)
+    oceanmask = np.ma.masked_where(oceangrid._data == 1.0,smoothed_mmi)
+
+    #contour the data
+    land_contour = plt.contour(contourx,contoury,np.flipud(oceanmask),linewidths=3.0,linestyles='solid',
+                               zorder=LANDC_ZORDER,cmap=mmimap.cmap,
+                               vmin=mmimap.vmin,vmax=mmimap.vmax,
+                               levels=np.arange(0.5,10.5,1.0),
+                               transform=geoproj)
+    
+    ocean_contour = plt.contour(contourx,contoury,np.flipud(landmask),linewidths=2.0,linestyles='dashed',
+                                zorder=OCEANC_ZORDER,cmap=mmimap.cmap,
+                                vmin=mmimap.vmin,vmax=mmimap.vmax,
+                                levels=np.arange(0.5,10.5,1.0),transform=geoproj)
+    
     #the idea here is to plot invisible MMI contours at integer levels and then label them.
-    #labeling part does not currently work.
-    cs=plt.contour(lon,lat,landmask,linewidths=0.0,levels=np.arange(0,11),zorder=10)
-    #clabel is not actually drawing anything, but it is blotting out a portion of the contour line.  ??
-    ax.clabel(cs,np.arange(0,11),colors='k',zorder=25)
+    #clabel method won't allow text to appear, which is this case is kind of ok, because
+    #it allows us an easy way to draw MMI labels as roman numerals.
+    cs_land = plt.contour(contourx,contoury,np.flipud(oceanmask),
+                          linewidths=0.0,levels=np.arange(0,11),
+                          zorder=CLABEL_ZORDER,transform=geoproj)
+    
+    clabel_text = ax.clabel(cs_land,np.arange(0,11),colors='k',zorder=CLABEL_ZORDER,fmt='%.0f',fontsize=40)
+    for clabel in clabel_text:
+        x,y = clabel.get_position()
+        label_str = clabel.get_text()
+        roman_label = MMI_LABELS[label_str]
+        th=plt.text(x,y,roman_label,zorder=CLABEL_ZORDER,ha='center',va='center',color='black')
+        th.set_path_effects([path_effects.Stroke(linewidth=2.0, foreground='white'),
+                             path_effects.Normal()])
 
-    #set the extent of the map to our data
-    ax.set_extent([lon.min(), lon.max(), lat.min(), lat.max()])
-
-    #draw the ocean data
-    if isinstance(oceanshapes[0],mPolygon):
-        for shape in oceanshapes[0]:
-            ocean_patch = PolygonPatch(shape,zorder=10,facecolor=WATERCOLOR,edgecolor=WATERCOLOR)
-            ax.add_patch(ocean_patch);
-    else:
-        ocean_patch = PolygonPatch(oceanshapes[0],zorder=10,facecolor=WATERCOLOR,edgecolor=WATERCOLOR)
-        ax.add_patch(ocean_patch);
-
-    # add coastlines with desired scale of resolution
-    ax.coastlines('10m', zorder=11);
+    cs_ocean = plt.contour(contourx,contoury,np.flipud(landmask),
+                          linewidths=0.0,levels=np.arange(0,11),
+                          zorder=CLABEL_ZORDER,transform=geoproj)
+    
+    clabel_text = ax.clabel(cs_ocean,np.arange(0,11),colors='k',zorder=CLABEL_ZORDER,fmt='%.0f',fontsize=40)
+    for clabel in clabel_text:
+        x,y = clabel.get_position()
+        label_str = clabel.get_text()
+        roman_label = MMI_LABELS[label_str]
+        th=plt.text(x,y,roman_label,zorder=CLABEL_ZORDER,ha='center',va='center',color='black')
+        th.set_path_effects([path_effects.Stroke(linewidth=2.0, foreground='white'),
+                             path_effects.Normal()])
 
     #draw meridians and parallels using Cartopy's functions for that
-    gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
+    gl = ax.gridlines(draw_labels=True,
                       linewidth=2, color=(0.9,0.9,0.9), alpha=0.5, linestyle='-',
-                     zorder=20)
+                     zorder=GRID_ZORDER)
     gl.xlabels_top = False
     gl.xlabels_bottom = False
     gl.ylabels_left = False
     gl.ylabels_right = False
     gl.xlines = True
-    xlocs = np.arange(np.floor(gd.xmin-1),np.ceil(gd.xmax+1))
-    ylocs = np.arange(np.floor(gd.ymin-1),np.ceil(gd.ymax+1))
+    xlocs = np.arange(np.floor(xmin-1),np.ceil(xmax+1))
+    ylocs = np.arange(np.floor(ymin-1),np.ceil(ymax+1))
     gl.xlocator = mticker.FixedLocator(xlocs)
     gl.ylocator = mticker.FixedLocator(ylocs)
     gl.xformatter = LONGITUDE_FORMATTER
@@ -278,21 +407,19 @@ def draw_contour(shakefile,popfile,oceanfile,cityfile,outfilename,make_png=False
     gl.ylabel_style = {'size': 15, 'color': 'black'}
 
     #drawing our own tick labels INSIDE the plot, as Cartopy doesn't seem to support this.
-    yrange = gd.ymax - gd.ymin
-    xrange = gd.xmax - gd.xmin
+    yrange = ymax - ymin
+    xrange = xmax - xmin
     for xloc in gl.xlocator.locs:
-        outside = xloc < gd.xmin or xloc > gd.xmax
+        outside = xloc < xmin or xloc > xmax
         #don't draw labels when we're too close to either edge
-        near_edge = (xloc-gd.xmin) < (xrange*0.1) or (gd.xmax-xloc) < (xrange*0.1)
+        near_edge = (xloc-xmin) < (xrange*0.1) or (xmax-xloc) < (xrange*0.1)
         if outside or near_edge:
             continue
-        if xloc < 0:
-            xtext = r'$%s^\circ$W' % str(abs(int(xloc)))
-        else:
-            xtext = r'$%s^\circ$E' % str(int(xloc))
+        xtext = r'$%s^\circ$W' % str(abs(int(xloc)))
         ax.text(xloc,gd.ymax-(yrange/35),xtext,
-                 fontsize=14,zorder=20,ha='center',
-                fontname='Bitstream Vera Sans')
+                fontsize=14,zorder=GRID_ZORDER,ha='center',
+                fontname='Bitstream Vera Sans',
+                transform=ccrs.Geodetic())
 
     for yloc in gl.ylocator.locs:
         outside = yloc < gd.ymin or yloc > gd.ymax
@@ -305,28 +432,32 @@ def draw_contour(shakefile,popfile,oceanfile,cityfile,outfilename,make_png=False
         else:
             ytext = r'$%s^\circ$N' % str(int(yloc))
         thing = ax.text(gd.xmin+(xrange/100),yloc,ytext,
-                     fontsize=14,zorder=20,va='center',
-                    fontname='Bitstream Vera Sans')
+                        fontsize=14,zorder=GRID_ZORDER,va='center',
+                        fontname='Bitstream Vera Sans',
+                        transform=ccrs.Geodetic())
+
 
     #Limit the number of cities we show - we may not want to use the population size
     #filter in the global case, but the map collision filter is a little sketchy right now.
-    mapcities = cities.limitByPopulation(25000)
-    mapcities = mapcities.limitByGrid()
-    mapcities = mapcities.limitByMapCollision(ax,shadow=True)
-    mapcities.renderToMap(ax,shadow=True,fontsize=12,zorder=11)
+    mapcities = cities.limitByPopulation(1000)
+    #mapcities = mapcities.limitByGrid(nx=3,ny=3,cities_per_grid=2)
+    mapcities = mapcities.limitByMapCollision2(ax,10.0)
+    for index,row in mapcities._dataframe.iterrows():
+        th = _renderRow(row,ax,shadow=True,zorder=CITIES_ZORDER)
+        ax.plot(row['lon'],row['lat'],'k.')
 
     #Get the corner of the map with the lowest population
     corner_rect,filled_corner = _get_open_corner(popgrid,ax)
-    clat = round_to_nearest(clat,1.0)
-    clon = round_to_nearest(clon,1.0)
+    clat2 = round_to_nearest(clat,1.0)
+    clon2 = round_to_nearest(clon,1.0)
 
     #draw a little globe in the corner showing in small-scale where the earthquake is located.
-    proj = ccrs.Orthographic(central_latitude=clat,
-                            central_longitude=clon)
+    proj = ccrs.Orthographic(central_latitude=clat2,
+                             central_longitude=clon2)
     ax2 = fig.add_axes(corner_rect,projection=proj)
     ax2.add_feature(cartopy.feature.OCEAN, zorder=0,facecolor=WATERCOLOR,edgecolor=WATERCOLOR)
     ax2.add_feature(cartopy.feature.LAND, zorder=0, edgecolor='black')
-    ax2.plot([clon],[clat],'w*',linewidth=1,markersize=16,markeredgecolor='k',markerfacecolor='r')
+    ax2.plot([clon2],[clat2],'w*',linewidth=1,markersize=16,markeredgecolor='k',markerfacecolor='r')
     gh=ax2.gridlines();
     ax2.set_global();
     ax2.outline_patch.set_edgecolor('black')
@@ -337,15 +468,18 @@ def draw_contour(shakefile,popfile,oceanfile,cityfile,outfilename,make_png=False
     if filled_corner == 'lr':
         corner = 'll'
     draw_scale(ax,corner,pady=0.05,padx=0.05)
-    
-    plt.savefig(outfilename)
 
-    pngfile = None
-    if make_png:
-        fpath,fname = os.path.split(outfilename)
-        fbase,t = os.path.splitext(fname)
-        pngfile = os.path.join(fpath,fbase+'.png')
-        plt.savefig(pngfile)
+    #Draw the epicenter as a black star
+    plt.sca(ax)
+    plt.plot(clon,clat,'k*',markersize=16,zorder=EPICENTER_ZORDER,transform=geoproj)
+
+    #create pdf and png output file names
+    pdf_file = basename+'.pdf'
+    png_file = basename+'.png'
     
-    return (pngfile,mapcities)
+    #save to pdf
+    plt.savefig(pdf_file)
+    plt.savefig(png_file)
+    
+    return (pdf_file,png_file,mapcities)
 

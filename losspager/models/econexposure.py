@@ -80,7 +80,10 @@ class GDP(object):
             ccode = countrydict['ISO3']
             outccode = ccode
         yearstr = str(year)
-        row = self._dataframe[self._dataframe['Country Code'] == ccode].iloc[0]
+        try:
+            row = self._dataframe[self._dataframe['Country Code'] == ccode].iloc[0]
+        except:
+            return (GLOBAL_GDP,None)
         if yearstr in row:
             gdp = row[yearstr]
         else:

@@ -621,7 +621,7 @@ class SemiEmpiricalFatality(object):
             shakegrid = ShakeGrid.load(shakefile,samplegeodict=sampledict,resample=True,method='linear',adjust='res')
             popgrid = self._pop_class.load(self._popfile,samplegeodict=sampledict,resample=False)
             isogrid = self._iso_class.load(self._isofile,samplegeodict=sampledict,resample=True,method='nearest')
-            urbgrid = self._urban_class.load(self._urbanfile,samplegeodict=sampledict,resample=True,method='nearest')
+            urbgrid = self._urban_class.load(self._urbanfile,samplegeodict=sampledict,resample=True,method='nearest',doPadding=True,padValue=RURAL)
         
         #determine the local apparent time of day (based on longitude)
         edict = shakegrid.getEventDict()
@@ -736,8 +736,8 @@ class SemiEmpiricalFatality(object):
                     #sum the fatalities per building through all cells
                     resfatbybuilding = np.nansum(resfat,axis=1)
                     nonresfatbybuilding = np.nansum(nonresfat,axis=1)
-                    resfdict = dict(zip(resrow.index,resfatbybuilding))
-                    nonresfdict = dict(zip(nresrow.index,nonresfatbybuilding))
+                    resfdict = dict(zip(resrow.index,resfatbybuilding.tolist()))
+                    nonresfdict = dict(zip(nresrow.index,nonresfatbybuilding.tolist()))
                     res_fatal_by_btype = add_dicts(res_fatal_by_btype,resfdict)
                     nonres_fatal_by_btype = add_dicts(nonres_fatal_by_btype,nonresfdict)
 

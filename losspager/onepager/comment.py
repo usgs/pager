@@ -270,6 +270,8 @@ def get_structure_comment(resfat,nonresfat,semimodel):
     maxccode = ''
     maxfat = 0
     ccodes = resfat.keys()
+    if not len(ccodes):
+        return 'There are likely to be no affected structures in this region.'
     for ccode in ccodes:
         resfatdict = resfat[ccode]
         nonresfatdict = nonresfat[ccode]
@@ -320,7 +322,7 @@ def get_structure_comment(resfat,nonresfat,semimodel):
         if b1.strip() == b2.strip():
             comment = fmt1 % (b1)
         else:
-            regtext = fmt % (b1,b2)
+            regtext = fmt2 % (b1,b2)
     else:
         b1 = semimodel.getBuildingDesc(btypes[0])
         regtext = fmt1 % b1
@@ -340,7 +342,7 @@ def get_secondary_hazards(expocat,mag):
     tmpevents = []
     wavedf = waveevents.getDataFrame()
     for index, event in wavedf.iterrows():
-        if event['WaveHeight'] >= WAVETHRESH:
+        if event['Waveheight'] >= WAVETHRESH:
             tmpevents.append(event)
     waveevents = tmpevents
     nsec = 0
@@ -387,7 +389,7 @@ def get_secondary_comment(lat,lon,mag):
     hazcomm = sfmt % fstr
     return hazcomm
 
-def get_historical_comment(lat,lon,mag,expodict,fatdict,ccode):
+def get_historical_comment(lat,lon,mag,expodict,fatdict):
     default = """There were no earthquakes with significant population exposure to shaking within a 400 km radius of this event."""
     expocat = ExpoCat.fromDefault()
     expocat = expocat.selectByRadius(lat,lon,SEARCH_RADIUS)
@@ -430,11 +432,11 @@ def get_quake_desc(event,lat,lon,isMainEvent):
     etime = event['Time'].strftime('%B %d, %Y')
     etime = re.sub(' 0',' ',etime)
     country = Country()
-    if not event['Name']:
-        if event['CountryCode'] == 'UM' and event['Latitude'] > 40: #hack for persistent error in expocat
-            cdict = country.getCountryCode('US')
+    if pd.isnull(event['Name']):
+        if event['CountryCode'] == 'UM' and event['Lat'] > 40: #hack for persistent error in expocat
+            cdict = country.getCountry('US')
         else:
-            cdict = country.getCountryCode(event['CountryCode'])
+            cdict = country.getCountry(event['CountryCode'])
         if cdict:
             cname = cdict['Name']
         else:

@@ -30,6 +30,7 @@ def test(outfolder=None):
     oceanfile = os.path.join(datadir,'northridge_ocean.json')
     shakefile = os.path.join(datadir,'northridge_grid.xml')
     popfile = os.path.join(datadir,'northridge_gpw.flt')
+    ogridfile = os.path.join(datadir,'northridge_ocean.bil')
     print('Testing to see if PAGER can successfully create contour map...')
     hasfolder = False
     if outfolder is not None:
@@ -37,11 +38,11 @@ def test(outfolder=None):
     try:
         if not hasfolder:
             outfolder = tempfile.mkdtemp()
-        outfile = os.path.join(outfolder,'output.pdf')
-        pngfile,mapcities = draw_contour(shakefile,popfile,oceanfile,cityfile,outfile,make_png=True)
-        print('Output pdf is %s, output png is %s.' % (outfile,pngfile))
+        basefile = os.path.join(outfolder,'output')
+        pdffile,pngfile,mapcities = draw_contour(shakefile,popfile,oceanfile,ogridfile,cityfile,basefile)
+        print('Output pdf is %s, output png is %s.' % (pdffile,pngfile))
 
-        assert os.path.isfile(pngfile) and os.path.isfile(outfile)
+        assert os.path.isfile(pngfile) and os.path.isfile(pdffile)
     except Exception as error:
         raise error
     finally:
