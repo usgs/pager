@@ -79,7 +79,7 @@ def pop_dist(popi,workforce,time,dclass):
     :param popi: 
       Total population.
     :param workforce: 
-      Pandas Series containing indices (WorkForceTotal,WorkForceAgriculture,WorkForceIndustrial,WorkForceServices)
+      Pandas Series containing indices (WorkForceTotal,WorkForceAgricultural,WorkForceIndustrial,WorkForceServices)
     :param time: Time of day ('day','night','transit')
     :param dclass: Density class (URBAN,RURAL)
     :return: Tuple of (residential,non-residential,outdoor) population numbers.
@@ -315,7 +315,7 @@ def make_test_semi_model(ccode,timeofday,density,popvalue,mmi):
                  'map_status':'RELEASED',
                  'shakemap_event_type':'SCENARIO'}
     uncdict = {'mmi':(1.0,1)}
-    popdata = np.ones((2,2),dtype=np.float32)*popvalue
+    popdata = np.ones((2,2),dtype=np.float32)*(popvalue)/4
     isodata = np.ones((2,2),dtype=np.int16)*ucode
     urbdata = np.ones((2,2),dtype=np.int16)*density
     mmidata = np.ones((2,2),dtype=np.float32)*mmi

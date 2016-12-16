@@ -85,7 +85,9 @@ class Exposure(object):
         :returns:
           Dictionary containing country code (ISO2) keys, and values of
           10 element arrays representing population exposure to MMI 1-10.
-          Dictionary will contain an additional key 'Total', with value of exposure across all countries.
+          Dictionary will contain an additional key 'TotalExposure', with value of exposure across all countries.
+          Dictionary will also contain a field "maximum_border_mmi" which indicates the maximum MMI value along
+          any edge of the ShakeMap.
         """
         #get shakemap geodict
         shakedict = ShakeGrid.getFileGeoDict(shakefile,adjust='res')
@@ -155,6 +157,15 @@ class Exposure(object):
             total += value
 
         newdict['TotalExposure'] = total
+
+        #get the maximum MMI value along any of the four map edges
+        nrows,ncols = mmidata.shape
+        top = mmidata[0,0:ncols].max()
+        bottom = mmidata[nrows-1,0:ncols].max()
+        left = mmidata[0:nrows,0].max()
+        right = mmidata[0:nrows,ncols-1].max()
+        newdict['maximum_border_mmi'] = np.array([top,bottom,left,right]).max()
+        
         return newdict
 
     def getPopulationGrid(self):

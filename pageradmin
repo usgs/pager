@@ -15,15 +15,16 @@ from operator import attrgetter
 
 #local imports
 from losspager.utils.config import read_config,write_config
-from losspager.utils.eventpath import get_event_folder
 from losspager.io.pagerdata import PagerData
+from losspager.utils.admin import PagerAdmin
 from losspager.utils.exception import PagerException
 
 #third party imports
 from impactutils.io.cmd import get_command_output
 from impactutils.textformat.text import pop_round_short,dollar_round,round_to_nearest,commify
 
-
+DATEFMT = '%Y-%m-%d'
+DATETIMEFMT = '%Y-%m-%d %H:%M:%S'
 NDAYS = 7
 MAX_DAYS = 300*365 #maximum number of days to do queries for events
 PAGER_SCRIPT = 'runpager.py' #this is a system call hack until I can refactor runpager to export a run function
@@ -43,6 +44,7 @@ LEVELS = {'green':0,
           'yellow':1,
           'orange':2,
           'red':3}
+
 def order_event_data(event_data,sort_by=('time',)):
     if not isinstance(sort_by,tuple):
         raise PagerException('sort_by option must be a tuple of strings.')
@@ -70,6 +72,19 @@ def archive_event(event,archive_folder,output_folder):
     shutil.rmtree(eventfolder)
     return True
 
+def is_date(datestr):
+    try:
+        datetime.datetime.strptime(datestr,DATETIMEFMT)
+    except:
+        try:
+            datetime.datetime.strptime(datestr,DATEFMT)
+        except:
+            return False
+    return True
+
+def query_events_since(outfolder):
+    pass
+
 def get_all_events(outfolder):
     allevents = os.listdir(outfolder)
     events = []
@@ -87,110 +102,91 @@ def get_event_data(eventfolder):
         data_blobs.append(vdata)
     return data_blobs
 
+def get_date(datestr):
+    archdate = None
+    try:
+        archdate = datetime.datetime.strptime(datestr,DATETIMEFMT)
+    except:
+        try:
+            archdate = datetime.datetime.strptime(datestr,DATEFMT)
+        except:
+            pass
+    return archdate
+
 def main(args):
     #Get config file loaded
     config = read_config()
     
     #figure out where the output data goes
-    outdir = config['output_folder']
+    pager_folder = config['output_folder']
+
+    #figure out where the archive folder is
+    archive_folder = config['archive_folder']
+
+    #figure out auto archive threshold
+    archive_threshold_days = config['archive_older_than']
+    archive_threshold = datetime.datetime.utcnow() - datetime.timedelta(days=archive_threshold_days)
+    
+    admin = PagerAdmin(pager_folder,archive_folder)
 
     if args.stop:
-        folder = get_event_folder(args.stop,outdir)
-        if folder is None:
-            print('Event %s could not be found on the system. Exiting.' % args.stop)
-            sys.exit(1)
-        open(os.path.join(folder,'stop'),'wt').write('stop\n')
-        print('A "stop" file was placed in %s.' % (folder))
+        result,eventfolder = admin.stop(args.stop)
+        if result:
+            print('A "stop" file was placed in %s.' % (eventfolder))
+        else:
+            print('"stop" file already exists in %s.' % (eventfolder))
         sys.exit(0)
 
     if args.unstop:
-        folder = get_event_folder(args.unstop,outdir)
-        if folder is None:
-            print('Event %s could not be found on the system. Exiting.' % args.stop)
-            sys.exit(1)
-        stopfile = os.path.join(folder,'stop')
-        if os.path.isfile(stopfile):
-            os.remove(stopfile)
-            print('A "stop" file was removed from %s.' % (folder))
+        result,eventfolder = admin.unstop(args.unstop)
+        if result:
+            print('A "stop" file was removed from %s.' % (eventfolder))
         else:
-            print('No "stop" file found in %s.  Exiting.' % (folder))
+            print('No "stop" file was found in %s.' % (eventfolder))
         sys.exit(0)
 
     if args.archive:
-        events = args.archive
-        archive_folder = config['archive_folder']
-        not_archived = []
-        if events[0] == 'all':
-            events = get_all_events(outdir)
-        for event in events:
-            archived = archive_event(event,archive_folder,outdir)
-            if not archived:
-                not_archived.append(event)
-        if len(not_archived):
-            print('The following %i events could not be archived: %s' % str(not_archived))
-            sys.exit(1)
-        print('%i events archived to %s' % (len(events),archive_folder))
+        archive_date = get_date(args.archive[0])
+        if args.archive[0] == 'all':
+            narchived,nerrors = admin.archive(all_events=True)
+        if args.archive[0] == 'auto':
+            narchived,nerrors = admin.archive(events_before=archive_threshold)
+        if archive_date is not None:
+            narchived,nerrors = admin.archive(events_before=archive_date)
+        else:
+            narchived,nerrors = admin.archive(events=args.archive)
+        print('%i events archived to %s, %i errors' % (narchived,nerrors))
         sys.exit(0)
 
-    if args.tsunami is not None:
-        pass
-        
+    if args.restore:
+        if args.restore[0] == 'all':
+            nrestored,nerrors = admin.restore(all_events=True)
+        else:
+            nrestored,nerrors = admin.restore(events=args.restore)
+
     if args.status is not None:
-        if 'status' not in config:
-            current_status = 'secondary'
-        
-        current_status = config['status']
-        if not len(args.status):
+        current_status = admin.getStatus()
+        if args.status[0] == 'check':
             if current_status == 'primary':
                 print('This system WILL transfer products (it is primary).')
             else:
                 print('This system WILL NOT transfer products (it is secondary).')
             sys.exit(0)
         else:
-            desired_status = args.status[0]
-            allowed_status = ['primary','secondary']
-            if desired_status not in allowed_status:
-                print('Status "%s" is not supported.  Must be one of %s.' % (desired_status,str(allowed_status)))
-                sys.exit(1)
-            if desired_status == current_status:
+            if args.status[0] == current_status:
                 print('System status is already %s.' % current_status)
                 sys.exit(0)
-            config['status'] = desired_status
-            write_config(config)
-            if desired_status == 'primary':
+            new_status = admin.setStatus(args.status[0])
+            if new_status == 'primary':
                 fmt = 'System status changed to %s - this system is now configured to transfer products.'
             else:
                 fmt = 'System status changed to %s - this system is now configured to NOT transfer products.'
-            print(fmt % desired_status)
+            print(fmt % new_status)
             sys.exit(0)
 
     if args.query:
-        minmag = 0.0
-        magmax = 9.9
-        minalert = 'green'
-        if len(args.query) >= 1:
-            ndays = int(args.query[0])
-            if ndays == 0:
-                ndays = MAX_DAYS
-        if len(args.query) >= 2:
-            minmag = float(args.query[1])
-        if len(args.query) >= 3:
-            minalert = args.query[2]
-
-        start_date = datetime.datetime.utcnow() - datetime.timedelta(days=ndays)
-        all_events = get_all_events(outdir)
-        data_blobs = []
-        for event in all_events:
-            event_folder = get_event_folder(event,outdir)
-            dblobs = get_event_data(event_folder)
-            data_blobs.append(dblobs[-1]) #only get the last version
-        data_blobs = order_event_data(data_blobs)
-        for dblob in data_blobs:
-            is_recent = dblob.time >= start_date
-            is_high = LEVELS[dblob.alert] >= LEVELS[minalert]
-            is_mag = dblob.magnitude >= minmag
-            if is_recent and is_high and is_mag:
-                print(dblob)
+        print('Queries not implemented yet.')
+        sys.exit(0)
     
 if __name__ == '__main__':
     desc='Administer the PAGER system with a series of subcommands.'
@@ -218,15 +214,21 @@ if __name__ == '__main__':
     argparser = argparse.ArgumentParser(description=desc,
                                         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
                                         usage=usage)
+    archive_str = '''Archive event(s) from file system. Passing "all" as an argument 
+    will archive all events, passing "auto" will archive events based on pre-configured 
+    number of days previous to current date, passing a date (YYYY-mm-dd) will archive
+    all events prior to that date.'''
     argparser.add_argument("--archive", nargs='*',
-                           help='''Archive event(s) from file system. Passing "all" as an argument will archive all events!''',metavar='EVENT')
+                           help=archive_str,metavar='EVENT')
+    argparser.add_argument("--restore", nargs='*',
+                           help='Restore events from archive.  Passing "all" will restore all events from the archive.',metavar='EVENT')
     argparser.add_argument("--stop", nargs=1,
                            help="Prevent event(s) from being re-run automatically.",
                            metavar='EVENT')
     argparser.add_argument("--unstop", nargs=1,
                            help="Allow stopped event(s) to be re-run automatically.",
                            metavar='EVENT')
-    argparser.add_argument("--status", nargs='*',
+    argparser.add_argument("--status", nargs=1,choices=('check','primary','secondary'),
                            help="Print or change PAGER primary/secondary status.",
                            metavar='STATUS')
     argparser.add_argument("--tsunami", nargs=2,

@@ -15,6 +15,7 @@ sys.path.insert(0,pagerdir) #put this at the front of the system path, ignoring 
 
 #third party imports 
 import numpy as np
+import pandas as pd
 from mapio.gmt import GMTGrid
 from mapio.geodict import GeoDict
 from mapio.shake import ShakeGrid
@@ -22,7 +23,7 @@ from mapio.shake import ShakeGrid
 #local imports
 from losspager.models.semimodel import get_time_of_day,pop_dist,SemiEmpiricalFatality,URBAN,RURAL,make_test_semi_model
 
-def time_tests():
+def test_times():
     tday,year,hour = get_time_of_day(datetime(2016,6,3,16,39,0),-117.6981)
     assert tday == 'transit'
     assert year == 2016
@@ -43,191 +44,24 @@ def time_tests():
     assert year == 2016
     assert hour == 17
 
-def work_tests():
+def test_work():
     popi = 2000
-    fwf = 0.5
-    f_ind = 0.25
-    fser = 0.25
-    fagr = 0.5
+    wforce = pd.Series({'WorkForceTotal':0.5,
+                        'WorkForceAgricultural':0.5,
+                        'WorkForceIndustrial':0.25,
+                        'WorkForceServices':0.25})
     timeofday = 'day'
     dclass = URBAN
-    res,nonres,outdoor = pop_dist(popi,fwf,f_ind,fser,fagr,timeofday,dclass)
+    res,nonres,outdoor = pop_dist(popi,wforce,timeofday,dclass)
     np.testing.assert_almost_equal(res,410)
     np.testing.assert_almost_equal(nonres,865)
     np.testing.assert_almost_equal(outdoor,725)
 
-def model_test_simple():
-    A = 4 #ccode for afghanistan
-    J = 392 #ccode for japan
-    R = 1 #rural code
-    U = 2 #urban code
-    #create a 5x5 population data set with 1000 people in each cell
-    popdata = np.ones((5,5))*1000.0
-    #create a mixed grid of afghanistan and japan (have very different inventory,collapse, and fatality rates.)
-    isodata = np.array([[A,A,A,A,A],
-                        [A,A,A,A,A],
-                        [A,A,A,J,J],
-                        [J,J,J,J,J],
-                        [J,J,J,J,J]],dtype=np.int16)
-    #make a mix of urban and rural cells
-    urbdata = np.array([[R,R,R,R,R],
-                        [R,U,U,U,R],
-                        [R,U,U,U,U],
-                        [U,U,U,R,R],
-                        [R,R,R,R,R]],dtype=np.int16)
-    mmidata = np.array([[6,7,8,9,6],
-                        [7,8,9,6,7],
-                        [8,9,6,6,7],
-                        [8,9,6,7,8],
-                        [9,6,7,8,9]],dtype=np.float32)
-    homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
-    invfile = os.path.join(homedir,'..','data','semi_inventory.hdf')
-    colfile = os.path.join(homedir,'..','data','semi_collapse_mmi.hdf')
-    fatfile = os.path.join(homedir,'..','data','semi_casualty.hdf')
-    workfile = os.path.join(homedir,'..','data','semi_workforce.hdf')
-    growthfile = os.path.join(homedir,'..','data','WPP2015_POP_F02_POPULATION_GROWTH_RATE.xls')
-    geodict = GeoDict({'xmin':0.5,'xmax':4.5,'ymin':0.5,'ymax':4.5,'dx':1.0,'dy':1.0,'nx':5,'ny':5})
-    
-    popgrid = GMTGrid(popdata,geodict)
-    isogrid = GMTGrid(isodata,geodict)
-    urbgrid = GMTGrid(urbdata,geodict)
-    popyear = 2016
-    layers = {'mmi':mmidata}
-    eventdict = {'event_id':'1234',
-                 'magnitude':7.5,
-                 'lat':34.2,
-                 'lon':118.2,
-                 'depth':10.0,
-                 'event_timestamp':datetime(2016,1,1,0,0,0),
-                 'event_description':'test data',
-                 'event_network':'us'}
-    shakedict = {'event_id':'1234',
-                 'shakemap_id':'1234',
-                 'shakemap_version':1,
-                 'code_version':'1.0',
-                 'process_timestamp':datetime.utcnow(),
-                 'shakemap_originator':'us',
-                 'map_status':'RELEASED',
-                 'shakemap_event_type':'SCENARIO'}
-    uncdict = {'mmi':(1.0,1)}
-    mmigrid = ShakeGrid(layers,geodict,eventdict,shakedict,uncdict)
 
-    popfile = isofile = urbfile = shakefile = ''
-    try:
-        #make some temporary files
-        f,popfile = tempfile.mkstemp()
-        os.close(f)
-        f,isofile = tempfile.mkstemp()
-        os.close(f)
-        f,urbfile = tempfile.mkstemp()
-        os.close(f)
-        f,shakefile = tempfile.mkstemp()
-        os.close(f)
-        
-        popgrid.save(popfile)
-        isogrid.save(isofile)
-        urbgrid.save(urbfile)
-        mmigrid.save(shakefile)
-        
-        semi = SemiEmpiricalFatality.fromDefault()
-        losses,resfat,nonresfat = semi.getLosses(shakefile)
-        assert losses == 85
-        print('Semi-empirical model calculations appear to be done correctly.')
-    except:
-        print('There is an error attempting to do semi-empirical loss calculations.')
-    finally:
-        files = [popfile,isofile,urbfile,shakefile]
-        for fname in files:
-            if os.path.isfile(fname):
-                os.remove(fname)
     
-def model_test_fake():
-    A = 4 #ccode for afghanistan
-    J = 392 #ccode for japan
-    R = 1 #rural code
-    U = 2 #urban code
-    #create a 5x5 population data set with 1000 people in each cell
-    popdata = np.ones((5,5))*1000.0
-    #create a mixed grid of afghanistan and japan (have very different inventory,collapse, and fatality rates.)
-    isodata = np.array([[A,A,A,A,A],
-                        [A,A,A,A,A],
-                        [A,A,A,J,J],
-                        [J,J,J,J,J],
-                        [J,J,J,J,J]],dtype=np.int16)
-    #make a mix of urban and rural cells
-    urbdata = np.array([[R,R,R,R,R],
-                        [R,U,U,U,R],
-                        [R,U,U,U,U],
-                        [U,U,U,R,R],
-                        [R,R,R,R,R]],dtype=np.int16)
-    mmidata = np.array([[6,7,8,9,6],
-                        [7,8,9,6,7],
-                        [8,9,6,6,7],
-                        [8,9,6,7,8],
-                        [9,6,7,8,9]],dtype=np.float32)
-    homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
-    invfile = os.path.join(homedir,'..','data','semi_inventory.hdf')
-    colfile = os.path.join(homedir,'..','data','semi_collapse_mmi.hdf')
-    fatfile = os.path.join(homedir,'..','data','semi_casualty.hdf')
-    workfile = os.path.join(homedir,'..','data','semi_workforce.hdf')
-    growthfile = os.path.join(homedir,'..','data','WPP2015_POP_F02_POPULATION_GROWTH_RATE.xls')
-    geodict = GeoDict({'xmin':0.5,'xmax':4.5,'ymin':0.5,'ymax':4.5,'dx':1.0,'dy':1.0,'nx':5,'ny':5})
-    
-    popgrid = GMTGrid(popdata,geodict)
-    isogrid = GMTGrid(isodata,geodict)
-    urbgrid = GMTGrid(urbdata,geodict)
-    popyear = 2016
-    layers = {'mmi':mmidata}
-    eventdict = {'event_id':'1234',
-                 'magnitude':7.5,
-                 'lat':34.2,
-                 'lon':118.2,
-                 'depth':10.0,
-                 'event_timestamp':datetime(2016,1,1,0,0,0),
-                 'event_description':'test data',
-                 'event_network':'us'}
-    shakedict = {'event_id':'1234',
-                 'shakemap_id':'1234',
-                 'shakemap_version':1,
-                 'code_version':'1.0',
-                 'process_timestamp':datetime.utcnow(),
-                 'shakemap_originator':'us',
-                 'map_status':'RELEASED',
-                 'shakemap_event_type':'SCENARIO'}
-    uncdict = {'mmi':(1.0,1)}
-    mmigrid = ShakeGrid(layers,geodict,eventdict,shakedict,uncdict)
 
-    popfile = isofile = urbfile = shakefile = ''
-    try:
-        #make some temporary files
-        f,popfile = tempfile.mkstemp()
-        os.close(f)
-        f,isofile = tempfile.mkstemp()
-        os.close(f)
-        f,urbfile = tempfile.mkstemp()
-        os.close(f)
-        f,shakefile = tempfile.mkstemp()
-        os.close(f)
-        
-        popgrid.save(popfile)
-        isogrid.save(isofile)
-        urbgrid.save(urbfile)
-        mmigrid.save(shakefile)
-        
-        semi = SemiEmpiricalFatality.fromDefault()
-        semi.setGlobalFiles(popfile,popyear,urbfile,isofile)
-        losses,resfat,nonresfat = semi.getLosses(shakefile)
-        assert losses == 85
-        print('Semi-empirical model calculations appear to be done correctly.')
-    except:
-        print('There is an error attempting to do semi-empirical loss calculations.')
-    finally:
-        files = [popfile,isofile,urbfile,shakefile]
-        for fname in files:
-            if os.path.isfile(fname):
-                os.remove(fname)
     
-def model_test_real():
+def test_model_real():
     #test with real data
     popyear = 2012
     homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
@@ -251,7 +85,7 @@ def model_test_real():
     print('Passed.')
 
 
-def model_test_single():
+def test_manual_calcs():
     homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
     invfile = os.path.join(homedir,'..','data','semi_inventory.hdf')
     colfile = os.path.join(homedir,'..','data','semi_collapse_mmi.hdf')
@@ -287,14 +121,10 @@ def model_test_single():
     assert fatsum == 383
     print('Passed.')
     
-    loss,resfat,nresfat = make_test_semi_model(ccode,timeofday,density,pop,mmi)
-    print('Testing that "manual" calculations achieve same results as grid calculations...')
-    assert fatsum == loss
-    print('Passed.')
-    
 if __name__ == '__main__':
-    #time_tests()
-    #work_tests()
-    model_test_single()
-    model_test_real()
+    test_times()
+    test_work()
+    test_manual_calcs()
+    #test_model_single()
+    test_model_real()
     
