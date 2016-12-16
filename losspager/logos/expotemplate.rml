@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="iso-8859-1" standalone="no" ?> 
+<!DOCTYPE document SYSTEM "rml_1_0.dtd"> 
+<document filename="[ONEPAGER]" compression="1"> 
+  <template pageSize="(8.5in, 11in)" showBoundary="0" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+    <pageTemplate id="main"> 
+      <!-- Make a frame for the exposure table -->
+      <frame id="expframe" x1="18" y1="462.5" width="563" height="98"/>
+    </pageTemplate> 
+	</template> 
+	<stylesheet> 
+    <paraStyle name="rowhdrstyle" fontName="Helvetica-Bold" fontSize="8" textColor="white" leading="7" alignment="CENTER"/>
+    <paraStyle name="titlestyle" fontName="Helvetica-Bold" fontSize="10" textColor="white" leading="13" alignment="CENTER"/>
+    <paraStyle name="rownumberstyle" fontName="Helvetica" fontSize="10" textColor="white" leading="13" alignment="CENTER"/>
+    <paraStyle name="rownormalstyle" fontName="Helvetica" fontSize="10" textColor="white" leading="9" alignment="CENTER"/>
+    <paraStyle name="rowdamagestyle" fontName="Helvetica" fontSize="8" textColor="white" leading="7" alignment="CENTER"/>
+		<blockTableStyle id="exptablestyle">
+			<lineStyle kind="OUTLINE" colorName="black" thickness="2"/>
+			<lineStyle kind="INNERGRID" colorName="black" thickness="1"/>
+			<blockAlignment value="CENTER"/>
+			<blockValign value="MIDDLE"/>
+			<blockLeftPadding length="0"/>
+			<blockRightPadding length="0"/>
+			<blockTopPadding length="0"/>
+			<blockBottomPadding length="0"/>
+      <blockSpan start="0,0" stop="9,0"/>
+      <blockSpan start="0,1" stop="9,1"/>
+    </blockTableStyle>
+
+		<blockTableStyle id="innertablestyle">
+			<lineStyle kind="INNERGRID" colorName="black"/>
+			<blockAlignment value="CENTER"/>
+			<blockValign value="MIDDLE"/>
+			<blockLeftPadding length="0"/>
+			<blockRightPadding length="0"/>
+			<blockTopPadding length="0"/>
+			<blockBottomPadding length="0"/>
+		</blockTableStyle>
+	</stylesheet> 
+	<story> 
+    <nextFrame name="expframe"/>
+    <keepInFrame maxWidth="563" maxHeight="117" onOverflow="overflow">
+		     <blockTable style="exptablestyle" 
+										colWidths="114,41.5,41.5,41.5,48.5,46.5,68.5,70.5,41.5,47" 
+										rowHeights="20,25,20,20,20,38">
+           <tr>
+             <td fontColor="white" background="#5f5e5d"><para style="titlestyle">[EVENT_DESC]</para></td>
+             <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+           </tr>
+           <tr>
+            <td fontColor="white" background="#848484">
+              <para style="rownormalstyle">
+              The bar height shown indicates the relative affected population at each 1km x 1km grid cell and the color indicates the ShakeMap estimated shaking intensity
+              </para>
+            </td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
+					<tr>
+						<td vAlign="middle" background="#848484"><para style="rowhdrstyle">ESTIMATED POPULATION EXPOSURE (k = x1000)</para></td>
+						<td vAlign="middle" background="#848484"><para style="rownumberstyle">[MMI1]</para></td>
+						<td vAlign="middle" background="#848484"><para style="rownumberstyle">[MMI2-3]</para></td>
+						<td vAlign="middle" background="#848484"><para style="rownumberstyle">[MMI4]</para></td>
+						<td vAlign="middle" background="#848484"><para style="rownumberstyle">[MMI5]</para></td>
+						<td vAlign="middle" background="#848484"><para style="rownumberstyle">[MMI6]</para></td>
+						<td vAlign="middle" background="#848484"><para style="rownumberstyle">[MMI7]</para></td>
+						<td vAlign="middle" background="#848484"><para style="rownumberstyle">[MMI8]</para></td>
+						<td vAlign="middle" background="#848484"><para style="rownumberstyle">[MMI9]</para></td>
+						<td vAlign="middle" background="#848484"><para style="rownumberstyle">[MMI10]</para></td>
+					</tr>
+					<tr>
+						<td vAlign="middle" background="#848484"><para style="rowhdrstyle">ESTIMATED MODIFIED MERCALLI INTENSITY</para></td>
+						<td>
+							<illustration height="20" width="40.5">
+								<image file="[HOMEDIR]/losspager/logos/1.png" x="0" y="0" height="20" width="40.5"/>
+							</illustration>
+						</td>
+						<td>
+							<illustration height="20" width="40.5">
+								<image file="[HOMEDIR]/losspager/logos/2.png" x="0" y="0" height="20" width="40.5"/>
+							</illustration>
+						</td>
+						<td>
+							<illustration height="20" width="40.5">
+								<image file="[HOMEDIR]/losspager/logos/3.png" x="0" y="0" height="20" width="40.5"/>
+							</illustration>
+						</td>
+						<td>
+							<illustration height="20" width="47.25">
+								<image file="[HOMEDIR]/losspager/logos/4.png" x="0" y="0" height="20" width="47.25"/>
+							</illustration>
+						</td>
+						<td>
+							<illustration height="20" width="45">
+								<image file="[HOMEDIR]/losspager/logos/5.png" x="0" y="0" height="20" width="45"/>
+							</illustration>
+						</td>
+						<td>
+							<illustration height="20" width="67.5">
+								<image file="[HOMEDIR]/losspager/logos/6.png" x="0" y="0" height="20" width="67.5"/>
+							</illustration>
+						</td>
+						<td>
+							<illustration height="20" width="69.75">
+								<image file="[HOMEDIR]/losspager/logos/7.png" x="0" y="0" height="20" width="69.75"/>
+							</illustration>
+						</td>
+						<td>
+							<illustration height="20" width="40.5">
+								<image file="[HOMEDIR]/losspager/logos/8.png" x="0" y="0" height="20" width="40.5"/>
+							</illustration>
+						</td>
+						<td>
+							<illustration height="20" width="45">
+								<image file="[HOMEDIR]/losspager/logos/9.png" x="0" y="0" height="20" width="45"/>
+							</illustration>
+						</td>
+					</tr>
+					<tr>
+						<td vAlign="middle" background="#848484"><para style="rowhdrstyle">PERCEIVED SHAKING</para></td>
+						<td background="#848484"><para style="rownormalstyle">Not felt</para></td>
+						<td background="#848484"><para style="rownormalstyle">Weak</para></td>
+						<td background="#848484"><para style="rownormalstyle">Light</para></td>
+						<td background="#848484"><para style="rownormalstyle">Moderate</para></td>
+						<td background="#848484"><para style="rownormalstyle">Strong</para></td>
+						<td background="#848484"><para style="rownormalstyle">Very Strong</para></td>
+						<td background="#848484"><para style="rownormalstyle">Severe</para></td>
+						<td background="#848484"><para style="rownormalstyle">Violent</para></td>
+						<td background="#848484"><para style="rownormalstyle">Extreme</para></td>
+					</tr>
+					<tr>
+						<!-- Cell for header information -->
+						<td>
+							<blockTable style="innertablestyle" rowHeights="36">
+								<tr>
+									<td background="#848484">
+										<para style="rowhdrstyle">POTENTIAL DAMAGE</para>
+									</td>
+									<td>
+										<blockTable style="innertablestyle" rowHeights="18,18">
+											<tr>
+												<td vAlign="middle" background="#848484">
+													<para style="rowhdrstyle">Resistant Structures</para>
+												</td>
+											</tr>
+											<tr>
+												<td vAlign="middle" background="#848484">
+													<para style="rowhdrstyle">Vulnerable Structures</para>
+												</td>
+											</tr>
+										</blockTable>
+									</td>
+								</tr>
+							</blockTable>
+						</td>
+						
+						<!-- Cell for MMI 1 -->
+						<td>
+							<blockTable style="innertablestyle" rowHeights="18,18">
+								<tr>
+									<td background="#848484"><para style="rowdamagestyle">none</para></td>
+								</tr>
+								<tr>
+									<td background="#848484"><para style="rowdamagestyle">none</para></td>
+								</tr>
+							</blockTable>
+						</td>
+						
+						<!-- Cell for MMI2-3 -->
+						<td>
+							<blockTable style="innertablestyle" rowHeights="18,18">
+								<tr>
+									<td background="#848484"><para style="rowdamagestyle">none</para></td>
+								</tr>
+								<tr>
+									<td background="#848484"><para style="rowdamagestyle">none</para></td>
+								</tr>
+							</blockTable>
+						</td>
+						
+						<!-- Cell for MMI 4 -->
+						<td>
+							<blockTable style="innertablestyle" rowHeights="18,18">
+								<tr>
+									<td background="#848484"><para style="rowdamagestyle">none</para></td>
+								</tr>
+								<tr>
+									<td background="#848484"><para style="rowdamagestyle">none</para></td>
+								</tr>
+							</blockTable>
+						</td>
+						
+						<!-- Cell for MMI 5 -->
+						<td>
+							<blockTable style="innertablestyle" rowHeights="18,18">
+								<tr>
+									<td background="#848484"><para style="rowdamagestyle">V. Light</para></td>
+								</tr>
+								<tr>
+									<td background="#848484"><para style="rowdamagestyle">Light</para></td>
+								</tr>
+							</blockTable>
+						</td>
+						
+						<!-- Cell for MMI 6 -->
+						<td>
+							<blockTable style="innertablestyle" rowHeights="18,18">
+								<tr>
+									<td background="#848484"><para style="rowdamagestyle">Light</para></td>
+								</tr>
+								<tr>
+									<td background="#848484"><para style="rowdamagestyle">Moderate</para></td>
+								</tr>
+							</blockTable>
+						</td>
+						
+						<!-- Cell for MMI 7 -->
+						<td>
+							<blockTable style="innertablestyle" rowHeights="18,18">
+								<tr>
+									<td background="#848484"><para style="rowdamagestyle">Moderate</para></td>
+								</tr>
+								<tr>
+									<td background="#848484"><para style="rowdamagestyle">Moderate/Heavy</para></td>
+								</tr>
+							</blockTable>
+						</td>
+						
+						<!-- Cell for MMI 8 -->
+						<td>
+							<blockTable style="innertablestyle" rowHeights="18,18">
+								<tr>
+									<td background="#848484"><para style="rowdamagestyle">Moderate/Heavy</para></td>
+								</tr>
+								<tr>
+									<td background="#848484"><para style="rowdamagestyle">Heavy</para></td>
+								</tr>
+							</blockTable>
+						</td>
+						
+						<!-- Cell for MMI 9 -->
+						<td>
+							<blockTable style="innertablestyle" rowHeights="18,18">
+								<tr>
+									<td background="#848484"><para style="rowdamagestyle">Heavy</para></td>
+								</tr>
+								<tr>
+									<td background="#848484"><para style="rowdamagestyle">V. Heavy</para></td>
+								</tr>
+							</blockTable>
+						</td>
+						
+						<!-- Cell for MMI 10+ -->
+						<td>
+							<blockTable style="innertablestyle" rowHeights="18,18">
+								<tr>
+									<td background="#848484"><para style="rowdamagestyle">V. Heavy</para></td>
+								</tr>
+								<tr>
+									<td background="#848484"><para style="rowdamagestyle">V. Heavy</para></td>
+								</tr>
+							</blockTable>
+						</td>
+					</tr>
+         </blockTable>
+			</keepInFrame>
+  </story>
+</document>
