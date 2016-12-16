@@ -21,6 +21,7 @@ setup(name='losspager',
                                    os.path.join('data', 'semi_collapse_mmi.hdf'),
                                    os.path.join('data', 'semi_inventory.hdf'),
                                    os.path.join('data', 'semi_workforce.hdf'),
+                                   os.path.join('logos', '*')
                                    ]},
       scripts = ['pagerlite','emailpager'],
 )

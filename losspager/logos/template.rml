@@ -1,0 +1,527 @@
+<?xml version="1.0" encoding="iso-8859-1" standalone="no" ?> 
+<!DOCTYPE document SYSTEM "rml_1_0.dtd"> 
+<document filename="[ONEPAGER]" compression="1"> 
+	<template pageSize="(8.5in, 11in)" showBoundary="[DEBUG]" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+    <pageTemplate id="main"> 
+			<pageGraphics> 
+        <image file="[HOMEDIR]/losspager/logos/USGSid.pdf" x="18" y="737" width="84" height="31.5" 
+							 showBoundary="[DEBUG]" preserveAspectRatio="0"/>
+        <image file="alertsponge.pdf" x="220" y="710" width="160" height="86.9" 
+							 showBoundary="[DEBUG]" preserveAspectRatio="0"/>
+        <image file="[HOMEDIR]/losspager/logos/ANSS_cropped_bw.pdf" x="441" y="720" width="50" height="15.75"
+							 showBoundary="0" preserveAspectRatio="0"/>
+				<image file="[HOMEDIR]/losspager/logos/GSN.pdf" x="441" y="737" width="25" height="31.5" 
+							 showBoundary="[DEBUG]" preserveAspectRatio="0"/>
+        <image file="[HOMEDIR]/losspager/logos/USAID.pdf"  x="476" y="737" width="106" height="31.5" 
+							 showBoundary="[DEBUG]" preserveAspectRatio="0"/>
+				<image file="[HOMEDIR]/losspager/logos/population_scale.pdf"  x="18" y="423" width="375" height="12.5" 
+							 showBoundary="[DEBUG]" preserveAspectRatio="0"/>
+				<image file="exposure.pdf" x="18" y="[EXPBOTTOM]" width="[EXPWIDTH]" height="[EXPHEIGHT]"
+							 showBoundary="[DEBUG]" preserveAspectRatio="0"/>
+				<image file="alertfatal.pdf" x="18" y="580" width="190" height="91.2"
+							 showBoundary="[DEBUG]" preserveAspectRatio="0"/>
+				<image file="alertecon.pdf" x="391" y="580" width="190" height="91.2"
+							 showBoundary="[DEBUG]" preserveAspectRatio="0"/>
+				<!-- draw a box around the impact information -->
+				<rect x="18" y="580" width="563" height="106.5"/>
+			</pageGraphics> 
+			<!-- Make a frame for the Magnitude and FEPlus region name  -->
+			<frame id="magframe" x1="18" y1="720" width="500" height="18"/>
+
+			<!-- Make a frame for the time line -->
+			<frame id="utcframe" x1="18" y1="711.5" width="375" height="10"/>
+
+      <!-- Make a frame for location line -->
+			<frame id="locframe" x1="18" y1="699.5" width="375" height="10.25"/>
+
+			<!-- Make a frame for the pager version info -->
+			<frame id="versionframe" x1="452" y1="700" width="130" height="31.5"/>
+
+			<!-- Make a frame for the elapsed time text -->
+			<frame id="timeframe" x1="330" y1="689" width="252" height="9.5"/>
+
+			<!-- Make a frame for the fatalities header -->
+			<frame id="fatframe" x1="20" y1="665" width="190" height="22.5"/>
+
+			<!-- Make a frame for the economic losses header -->
+			<frame id="econframe" x1="387" y1="665" width="190" height="22.5"/>
+
+			<!-- Make a frame for the exposure table title -->
+			<frame id="exptitleframe" x1="18" y1="556" width="558" height="22.5"/>
+
+			<!-- Make a frame for the exposure table -->
+			<frame id="expframe" x1="18" y1="462.5" width="563" height="98"/>
+
+			<!-- Make a frame for the Fatality box impact scale -->
+			<frame id="fattitleframe" x1="400" y1="524" width="180" height="22.5"/>
+
+			<!-- Make a frame for the Economic box impact scale -->
+			<frame id="econtitleframe" x1="400" y1="364.6" width="180" height="22.5"/>
+
+			<frame id="impactcommentframe" x1="210" y1="594" width="175" height="90.25"/>
+
+			<frame id="expnoteframe" x1="18" y1="452.5" width="300" height="8"/>
+
+			<frame id="expmapheader1" x1="18" y1="431" width="154" height="22.5"/>
+			<frame id="expmapheader2" x1="175" y1="433.5" width="218" height="14"/>
+			
+			<frame id="commentframe" x1="402" y1="212.5" width="182" height="235"/>
+			
+			<frame id="weaselframe" x1="18" y1="33" width="375" height="20"/>
+			<frame id="urlframe" x1="18" y1="20" width="175" height="13.5"/>
+      <frame id="noaaframe" x1="18" y1="684.5" width="240" height="14.5"/>
+			<frame id="idframe" x1="352" y1="23" width="232" height="15.5"/>
+
+			<frame id="citytitleframe" x1="402" y1="211" width="180" height="22.5"/>
+			<frame id="geonameframe" x1="402" y1="208" width="180" height="10"/>
+
+			<frame id="cityframe" x1="402" y1="52" width="186" height="156"/>
+			<frame id="cityfooterframe1" x1="402" y1="[CITYFOOTERHEIGHT]" width="125" height="14"/>
+			<frame id="cityfooterframe2" x1="513" y1="[CITYFOOTERHEIGHT]" width="70" height="13.5"/>
+			<frame id="shaketitleframe" x1="396" y1="330" width="180" height="22.5"/>
+			<frame id="shakelegendframe" x1="531" y1="328" width="45" height="22.5"/>
+
+    </pageTemplate> 
+	</template> 
+	<stylesheet> 
+		<blockTableStyle id="exptablestyle">
+			<lineStyle kind="OUTLINE" colorName="black" thickness="2"/>
+			<lineStyle kind="INNERGRID" colorName="black" thickness="1"/>
+			<blockAlignment value="CENTER"/>
+			<blockValign value="MIDDLE"/>
+			<blockLeftPadding length="0"/>
+			<blockRightPadding length="0"/>
+			<blockTopPadding length="0"/>
+			<blockBottomPadding length="0"/>
+		</blockTableStyle>
+
+		<blockTableStyle id="innertablestyle">
+			<lineStyle kind="INNERGRID" colorName="black"/>
+			<blockAlignment value="CENTER"/>
+			<blockValign value="MIDDLE"/>
+			<blockLeftPadding length="0"/>
+			<blockRightPadding length="0"/>
+			<blockTopPadding length="0"/>
+			<blockBottomPadding length="0"/>
+		</blockTableStyle>
+
+		<blockTableStyle id="historyhdrtablestyle">
+			<lineStyle kind="LINEBELOW" colorName="black" thickness="2"/>
+			<lineStyle kind="OUTLINE" colorName="black" thickness="1"/>
+			<blockFont name="Helvetica" size="8"/>
+			<blockValign value="TOP"/>
+			<blockLeftPadding length="2"/>
+			<blockRightPadding length="2"/>
+			<blockTopPadding length="0"/>
+			<blockBottomPadding length="0"/>
+		</blockTableStyle>
+
+		<blockTableStyle id="historytablestyle">
+			<lineStyle kind="OUTLINE" colorName="black" thickness="1"/>
+			<blockFont name="Helvetica" size="8"/>
+			<blockValign value="TOP"/>
+			<blockLeftPadding length="2"/>
+			<blockRightPadding length="2"/>
+			<blockTopPadding length="0"/>
+			<blockBottomPadding length="0"/>
+		</blockTableStyle>
+		
+		<blockTableStyle id="cityhdrtablestyle">
+			<lineStyle kind="LINEBELOW" colorName="black" thickness="2"/>
+			<lineStyle kind="OUTLINE" colorName="black" thickness="1"/>
+			<blockAlignment value="CENTER" start="(0,0)" stop="(0,-1)"/>
+			<blockAlignment value="CENTER" start="(2,0)" stop="(2,0)"/>
+			<blockAlignment value="LEFT" start="(1,0)" stop="(1,-1)"/>
+			<blockAlignment value="RIGHT" start="(2,1)" stop="(2,-1)"/>
+			<!-- <blockFont name="Helvetica-Bold" size="8"/> -->
+			<blockValign value="MIDDLE"/>
+			<blockLeftPadding length="0"/>
+			<blockRightPadding length="0"/>
+			<blockTopPadding length="0"/>
+			<blockBottomPadding length="0"/>
+		</blockTableStyle>
+
+		<blockTableStyle id="citytablestyle">
+			<lineStyle kind="OUTLINE" colorName="black" thickness="1"/>
+			<blockAlignment value="CENTER" start="(0,0)" stop="(0,-1)"/>
+			<blockAlignment value="CENTER" start="(2,0)" stop="(2,0)"/>
+			<blockAlignment value="LEFT" start="(1,0)" stop="(1,-1)"/>
+			<blockAlignment value="RIGHT" start="(2,1)" stop="(2,-1)"/>
+			<!-- <blockFont name="Helvetica-Bold" size="8"/> -->
+			<blockValign value="MIDDLE"/>
+			<blockLeftPadding length="0"/>
+			<blockRightPadding length="0"/>
+			<blockTopPadding length="0"/>
+			<blockBottomPadding length="0"/>
+		</blockTableStyle>
+
+		
+		<paraStyle name="maglocstyle" fontName="Helvetica-Bold" alignment="LEFT" fontSize="15" leading="18"/>
+		<paraStyle name="timestyle" fontName="Helvetica" alignment="LEFT" fontSize="9" leading="14"/>
+		<paraStyle name="versionstyle" fontName="Helvetica-Bold" alignment="RIGHT" fontSize="18" leading="19"/>
+		<paraStyle name="elapsedstyle" fontName="Helvetica" fontSize="8" leading="7" alignment="RIGHT"/>
+		<paraStyle name="exptitlestyle" fontName="Helvetica-Bold" alignment="CENTER" fontSize="18" leading="18"/>
+		<paraStyle name="rowhdrstyle" fontName="Helvetica-Bold" fontSize="8" leading="7" alignment="CENTER"/>
+		<paraStyle name="rownormalstyle" fontName="Helvetica" fontSize="10" leading="9" alignment="CENTER"/>
+		<paraStyle name="rownumberstyle" fontName="Helvetica" fontSize="10" leading="13" alignment="CENTER"/>
+		<paraStyle name="rowdamagestyle" fontName="Helvetica" fontSize="8" leading="7" alignment="CENTER"/>
+		<paraStyle name="citystyle" fontName="Helvetica-Bold" fontSize="8" leading="7"/>
+		<paraStyle name="commentstyle" fontName="Helvetica" fontSize="9" leading="10"/>
+    <paraStyle name="noaastyle" fontName="Helvetica-Bold" fontSize="9" leading="10" textColor="red"/>
+		<paraStyle name="weaselstyle" fontName="Helvetica" fontSize="8" leading="9"/>
+		<paraStyle name="exponotestyle" fontName="Helvetica" fontSize="6" leading="0"/>
+		<paraStyle name="commonhdrstyle" fontName="Helvetica-Bold" alignment="LEFT" fontSize="14" leading="14"/>
+		<paraStyle name="scalehdrstyle" fontName="Helvetica-Bold" alignment="CENTER" fontSize="14" leading="14"/>
+		<paraStyle name="shakelegendstyle" fontName="Helvetica" alignment="RIGHT" fontSize="10" leading="10"/>
+		<paraStyle name="idstyle" fontName="Helvetica" fontSize="12" leading="13" alignment="RIGHT"/>
+	</stylesheet> 
+	<story> 
+		  <nextFrame name="magframe"/>
+		  <keepInFrame maxWidth="500" maxHeight="13.5" onOverflow="overflow">
+				<para style="maglocstyle">[MAGLOC]</para>
+			</keepInFrame>
+      <nextFrame name="utcframe"/>
+			<keepInFrame maxWidth="375" maxHeight="10" onOverflow="overflow">
+				<para style="timestyle">Origin Time: [ORIGTIME] UTC ([LOCALTIME] local) </para>
+			</keepInFrame>
+			<nextFrame name="locframe"/>
+			<keepInFrame maxWidth="375" maxHeight="10.25" onOverflow="overflow">
+				<para style="timestyle">Location: [LAT]<font size="10"><super>o</super></font>[HEMILAT] [LON]<font size="10"><super>o</super></font>[HEMILON] Depth: [DEPTH] km</para>
+			</keepInFrame>
+			<nextFrame name="versionframe"/>
+			<keepInFrame maxWidth="250" maxHeight="45">
+				<para style="versionstyle">PAGER</para>
+				<para style="versionstyle">Version [VERNUM]</para>
+			</keepInFrame>
+			<nextFrame name="fatframe"/>
+			<keepInFrame maxWidth="190" maxHeight="22.5">
+				<para style="commonhdrstyle">Estimated Fatalities</para>
+			</keepInFrame>
+			<nextFrame name="econframe"/>
+			<keepInFrame maxWidth="190" maxHeight="22.5">
+				<para style="commonhdrstyle">Estimated Economic Losses</para>
+			</keepInFrame>
+			<nextFrame name="timeframe"/>
+			<keepInFrame maxWidth="250" maxHeight="9.5">
+				<para style="elapsedstyle">Created: [ELAPSED] after earthquake</para>
+			</keepInFrame>
+			<nextFrame name="exptitleframe"/>
+			<keepInFrame maxWidth="558" maxHeight="22.5">
+				<para style="commonhdrstyle">Estimated Population Exposed to Earthquake Shaking</para>
+			</keepInFrame>
+			<nextFrame name="expframe"/>
+			<keepInFrame maxWidth="563" maxHeight="117" onOverflow="overflow">
+				<blockTable style="exptablestyle" 
+										colWidths="114,41.5,41.5,41.5,48.5,46.5,68.5,70.5,41.5,47" 
+										rowHeights="20,20,20,38">
+					<tr>
+						<td vAlign="middle"><para style="rowhdrstyle">ESTIMATED POPULATION EXPOSURE (k = x1000)</para></td>
+						<td vAlign="middle"><para style="rownumberstyle">[MMI1]</para></td>
+						<td vAlign="middle"><para style="rownumberstyle">[MMI2-3]</para></td>
+						<td vAlign="middle"><para style="rownumberstyle">[MMI4]</para></td>
+						<td vAlign="middle"><para style="rownumberstyle">[MMI5]</para></td>
+						<td vAlign="middle"><para style="rownumberstyle">[MMI6]</para></td>
+						<td vAlign="middle"><para style="rownumberstyle">[MMI7]</para></td>
+						<td vAlign="middle"><para style="rownumberstyle">[MMI8]</para></td>
+						<td vAlign="middle"><para style="rownumberstyle">[MMI9]</para></td>
+						<td vAlign="middle"><para style="rownumberstyle">[MMI10]</para></td>
+					</tr>
+					<tr>
+						<td vAlign="middle"><para style="rowhdrstyle">ESTIMATED MODIFIED MERCALLI INTENSITY</para></td>
+						<td>
+							<illustration height="20" width="40.5">
+								<image file="[HOMEDIR]/losspager/logos/1.png" x="0" y="0" height="20" width="40.5"/>
+							</illustration>
+						</td>
+						<td>
+							<illustration height="20" width="40.5">
+								<image file="[HOMEDIR]/losspager/logos/2.png" x="0" y="0" height="20" width="40.5"/>
+							</illustration>
+						</td>
+						<td>
+							<illustration height="20" width="40.5">
+								<image file="[HOMEDIR]/losspager/logos/3.png" x="0" y="0" height="20" width="40.5"/>
+							</illustration>
+						</td>
+						<td>
+							<illustration height="20" width="47.25">
+								<image file="[HOMEDIR]/losspager/logos/4.png" x="0" y="0" height="20" width="47.25"/>
+							</illustration>
+						</td>
+						<td>
+							<illustration height="20" width="45">
+								<image file="[HOMEDIR]/losspager/logos/5.png" x="0" y="0" height="20" width="45"/>
+							</illustration>
+						</td>
+						<td>
+							<illustration height="20" width="67.5">
+								<image file="[HOMEDIR]/losspager/logos/6.png" x="0" y="0" height="20" width="67.5"/>
+							</illustration>
+						</td>
+						<td>
+							<illustration height="20" width="69.75">
+								<image file="[HOMEDIR]/losspager/logos/7.png" x="0" y="0" height="20" width="69.75"/>
+							</illustration>
+						</td>
+						<td>
+							<illustration height="20" width="40.5">
+								<image file="[HOMEDIR]/losspager/logos/8.png" x="0" y="0" height="20" width="40.5"/>
+							</illustration>
+						</td>
+						<td>
+							<illustration height="20" width="45">
+								<image file="[HOMEDIR]/losspager/logos/9.png" x="0" y="0" height="20" width="45"/>
+							</illustration>
+						</td>
+					</tr>
+					<tr>
+						<td vAlign="middle"><para style="rowhdrstyle">PERCEIVED SHAKING</para></td>
+						<td><para style="rownormalstyle">Not felt</para></td>
+						<td><para style="rownormalstyle">Weak</para></td>
+						<td><para style="rownormalstyle">Light</para></td>
+						<td><para style="rownormalstyle">Moderate</para></td>
+						<td><para style="rownormalstyle">Strong</para></td>
+						<td><para style="rownormalstyle">Very Strong</para></td>
+						<td><para style="rownormalstyle">Severe</para></td>
+						<td><para style="rownormalstyle">Violent</para></td>
+						<td><para style="rownormalstyle">Extreme</para></td>
+					</tr>
+					<tr>
+						<!-- Cell for header information -->
+						<td>
+							<blockTable style="innertablestyle" rowHeights="36">
+								<tr>
+									<td>
+										<para style="rowhdrstyle">POTENTIAL DAMAGE</para>
+									</td>
+									<td>
+										<blockTable style="innertablestyle" rowHeights="18,18">
+											<tr>
+												<td vAlign="middle">
+													<para style="rowhdrstyle">Resistant Structures</para>
+												</td>
+											</tr>
+											<tr>
+												<td vAlign="middle">
+													<para style="rowhdrstyle">Vulnerable Structures</para>
+												</td>
+											</tr>
+										</blockTable>
+									</td>
+								</tr>
+							</blockTable>
+						</td>
+						
+						<!-- Cell for MMI 1 -->
+						<td>
+							<blockTable style="innertablestyle" rowHeights="18,18">
+								<tr>
+									<td><para style="rowdamagestyle">none</para></td>
+								</tr>
+								<tr>
+									<td><para style="rowdamagestyle">none</para></td>
+								</tr>
+							</blockTable>
+						</td>
+						
+						<!-- Cell for MMI2-3 -->
+						<td>
+							<blockTable style="innertablestyle" rowHeights="18,18">
+								<tr>
+									<td><para style="rowdamagestyle">none</para></td>
+								</tr>
+								<tr>
+									<td><para style="rowdamagestyle">none</para></td>
+								</tr>
+							</blockTable>
+						</td>
+						
+						<!-- Cell for MMI 4 -->
+						<td>
+							<blockTable style="innertablestyle" rowHeights="18,18">
+								<tr>
+									<td><para style="rowdamagestyle">none</para></td>
+								</tr>
+								<tr>
+									<td><para style="rowdamagestyle">none</para></td>
+								</tr>
+							</blockTable>
+						</td>
+						
+						<!-- Cell for MMI 5 -->
+						<td>
+							<blockTable style="innertablestyle" rowHeights="18,18">
+								<tr>
+									<td><para style="rowdamagestyle">V. Light</para></td>
+								</tr>
+								<tr>
+									<td><para style="rowdamagestyle">Light</para></td>
+								</tr>
+							</blockTable>
+						</td>
+						
+						<!-- Cell for MMI 6 -->
+						<td>
+							<blockTable style="innertablestyle" rowHeights="18,18">
+								<tr>
+									<td><para style="rowdamagestyle">Light</para></td>
+								</tr>
+								<tr>
+									<td><para style="rowdamagestyle">Moderate</para></td>
+								</tr>
+							</blockTable>
+						</td>
+						
+						<!-- Cell for MMI 7 -->
+						<td>
+							<blockTable style="innertablestyle" rowHeights="18,18">
+								<tr>
+									<td><para style="rowdamagestyle">Moderate</para></td>
+								</tr>
+								<tr>
+									<td><para style="rowdamagestyle">Moderate/Heavy</para></td>
+								</tr>
+							</blockTable>
+						</td>
+						
+						<!-- Cell for MMI 8 -->
+						<td>
+							<blockTable style="innertablestyle" rowHeights="18,18">
+								<tr>
+									<td><para style="rowdamagestyle">Moderate/Heavy</para></td>
+								</tr>
+								<tr>
+									<td><para style="rowdamagestyle">Heavy</para></td>
+								</tr>
+							</blockTable>
+						</td>
+						
+						<!-- Cell for MMI 9 -->
+						<td>
+							<blockTable style="innertablestyle" rowHeights="18,18">
+								<tr>
+									<td><para style="rowdamagestyle">Heavy</para></td>
+								</tr>
+								<tr>
+									<td><para style="rowdamagestyle">V. Heavy</para></td>
+								</tr>
+							</blockTable>
+						</td>
+						
+						<!-- Cell for MMI 10+ -->
+						<td>
+							<blockTable style="innertablestyle" rowHeights="18,18">
+								<tr>
+									<td><para style="rowdamagestyle">V. Heavy</para></td>
+								</tr>
+								<tr>
+									<td><para style="rowdamagestyle">V. Heavy</para></td>
+								</tr>
+							</blockTable>
+						</td>
+						
+					</tr>
+				</blockTable>
+			</keepInFrame>
+			<nextFrame name="expnoteframe"/>
+			<keepInFrame maxWidth="300" maxHeight="8" onOverflow="shrink">
+				<para fontName="Helvetica">
+					*Estimated exposure only includes population within the map area.
+				</para>
+			</keepInFrame>
+			<nextFrame name="expmapheader1"/>
+			<keepInFrame maxWidth="144" maxHeight="22.5" onOverflow="shrink">
+				<para style="commonhdrstyle">
+					Population Exposure
+				</para>
+			</keepInFrame>
+			<nextFrame name="expmapheader2"/>
+			<keepInFrame maxWidth="218" maxHeight="14" onOverflow="overflow">
+				<para fontName="Helvetica" fontSize="8" alignment="RIGHT">
+					population per ~1 sq. km from Landscan
+				</para>
+			</keepInFrame>
+			<nextFrame name="impactcommentframe"/>
+		  <keepInFrame maxWidth="179" maxHeight="90" onOverflow="shrink">
+				<para style="commentstyle">
+					[IMPACTCOMMENT]
+				</para>
+			</keepInFrame>
+			<nextFrame name="commentframe"/>
+		  <keepInFrame maxWidth="182" maxHeight="235" onOverflow="shrink">
+				<para fontName="Helvetica-Bold" fontSize="9" leading="9">
+					Structures:
+				</para>
+				<para style="commentstyle">
+				[STRUCTCOMMENT]<br/><br/>
+				</para>
+				<pre>
+
+				</pre>
+				<para fontName="Helvetica-Bold" fontSize="9" leading="9">
+					Historical Earthquakes (with MMI levels):
+				</para>
+				<para fontName="Helvetica-Bold" fontSize="9" leading="9">
+
+				</para>
+					[COMMENT]
+			</keepInFrame>
+			<nextFrame name="weaselframe"/>
+		  <keepInFrame maxWidth="400" maxHeight="20" onOverflow="overflow">
+				<para style="weaselstyle">
+					[WEASELWORDS]
+				</para>
+			</keepInFrame>
+			<nextFrame name="urlframe"/>
+			<keepInFrame maxWidth="324" maxHeight="13.5" onOverflow="shrink">
+				<para style="commentstyle">
+					http://earthquake.usgs.gov/earthquakes/eventpage/[EVENTID]
+				</para>
+			</keepInFrame>
+      <nextFrame name="noaaframe"/>
+			<keepInFrame maxWidth="240" maxHeight="14.5" onOverflow="overflow">
+				<para style="noaastyle">
+					[TSUNAMI]
+				</para>
+			</keepInFrame>
+			<nextFrame name="idframe"/>
+			<keepInFrame maxWidth="232" maxHeight="15.5" onOverflow="shrink">
+				<para style="idstyle">
+					Event ID: [EVENTID]
+				</para>
+			</keepInFrame>
+			<nextFrame name="citytitleframe"/>
+			<keepInFrame maxWidth="178" maxHeight="178" onOverflow="shrink">
+				<para style="commonhdrstyle">Selected City Exposure</para>
+			</keepInFrame>
+			<nextFrame name="geonameframe"/>
+			<keepInFrame maxWidth="178" maxHeight="10" onOverflow="shrink">
+				<para fontName="Helvetica" fontSize="8" alignment="LEFT">from GeoNames.org</para>
+			</keepInFrame>
+			<nextFrame name="cityframe"/>
+			<keepInFrame maxWidth="180" maxHeight="156" onOverflow="shrink">
+				<blockTable style="cityhdrtablestyle"
+										rowHeights="13"
+										colWidths="24,102,54">
+					<tr>
+						<td><para alignment="CENTER" fontName="Helvetica-Bold">MMI</para></td>
+						<td><para alignment="LEFT" fontName="Helvetica-Bold">City</para></td>
+						<td><para alignment="RIGHT" fontName="Helvetica-Bold">Population</para></td>
+					</tr>
+				</blockTable>
+				<blockTable style="citytablestyle"
+										rowHeights="[ROWHEIGHTS]"
+										colWidths="24,102,54">
+					[TABLEROWS]
+				</blockTable>
+			</keepInFrame>
+			<nextFrame name="cityfooterframe1"/>
+			<keepInFrame maxWidth="125" maxHeight="14" onOverflow="overflow">
+				<para fontName="Helvetica" fontSize="8" alignment="LEFT">bold cities appear on map</para>
+			</keepInFrame>
+			<nextFrame name="cityfooterframe2"/>
+			<keepInFrame maxWidth="90" maxHeight="13.5" onOverflow="overflow">
+				<para fontName="Helvetica" fontSize="8" alignment="RIGHT">(k = x1000)</para>
+			</keepInFrame>
+	</story> 
+</document> 

@@ -6,3 +6,4 @@ build
 .cache
 .coverage
 .coverage.xml
+losspager.egg-info/
