@@ -22,6 +22,7 @@ from losspager.utils.exception import PagerException
 #third party imports
 from impactutils.io.cmd import get_command_output
 from impactutils.textformat.text import pop_round_short,dollar_round,round_to_nearest,commify
+import pandas as pd
 
 DATEFMT = '%Y-%m-%d'
 DATETIMEFMT = '%Y-%m-%d %H:%M:%S'
@@ -149,20 +150,22 @@ def main(args):
         archive_date = get_date(args.archive[0])
         if args.archive[0] == 'all':
             narchived,nerrors = admin.archive(all_events=True)
-        if args.archive[0] == 'auto':
+        elif args.archive[0] == 'auto':
             narchived,nerrors = admin.archive(events_before=archive_threshold)
-        if archive_date is not None:
+        elif archive_date is not None:
             narchived,nerrors = admin.archive(events_before=archive_date)
         else:
             narchived,nerrors = admin.archive(events=args.archive)
-        print('%i events archived to %s, %i errors' % (narchived,nerrors))
+        print('%i events archived to %s, %i errors' % (narchived,archive_folder,nerrors))
         sys.exit(0)
 
     if args.restore:
         if args.restore[0] == 'all':
-            nrestored,nerrors = admin.restore(all_events=True)
+            nrestored = admin.restore(all_events=True)
         else:
-            nrestored,nerrors = admin.restore(events=args.restore)
+            nrestored = admin.restore(events=args.restore)
+        print('%i events restored to %s' % (narchived,pager_folder))
+        sys.exit(0)
 
     if args.status is not None:
         current_status = admin.getStatus()
@@ -184,8 +187,58 @@ def main(args):
             print(fmt % new_status)
             sys.exit(0)
 
+    if args.history:
+        pdataframe = admin.query(eventid=args.history)
+        print(pdataframe)
+        sys.exit(0)
+
+    if args.tsunami:
+        if args.tsunami[1] not in ['on','off']:
+            print('Tsunami syntax: pageradmin --tsunami EVENT on/off')
+            sys.exit(1)
+        result = pdataframe = admin.toggleTsunami(args.tsunami[0],args.tsunami[1])
+        print('Tsunami status has been set to %s for event %s' % (args.tsunami[1],args.tsunami[0]))
+        sys.exit(0)
+        
     if args.query:
-        print('Queries not implemented yet.')
+        pd.set_option('display.width', 1000)
+        start_date = get_date(args.query[0])
+        end_date = datetime.datetime.utcnow()
+        mag_threshold = 0.0
+        alert_threshold = 'green'
+        version = 'last'
+        qsyntax = 'query syntax: [START/all [MAG [ALERT [END [VERSION]]]]]. '
+        if start_date is None:
+            start_date = datetime.datetime(1800,1,1)
+        else:
+            if len(args.query) >= 2:
+                try:
+                    mag_threshold = float(args.query[1])
+                    assert mag_threshold >= 0 and mag_threshold <= 10.0
+                except:
+                    print(qsyntax+'Second argument must be a magnitude [0-10].')
+                    sys.exit(1)
+            if len(args.query) >= 3:
+                alert_threshold = args.query[2]
+                if alert_threshold not in ['green','yellow','orange','red']:
+                    print(qsyntax+'Fourth argument must be one of (green,yellow,orange,red).')
+                    sys.exit(1)
+            if len(args.query) >= 4:
+                end_date = get_date(args.query[3])
+                if end_date is None:
+                    print(qsyntax+'Third argument must be a date/time string.')
+                    sys.exit(1)
+            if len(args.query) >= 5:
+                version = args.query[4]
+                if version not in ['first','last','eight','all']:
+                    print(qsyntax+'Fifth argument must be one of (first,last,eight,all).')
+                    sys.exit(1)
+                
+        pdataframe = admin.query(start_time=start_date,end_time=end_date,
+                                 mag_threshold=mag_threshold,
+                                 alert_threshold=alert_threshold,
+                                 version=version)
+        print(pdataframe)
         sys.exit(0)
     
 if __name__ == '__main__':
@@ -203,13 +256,15 @@ if __name__ == '__main__':
     To toggle the tsunami flag OFF for an event: "pageradmin --tsunami EVENTID off"
     To print a list of the events from the last 7 days: "pageradmin --recent"
     To see the version history of an event: "pageradmin --history EVENTID"
-
     Query Syntax:
-    All events from the last 14 days, do pageradmin --query 14
-    All events from the last 14 days with magnitude >= 6.5, do pageradmin --query 14 6.5
-    All events *ever* with magnitude >= 6.5, do pageradmin --query 0 6.5
-    All events *ever* with any magnitude and alert level >= yellow, do pageradmin --query 0 0 yellow
-    All events *ever* with any magnitude, any alert level, and maxmmi >= 7, do pageradmin --query 0 0 green 7 
+    All events from December 15, 2015: pageradmin --query 2015-12-15
+    M5.5+ events from December 15, 2016: pageradmin --query 2015-12-15 5.5
+    All Yellow events > M5.5: pageradmin --query 1900-01-01 5.5 yellow
+    Yellow events > M5.5 until November 15, 2016: pageradmin --query 1900-01-01 5.5 yellow 2016-11-15
+    First version of yellow events > M5.5 until November 15, 2016: pageradmin --query 1900-01-01 5.5 yellow 2016-11-15 first
+    Last version of yellow events > M5.5 until November 15, 2016: pageradmin --query 1900-01-01 5.5 yellow 2016-11-15 last
+    All versions of yellow events > M5.5 until November 15, 2016: pageradmin --query 1900-01-01 5.5 yellow 2016-11-15 all
+    First version of yellow events > M5.5 created 8+ hours after origin, until November 15, 2016: pageradmin --query 1900-01-01 5.5 yellow 2016-11-15 eight
     '''
     argparser = argparse.ArgumentParser(description=desc,
                                         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -234,9 +289,11 @@ if __name__ == '__main__':
     argparser.add_argument("--tsunami", nargs=2,
                            help="Toggle tsunami warning on PAGER alert",
                            metavar=('EVENT','on/off'))
-    argparser.add_argument('--query',nargs='+',metavar='PARAM',
-                           help="List events that match the query. Params are NDAYS [MAG ALERT MAXMMI]")
-    
+    argparser.add_argument('--query',nargs='*',metavar='PARAM',
+                           help="List events that match the query. Params are [START/all [MAG [ALERT [END [VERSION]]]]].")
+    argparser.add_argument("--history", nargs=1,
+                           help="Print history of input event.",
+                           metavar='EVENT')
     # argparser.add_argument("--release", nargs='*',
     #                        help="Release orange/red alert level event.",
     #                        metavar='EVENT')

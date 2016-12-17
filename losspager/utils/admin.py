@@ -5,6 +5,7 @@ import zipfile
 import glob
 import re
 import shutil
+import json
 
 #local imports
 from losspager.utils.exception import PagerException
@@ -13,9 +14,10 @@ from losspager.io.pagerdata import PagerData
 
 #third-party imports
 from impactutils.comcat.query import ComCatInfo
+import pandas as pd
 
 DATETIMEFMT = '%Y%m%d%H%M%S'
-
+EIGHT_HOURS = 8 * 3600
 
 class PagerAdmin(object):
     def __init__(self,pager_folder,archive_folder):
@@ -56,9 +58,10 @@ class PagerAdmin(object):
         
     def archiveEvent(self,eventid):
         eventfolder = self.getEventFolder(eventid)
+        fpath,eventname = os.path.split(eventfolder)
         if eventfolder is None:
             return False
-        zipname = os.path.join(self._archive_folder,eventid+'.zip')
+        zipname = os.path.join(self._archive_folder,eventname+'.zip')
         myzip = zipfile.ZipFile(zipname,mode='w',compression=zipfile.ZIP_DEFLATED)
         for root,dirs,files in os.walk(eventfolder):
             arcfolder = root[root.find(eventid):]
@@ -72,21 +75,25 @@ class PagerAdmin(object):
         return True
 
     def getAllEventFolders(self):
-        allevents = os.listdir(self._pager_folder)
+        all_events = os.listdir(self._pager_folder)
         event_folders = []
         for event in all_events:
             event_folder = os.path.join(self._pager_folder,event)
-            if os.path.isfile(os.path.join(event_folder,'json','event.json')):
+            jsonfile = os.path.join(event_folder,'version.001' ,'json','event.json')
+            if os.path.isfile(jsonfile):
                 event_folders.append(event_folder)
         return event_folders
 
     def getAllEvents(self):
-        allevents = os.listdir(self._pager_folder)
+        all_events = os.listdir(self._pager_folder)
         events = []
         for event in all_events:
             event_folder = os.path.join(self._pager_folder,event)
-            if os.path.isfile(os.path.join(event_folder,'json','event.json')):
-                eventid,etime = event.split('_')
+            if os.path.isdir(event_folder):
+                if event.find('_') > -1:
+                    eventid,etime = event.split('_')
+                else:
+                    eventid = event
                 events.append(eventid)
         return events
     
@@ -102,7 +109,7 @@ class PagerAdmin(object):
                 if result:
                     narchived += 1
                 else:
-                    narchived += 1
+                    nerrors += 1
         else:
             for eventid in events:
                 eventfolder = self.getEventFolder(eventid)
@@ -121,7 +128,7 @@ class PagerAdmin(object):
     def restoreEvent(self,archive_file):
         myzip = zipfile.ZipFile(archive_file,'r')
         fpath,fname = os.path.split(archive_file)
-        eventf,ext = os.path.splitext(fpath)
+        eventf,ext = os.path.splitext(fname)
         event_folder = os.path.join(self._pager_folder,eventf)
         if os.path.isdir(event_folder):
             # fmt = 'Event %s could not be restored because there is an event by the same name in the output!'
@@ -132,16 +139,16 @@ class PagerAdmin(object):
         os.remove(archive_file)
         return True
     
-    def restore(self,events=[],all=False):
+    def restore(self,events=[],all_events=False):
         nrestored = 0
         if all:
-            zipfiles = glob.glob(os.path.join(self._pager_archive,'*.zip'))
+            zipfiles = glob.glob(os.path.join(self._archive_folder,'*.zip'))
             for zipfile in zipfiles:
-                result = self.restoreEvent(archived_events[0])
+                result = self.restoreEvent(zipfile)
                 nrestored += result
         else:
             for event in events:
-                archived_events = glob.glob(os.path.join(self._archive_folder,'%s_*.zip'))
+                archived_events = glob.glob(os.path.join(self._archive_folder,'%s_*.zip' % event))
                 if len(archived_events):
                     result = self.restoreEvent(archived_events[0])
                     nrestored += result
@@ -198,55 +205,88 @@ class PagerAdmin(object):
         if 'status' in config and config['status'] == 'primary':
             return 'primary'
         return status
+
+    def getVersionNumbers(self,event_folder):
+        version_folders = glob.glob(os.path.join(event_folder,'version.*'))
+        vnums = []
+        for vfolder in version_folders:
+            fpath,vf = os.path.split(vfolder)
+            vnum = int(re.search('\d+',vf).group())
+            vnums.append(vnum)
+
+        vnums.sort()
+        return vnums
+
+    def toggleTsunami(self,eventid,tsunami='off'):
+        toggle = {'on':1,'off':0}
+        event_folder = self.getEventFolder(eventid)
+        tsunami_file = os.path.join(event_folder,'tsunami')
+        f = open(tsunami_file,'wt')
+        f.write('%s' % tsunami)
+        f.close()
+        
+        version_folders = sorted(glob.glob(os.path.join(event_folder,'version.*')))
+        jsonfile = os.path.join(version_folders[-1],'json','event.json')
+        f = open(jsonfile,'rt')
+        jdict = json.load(f)
+        f.close()
+        if jdict['event']['tsunami'] == tsunami:
+            return False
+        jdict['event']['tsunami'] = toggle[tsunami]
+        f = open(jsonfile,'wt')
+        json.dump(jdict,f)
+        f.close()
+        return True
         
     
-    def query(self,start_time=None,end_time=None,mag_threshold=None,alert_threshold=None,version='last'):
-        if start_time is not None:
-            if not isinstance(start_time,datetime.datetime):
-                raise PagerException('start_time must be a datetime object.')
-        if end_time is not None:
-            if not isinstance(end_time,datetime.datetime):
-                raise PagerException('end_time must be a datetime object.')
-            
-        all_event_folders = self.getAllEventFolders()
+    def query(self,start_time=datetime.datetime(1800,1,1),end_time=datetime.datetime.utcnow(),
+              mag_threshold=0.0,alert_threshold='green',version='last',eventid=None):
+        levels = {'green':0,
+                  'yellow':1,
+                  'orange':2,
+                  'red':3}
+        if eventid is not None:
+            all_event_folders = [self.getEventFolder(eventid)]
+            version = 'all'
+        else:
+            all_event_folders = self.getAllEventFolders()
+        event_data = []
+        df = pd.DataFrame(columns=PagerData.getSeriesColumns())
+        jsonfolders = []
         for event_folder in all_event_folders:
-            fpath,efolder = os.path.split(event_folder)
-            eventid,etimestr = efolder.split('_')
-            etime = datetime.datetime.strptime(etimestr,DATETIMEFMT)
-            if start_time is not None:
-                if etime < start_time:
-                    continue
-            if end_time is not None:
-                if etime > end_time:
-                    continue
-            versions = self.getVersions(eventfolder,version=version)
+            vnums = self.getVersionNumbers(event_folder)
+            if version == 'first':
+                vnum = vnums[0]
+                jsonfolders.append(os.path.join(event_folder,'version.%03d' % vnum,'json'))
+            elif version == 'last':
+                vnum = vnums[-1]
+                jsonfolders.append(os.path.join(event_folder,'version.%03d' % vnum,'json'))
+            elif version == 'eight':
+                for vnum in vnums:
+                    jsonfolder = os.path.join(event_folder,'version.%03d' % vnum,'json')
+                    pdata = PagerData()
+                    pdata.loadFromJSON(jsonfolder)
+                    if pdata.processing_time >= pdata.time + datetime.timedelta(seconds=EIGHT_HOURS):
+                        break
+                    jsonfolders.append(jsonfolder)
+            elif version == 'all':
+                for vnum in vnums:
+                    jsonfolder = os.path.join(event_folder,'version.%03d' % vnum,'json')
+                    jsonfolders.append(jsonfolder)
+            else:
+                raise PagerException('version option "%s" not supported.' % version)
 
-    def getVersionFolders(self,eventfolder):
-        contents = os.listdir(eventfolder)
-        version_folders = []
-        for content in contents:
-            if content.startswith('version'):
-                version_folders.append(int(re.search('\d+',content)))
+        for jsonfolder in jsonfolders:
+            pdata = PagerData()
+            pdata.loadFromJSON(jsonfolder)
+            meetsLevel = levels[pdata.summary_alert] >= levels[alert_threshold]
+            meetsMag = pdata.magnitude >= mag_threshold
+            if pdata.time >= start_time and pdata.time <= end_time and meetsLevel and meetsMag:
+                row = pdata.toSeries()
+                df = df.append(row,ignore_index=True)
+        df.Version = df.Version.astype(int)
+        df = df.sort_values('EventTime')
+        return df
         
-        return versions
-            
-    def getVersions(self,eventfolder,version='last'):
-        """Return designated version data for given event.
+    
 
-        """
-        eventfolder = self.getEventFolder(eventid)
-        version_folders = self.getVersionFolders(eventfolder)
-        for version_folder in version_folders:
-            vdata = self.getVersionData(eventfolder,vnum)
-        
-    def getVersionData(self,eventfolder,vnum):
-        vpath = os.path.join(eventfolder,'version%00i' % vnum)
-        jsonfolder = os.path.join(vpath,'json')
-        if not os.path.isdir(jsonfolder):
-            raise PagerException('Could not find JSON data for version %i' % vnum)
-        pdata = PagerData()
-        pdata.loadFromJSON(jsonfolder)
-        return pdata
-            
-
-        

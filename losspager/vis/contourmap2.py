@@ -440,8 +440,8 @@ def draw_contour(shakefile,popfile,oceanfile,oceangridfile,cityfile,basename):
     #Limit the number of cities we show - we may not want to use the population size
     #filter in the global case, but the map collision filter is a little sketchy right now.
     mapcities = cities.limitByPopulation(1000)
-    #mapcities = mapcities.limitByGrid(nx=3,ny=3,cities_per_grid=2)
-    mapcities = mapcities.limitByMapCollision2(ax,10.0)
+    mapcities = mapcities.limitByGrid(nx=3,ny=3,cities_per_grid=2)
+    #mapcities = mapcities.limitByMapCollision2(ax,10.0)
     for index,row in mapcities._dataframe.iterrows():
         th = _renderRow(row,ax,shadow=True,zorder=CITIES_ZORDER)
         ax.plot(row['lon'],row['lat'],'k.')

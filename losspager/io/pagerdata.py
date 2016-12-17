@@ -15,6 +15,7 @@ import pandas as pd
 #local imports
 from losspager.utils.expocat import ExpoCat
 from losspager.onepager.pagercity import PagerCities
+from losspager.utils.exception import PagerException
 
 DATETIMEFMT = '%Y-%m-%d %H:%M:%S'
 TIMEFMT = '%H:%M:%S'
@@ -46,7 +47,7 @@ class PagerData(object):
             return fmt % (eid,eversion,etime,emag,fatalert,ecoalert)
         
     #########Setters########
-    def setInputs(self,shakegrid,pagerversion,versioncode,eventcode,tsunami):
+    def setInputs(self,shakegrid,pagerversion,versioncode,eventcode,tsunami,location):
         self._event_dict = shakegrid.getEventDict()
         self._shake_dict = shakegrid.getShakeDict()
         self._shakegrid = shakegrid
@@ -54,6 +55,7 @@ class PagerData(object):
         self._eventcode = eventcode
         self._versioncode = versioncode
         self._tsunami_flag = tsunami
+        self._location = location
         self._input_set = True
 
     def setExposure(self,exposure,econ_exposure):
@@ -260,15 +262,42 @@ class PagerData(object):
     @property
     def time(self):
         return datetime.strptime(self._pagerdict['event_info']['time'],DATETIMEFMT)
+
+    @property
+    def id(self):
+        return self._pagerdict['event_info']['eventid']
+    
     @property
     def magnitude(self):
         return self._pagerdict['event_info']['mag']
+
     @property
-    def alert(self):
+    def latitude(self):
+        return self._pagerdict['event_info']['lat']
+
+    @property
+    def longitude(self):
+        return self._pagerdict['event_info']['lon']
+
+    @property
+    def depth(self):
+        return self._pagerdict['event_info']['depth']
+    
+    @property
+    def summary_alert(self):
         if self._pagerdict['alerts']['fatality']['summary']:
             return self._pagerdict['alerts']['fatality']['level']
         else:
             return self._pagerdict['alerts']['economic']['level']
+
+    @property
+    def fatality_alert(self):
+        return self._pagerdict['alerts']['fatality']['level']
+
+    @property
+    def economic_alert(self):
+        return self._pagerdict['alerts']['economic']['level']
+        
     @property
     def processing_time(self):
         return datetime.strptime(self._pagerdict['pager']['processing_time'],DATETIMEFMT)
@@ -278,6 +307,34 @@ class PagerData(object):
         return self._pagerdict['pager']['version_number']
     
     #########Accessors########
+    @classmethod
+    def getSeriesColumns(self):
+        columns = ['EventID',
+                   'Version',
+                   'EventTime',
+                   'Lat',
+                   'Lon',
+                   'Depth',
+                   'Mag',
+                   'FatalityAlert',
+                   'EconomicAlert',
+                   'SummaryAlert']
+        return columns
+    
+    def toSeries(self):
+        d = {'EventID':self.id,
+             'Version':self.version,
+             'EventTime':self.time,
+             'Lat':self.latitude,
+             'Lon':self.longitude,
+             'Depth':self.depth,
+             'Mag':self.magnitude,
+             'FatalityAlert':self.fatality_alert,
+             'EconomicAlert':self.economic_alert,
+             'SummaryAlert':self.summary_alert}
+        sd = pd.Series(d)
+        return sd
+             
     
     #########Savers/Loaders########
     def saveToJSON(self,jsonfolder):
@@ -339,7 +396,7 @@ class PagerData(object):
                  'elapsed':self.getElapsed(),
                  'ccode':'UK',
                  'approved':'A',
-                 'tsunami':'%i' % (self._tsunami_flag)}
+                 'tsunami':'%i' % (int(self._tsunami_flag))}
         pager = etree.Element('pager',attrib=pdict)
         return pager
 
@@ -451,7 +508,8 @@ class PagerData(object):
 		#   <td background="#7aff93"><para alignment="CENTER" fontName="Helvetica" fontSize="9">V(7k)</para></td>
 		#   <td><para alignment="RIGHT" fontName="Helvetica" fontSize="9">0</para></td>
         #   </blockTable><para style="commentstyle"></para>]]>	</comment>
-        
+        if not any(self._pagerdict['historical_earthquakes']):
+            return pager
         table_dict = {'style':'historyhdrtablestyle',
                       'rowHeights':'24',
                       'colWidths':'42,30,25,45,38'}
@@ -475,14 +533,20 @@ class PagerData(object):
                  'rowHeights':'12,12,12',
                  'colWidths':'42,30,25,45,38'}
         block_tag = etree.Element('blockTable',attrib=bdict)
+        
         for event in self._pagerdict['historical_earthquakes']:
             rom_maxmmi = dec_to_roman(event['MaxMMI'])
             nmmi_str = pop_round_short(event['MaxMMI'],usemillion=True)
+            deaths = event['ShakingDeaths']
+            if np.isnan(deaths):
+                deaths = 'NA'
+            else:
+                deaths = '%i' % deaths
             content = [event['Time'][0:10],
                        '%i' % (event['Distance']),
                        '%.1f' % (event['Magnitude']),
                        '%s(%s)' % (rom_maxmmi,nmmi_str),
-                       '%i' % (event['ShakingDeaths'])]
+                       '%s' % (deaths)]
             row_tag = etree.SubElement(block_tag,'tr')
             for i in range(0,5):
                 align = hdr_alignments[i]
@@ -516,12 +580,6 @@ class PagerData(object):
         f.close()
         return outfile
 
-        
-        
-        
-        
-            
-
     def loadFromJSON(self,jsonfolder):
         jsonfiles = ['event.json','alerts.json','exposures.json',
                      'losses.json','cities.json','historical_earthquakes.json',
@@ -533,7 +591,7 @@ class PagerData(object):
                 missing.append(jf)
         if len(missing):
             fmt = 'Could not load PagerData from %s: Missing required files %s'
-            raise PagerException(fmt % jsonfolder,str(missing))
+            raise PagerException(fmt % (jsonfolder,str(missing)))
 
         #load event, shakemap, and pager basic information
         f = open(os.path.join(jsonfolder,'event.json'),'rt')
@@ -637,7 +695,7 @@ class PagerData(object):
         event['lon'] = self._event_dict['lon']
         event['depth'] = self._event_dict['depth']
         event['mag'] = self._event_dict['magnitude']
-        event['location'] = self._event_dict['event_description']
+        event['location'] = self._location
         event['tsunami'] = self._tsunami_flag
         return event
 
