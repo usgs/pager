@@ -60,7 +60,7 @@ def tdoc(doc,shakegrid,impact1,impact2,expdict,struct_comment,hist_comment,):
     #test property methods
     assert doc.magnitude == shakegrid.getEventDict()['magnitude']
     assert doc.time == shakegrid.getEventDict()['event_timestamp']
-    assert doc.alert == 'yellow'
+    assert doc.summary_alert == 'yellow'
     assert doc.processing_time == datetime.strptime(doc._pagerdict['pager']['processing_time'],DATETIMEFMT)
     assert doc.version == doc._pagerdict['pager']['version_number']
 
@@ -129,10 +129,13 @@ def test():
     hist_comment = ''''A magnitude 7.1 earthquake 240 km east of this event struck Reventador: Ecuador 
     on March 6, 1987 (UTC), with estimated population exposures of 14,000 at intensity VIII and 2,000 
     at intensity IX or greater, resulting in a reported 5,000 fatalities.'''.replace('\n','')
+
+    location = 'At the top of the world.'
+    
     doc = PagerData()
     eventcode = shakegrid.getEventDict()['event_id']
     versioncode = eventcode
-    doc.setInputs(shakegrid,pagerversion,versioncode,eventcode,tsunami)
+    doc.setInputs(shakegrid,pagerversion,versioncode,eventcode,tsunami,location)
     doc.setExposure(expdict,econexpdict)
     doc.setModelResults(fatmodel,ecomodel,
                         fatdict,ecodict,
