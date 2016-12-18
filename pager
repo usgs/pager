@@ -29,10 +29,12 @@ from losspager.models.growth import PopulationGrowth
 from losspager.utils.country import Country
 from losspager.utils.eventpath import get_event_folder
 from losspager.utils.logger import PagerLogger
+from losspager.utils.admin import PagerAdmin
 from losspager.onepager.comment import get_impact_comments
 from losspager.onepager.comment import get_structure_comment
 from losspager.onepager.comment import get_secondary_comment
 from losspager.onepager.comment import get_historical_comment
+from losspager.onepager.onepager import create_onepager
 from losspager.io.pagerdata import PagerData
 from losspager.vis.impactscale import drawImpactScale
 from losspager.vis.contourmap2 import draw_contour
@@ -99,6 +101,10 @@ def main(pargs,config):
         sys.exit(1)
 
     pager_folder = os.path.join(homedir,config['output_folder'])
+    pager_archive = os.path.join(homedir,config['output_folder'])
+    
+    admin = PagerAdmin(pager_folder,pager_archive)
+    
     plog = None
     if not pargs.debug:
         #stdout will now be logged as INFO, stderr will be logged as WARNING
@@ -115,6 +121,7 @@ def main(pargs,config):
         #get all the basic event information and print it, if requested
         shake_tuple = getHeaderData(pargs.gridfile)
         eid = shake_tuple[1]['event_id']
+        etime = shake_tuple[1]['event_timestamp']
         if not len(eid):
             eid = shake_tuple[0]['event_id']
         network = shake_tuple[1]['event_network']
@@ -128,7 +135,7 @@ def main(pargs,config):
         try:
             ccinfo = ComCatInfo(eid)
             location = ccinfo.getLocation()
-            tsunami = ccinfo.getLocation()
+            tsunami = ccinfo.getTsunami()
             authid,allids = ccinfo.getAssociatedIds()
         except: #fail over to what we can determine locally
             location = shake_tuple[1]['event_description']
@@ -138,7 +145,7 @@ def main(pargs,config):
             
         #create the event directory (if it does not exist), and start logging there
         print('Creating event directory')
-        event_folder = get_event_folder(eid,pager_folder)
+        event_folder = admin.createEventFolder(eid,etime)
         pager_version = get_pager_version(event_folder)
         version_folder = os.path.join(event_folder,'version.%03d' % pager_version)
         os.makedirs(version_folder)
@@ -146,6 +153,12 @@ def main(pargs,config):
         if plog is not None:
             plog.switchToEventFileHandler(event_logfile)
 
+        #Check to see if the tsunami flag has been previously set
+        tsunami_toggle = {'on':1,'off':0}
+        tsunami_file = os.path.join(event_folder,'tsunami')
+        if os.path.isfile(tsunami_file):
+            tsunami = tsunami_toggle[open(tsunami_file,'rt').read().strip()]
+            
         #get the rest of the event info
         etime = shake_tuple[1]['event_timestamp']
         elat = shake_tuple[1]['lat']
@@ -225,7 +238,7 @@ def main(pargs,config):
         #results, and then serialize that to disk in the form of a number of JSON files.
         print('Making PAGER Data object.')
         doc = PagerData()
-        doc.setInputs(shakegrid,pager_version,shakegrid.getEventDict()['event_id'])
+        doc.setInputs(shakegrid,pager_version,shakegrid.getEventDict()['event_id'],authid,tsunami,location)
         print('Setting inputs.')
         doc.setExposure(exposure,econexposure)
         print('Setting exposure.')
@@ -242,6 +255,16 @@ def main(pargs,config):
         os.makedirs(json_folder)
         print('Saving output to JSON.')
         doc.saveToJSON(json_folder)
+        print('Saving output to XML.')
+        doc.saveToLegacyXML(version_folder)
+
+        print('Creating onePAGER pdf...')
+        onepager_pdf,error = create_onepager(version_folder)
+        if onepager_pdf is None:
+            raise PagerException('Could not create onePAGER output: \n%s' % error)
+        if plog is not None:
+            plog.stopLogging()
+        print('Created onePAGER pdf %s.' % onepager_pdf)
         print('Done.')
     except Exception as e:
         if plog is not None:

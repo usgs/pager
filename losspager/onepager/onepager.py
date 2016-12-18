@@ -6,10 +6,12 @@ from impactutils.textformat.text import pop_round_short
 from impactutils.textformat.text import dec_to_roman
 from impactutils.colors.cpalette import ColorPalette
 from impactutils.comcat.query import ComCatInfo
+from impactutils.io.cmd import get_command_output
 import numpy as np
 
 from losspager.io.pagerdata import PagerData
 
+LATEX_TO_PDF_BIN = 'pdflatex'
 
 def create_onepager(version_dir, debug = False):
     """
@@ -106,7 +108,10 @@ def create_onepager(version_dir, debug = False):
     template = template.replace("[DEPTH]", str(dep))
 
     # Tsunami warning? --- need to fix to be a function of tsunamic flag
-    template = template.replace("[TSUNAMI]", "TSUNAMI")
+    if edict['tsunami']:
+        template = template.replace("[TSUNAMI]", "FOR TSUNAMI INFORMATION, SEE: tsunami.gov")
+    else:
+        template = template.replace("[TSUNAMI]", "")
     elapse = "Created: " + pdict['pager']['elapsed_time'] + " after earthquake"
     template = template.replace("[ELAPSED]", elapse)
     template = template.replace(
@@ -234,3 +239,23 @@ def create_onepager(version_dir, debug = False):
     with open(tex_output, 'w') as f:
         f.write(template)
 
+    pdf_output = os.path.join(version_dir, 'onepager.pdf')
+    stderr = ''
+    try:
+        cwd = os.getcwd()
+        os.chdir(version_dir)
+        cmd = '%s %s' % (LATEX_TO_PDF_BIN,tex_output)
+        res,stdout,stderr = get_command_output(cmd)
+        os.chdir(cwd)
+        if not res:
+            return (None,stderr)
+        else:
+            if os.path.isfile(pdf_output):
+                return (pdf_output,stderr)
+            else:
+                pass
+    except Exception as e:
+        pass
+    finally:
+        os.chdir(cwd)
+    return (None,stderr)

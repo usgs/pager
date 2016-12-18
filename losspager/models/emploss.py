@@ -399,7 +399,8 @@ class EmpiricalLoss(object):
         #Get a loss dictionary
         fatdict = {}
         for ccode,exparray in exposure_dict.items():
-            if ccode.find('Total') > -1: #exposure array will now also have a row of Total Exposure to shaking.
+            #exposure array will now also have a row of Total Exposure to shaking.
+            if ccode.find('Total') > -1 or ccode.find('maximum') > -1: 
                 continue
             if ccode == 'UK': #unknown
                 continue

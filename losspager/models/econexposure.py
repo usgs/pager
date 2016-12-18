@@ -153,7 +153,7 @@ class EconExposure(Exposure):
         eventyear = self.getShakeGrid().getEventDict()['event_timestamp'].year
         total = np.zeros((10,))
         for ccode,exparray in expdict.items():
-            if ccode.find('Total') > -1:
+            if ccode.find('Total') > -1 or ccode.find('maximum') > -1:
                 continue
             if ccode == 'UK': #unknown
                 continue

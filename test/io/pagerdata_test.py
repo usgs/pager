@@ -14,6 +14,7 @@ sys.path.insert(0,pagerdir) #put this at the front of the system path, ignoring 
 
 #third party imports 
 import numpy as np
+from mapio.shake import getHeaderData
 
 #local imports
 from losspager.io.pagerdata import PagerData
@@ -26,6 +27,7 @@ from losspager.vis.contourmap2 import draw_contour
 from mapio.city import Cities
 
 DATETIMEFMT = '%Y-%m-%d %H:%M:%S'
+TSUNAMI_MAG_THRESH = 7.3
 
 def tdoc(doc,shakegrid,impact1,impact2,expdict,struct_comment,hist_comment,):
     eventinfo = doc.getEventInfo()
@@ -58,7 +60,7 @@ def tdoc(doc,shakegrid,impact1,impact2,expdict,struct_comment,hist_comment,):
     #test property methods
     assert doc.magnitude == shakegrid.getEventDict()['magnitude']
     assert doc.time == shakegrid.getEventDict()['event_timestamp']
-    assert doc.alert == 'yellow'
+    assert doc.summary_alert == 'yellow'
     assert doc.processing_time == datetime.strptime(doc._pagerdict['pager']['processing_time'],DATETIMEFMT)
     assert doc.version == doc._pagerdict['pager']['version_number']
 
@@ -87,6 +89,9 @@ def test():
     
     popyear = 2012
 
+    shake_tuple = getHeaderData(shakefile)
+    tsunami = shake_tuple[1]['magnitude'] >= TSUNAMI_MAG_THRESH
+    
     semi = SemiEmpiricalFatality.fromDefault()
     semi.setGlobalFiles(popfile,popyear,urbanfile,isofile)
     semiloss,resfat,nonresfat = semi.getLosses(shakefile)
@@ -124,8 +129,13 @@ def test():
     hist_comment = ''''A magnitude 7.1 earthquake 240 km east of this event struck Reventador: Ecuador 
     on March 6, 1987 (UTC), with estimated population exposures of 14,000 at intensity VIII and 2,000 
     at intensity IX or greater, resulting in a reported 5,000 fatalities.'''.replace('\n','')
+
+    location = 'At the top of the world.'
+    
     doc = PagerData()
-    doc.setInputs(shakegrid,pagerversion,shakegrid.getEventDict()['event_id'])
+    eventcode = shakegrid.getEventDict()['event_id']
+    versioncode = eventcode
+    doc.setInputs(shakegrid,pagerversion,versioncode,eventcode,tsunami,location)
     doc.setExposure(expdict,econexpdict)
     doc.setModelResults(fatmodel,ecomodel,
                         fatdict,ecodict,
@@ -147,6 +157,9 @@ def test():
         newdoc = PagerData()
         newdoc.loadFromJSON(tdir)
         tdoc(newdoc,shakegrid,impact1,impact2,expdict,struct_comment,hist_comment)
+
+        #test the xml saving method
+        xmlfile = doc.saveToLegacyXML(tdir)
     except Exception as e:
         assert 1==2
     finally:
