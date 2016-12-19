@@ -12,6 +12,7 @@ import shutil
 import glob
 import re
 from operator import attrgetter
+from calendar import monthrange
 
 #local imports
 from losspager.utils.config import read_config,write_config
@@ -199,7 +200,58 @@ def main(args):
         result = pdataframe = admin.toggleTsunami(args.tsunami[0],args.tsunami[1])
         print('Tsunami status has been set to %s for event %s' % (args.tsunami[1],args.tsunami[0]))
         sys.exit(0)
-        
+
+    if args.stats:
+        if 'stats_folder' not in config.keys():
+            print('Configure the stats_folder variable first.')
+            sys.exit(1)
+        if not os.path.isdir(config['stats_folder']):
+            print('stats_folder %s does not exist.' % (config['stats_folder']))
+            sys.exit(1)
+        tnow = datetime.datetime.utcnow()
+        this_month = tnow.month
+        if args.stats[0] == 'month':
+            #go get the last full month's worth of pager results.
+            query_month = this_month - 1
+            query_year = tnow.year
+            if query_month == 0:
+                query_month = 12
+                query_year = tnow.year - 1
+            ndays = monthrange(query_year,query_month)[1]
+            start_date = datetime.datetime(query_year,query_month,1)
+            end_date = datetime.datetime(query_year,query_month,ndays,23,59,59)
+            fname = 'monthly_%i_%i.xlsx' % (query_year,query_month)
+        elif args.stats[0] == 'quarter':
+            this_quarter = (tnow.month-1)//3
+            last_quarter = this_quarter - 1
+            if last_quarter == -1:
+                query_year = tnow.year - 1
+            quarters = {0:(1,3),
+                        1:(4,6),
+                        2:(7,9),
+                        3:(10,12)}
+            
+            end_month_days = monthrange(query_year,quarters[last_quarter][1])
+            start_date = datetime.datetime(query_year,quarters[last_quarter][0],1)
+            end_date = datetime.datetime(query_year,quarters[last_quarter][1],end_month_days,23,59,59)
+            fname = 'quarterly_%i_Q%i.xlsx' % (query_year,(last_quarter+1))
+        elif args.stats[0] == 'year':
+            query_year = tnow.year - 1
+            start_date = datetime.datetime(query_year,1,1)
+            end_date = datetime.datetime(query_year,12,31,23,59,59)
+            fname = 'yearly_%i.xlsx' % (query_year)
+        else:
+            print('Unsupported stats period %s.' % args.stats[0])
+            sys.exit(1)
+        pdataframe = admin.query(start_time=start_date,
+                                 end_time=end_date,
+                                 mag_threshold=0.0,
+                                 alert_threshold='green',
+                                 version='all')
+        statsfile = os.path.join(config['stats_folder'],fname)
+        pdataframe.to_excel(statsfile)
+        print('All event statistics saved to %s.' % statsfile)
+        sys.exit(0)
     if args.query:
         pd.set_option('display.width', 1000)
         start_date = get_date(args.query[0])
@@ -238,7 +290,15 @@ def main(args):
                                  mag_threshold=mag_threshold,
                                  alert_threshold=alert_threshold,
                                  version=version)
-        print(pdataframe)
+        if args.output == 'screen':
+            print(pdataframe)
+        else:
+            fpath,fname = os.path.split(args.output)
+            if not os.path.isdir(fpath):
+                print('Cannot create %s in %s - directory does not exist.' % (fname,fpath))
+                sys.exit(1)
+            pdataframe.to_excel(args.output)
+            print('%i rows written to %s.' % (len(pdataframe),args.output[0]))
         sys.exit(0)
     
 if __name__ == '__main__':
@@ -294,6 +354,13 @@ if __name__ == '__main__':
     argparser.add_argument("--history", nargs=1,
                            help="Print history of input event.",
                            metavar='EVENT')
+    argparser.add_argument("--output", nargs='*', 
+                           help="Select output format for queries ('screen' or excel filename.",
+                           default='screen',metavar='FORMAT')
+    argparser.add_argument("--stats", nargs=1, 
+                           help="Create dump of monthly, quarterly, or yearly PAGER results.",
+                           choices = ('month','quarter','year'),metavar='PERIOD')
+    
     # argparser.add_argument("--release", nargs='*',
     #                        help="Release orange/red alert level event.",
     #                        metavar='EVENT')
