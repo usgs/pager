@@ -31,8 +31,8 @@ import fiona
 from descartes import PolygonPatch
 from scipy.ndimage import gaussian_filter
 
-from impactutils.mapping.cartopycity import CartopyCities
 from impactutils.mapping.mercatormap import MercatorMap
+from impactutils.mapping.city import Cities
 from impactutils.colors.cpalette import ColorPalette
 from impactutils.textformat.text import round_to_nearest
 from impactutils.mapping.scalebar import draw_scale
@@ -256,7 +256,7 @@ def draw_contour(shakefile,popfile,oceanfile,oceangridfile,cityfile,basename):
     :returns:
       Tuple containing: 
         - Name of PNG file created, or None if PNG output not specified.
-        - CartopyCities object containing the cities that were rendered on the contour map.
+        - Cities object containing the cities that were rendered on the contour map.
     """
     #load the shakemap - for the time being, we're interpolating the 
     #population data to the shakemap, which would be important
@@ -276,7 +276,7 @@ def draw_contour(shakefile,popfile,oceanfile,oceangridfile,cityfile,basename):
     oceangrid = GDALGrid.load(oceangridfile,samplegeodict=gd,resample=True)
 
     #load the cities data, limit to cities within shakemap bounds
-    allcities = CartopyCities.fromDefault()
+    allcities = Cities.fromDefault()
     cities = allcities.limitByBounds((gd.xmin,gd.xmax,gd.ymin,gd.ymax))
 
     #define the map
