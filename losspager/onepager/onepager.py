@@ -57,12 +57,6 @@ def create_onepager(version_dir, debug = False):
     # Fill in template values
     #---------------------------------------------------------------------------
 
-    # For debugging, show boxes
-    if debug is True:
-        template = template.replace('[DEBUG]', 'showboxes')
-    else:
-        template = template.replace('[DEBUG]', '')
-
     # Sort out origin time
     olat = edict['lat']
     olon = edict['lon']

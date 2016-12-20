@@ -106,7 +106,7 @@
     text height=1ex,
     inner sep=0pt,
     outer sep=0pt,
-    font=\scriptsize
+    font=\footnotesize
   },
   % Font for text outside of tables
   ntext/.style={
@@ -128,14 +128,14 @@
     text height=1.6ex,
     inner sep=0pt,
     outer sep=0pt,
-    font=\bf\large
+    font=\bf\Large
   },
   % h2 style
   h2/.style={
     align=center,
     inner sep=0pt,
     outer sep=0pt,
-    font=\bf\normalsize,
+    font=\bf\large,
     anchor=center,
     text height=1.5ex,
     text depth=0.5ex
@@ -144,7 +144,7 @@
   h3/.style={
     align=center,
     inner sep=0pt,
-    font=\bf\scriptsize,
+    font=\bf\normalsize,
     anchor=center,
     text height=1.3ex,
     text depth=0.2ex
@@ -198,6 +198,14 @@
     text height=1.3ex,
     text depth=0.2ex
   },
+  % Style for small info stuff in title bar
+  info/.style={
+    font=\footnotesize,
+    inner xsep=0,
+    inner ysep=1pt,
+    text height=1.3ex,
+    text depth=0.2ex
+  },
   % For placing a node betwen two other nodes
   between/.style args={#1 and #2}{
     at = ($(#1)!0.5!(#2)$)
@@ -234,7 +242,7 @@
 \node[rectangle,inner sep=0,outer sep=0,
       below=0 of pop0.south west,anchor=north west](cmap){
   \includegraphics[width=13cm]
-    {/Users/emthompson/pager/output/us19891018000415/version.004/exposure.pdf}
+    {[VERSIONFOLDER]/exposure.pdf}
 };
 \node[fn,below=0 of cmap.south west,anchor=north west](mapfn1){
   PAGER content is automatically generated, and only considers losses due to 
@@ -255,7 +263,7 @@
 
 % First, layout table and text with default style
 \matrix [table,matrix of nodes,nodes in empty cells,nodes={cell},font=\tiny]
-  (poptab) at (0, 18) % <------------------------------------- absolute position
+  (poptab) at (0, 17.75) % <------------------------------------- absolute position
 {
   |[empty]|&|[empty]|& [MMI1] & [MMI2-3] & [MMI4] & [MMI5] & [MMI6] & [MMI7] & [MMI8] & [MMI9] & [MMI10] \\
   |[empty]|&|[empty]|&|[i]|I &|[iiv]|II-III&|[iv]|IV&|[v]|V&|[vi]|VI&
@@ -278,7 +286,7 @@
 \node[fit=(poptab-4-1)(poptab-5-1),h3ml]{
   \setlength{\parskip}{\pskip} POTENTIAL \par DAMAGE
 };
-\node[fit=(poptab-3-1)(poptab-3-2),h3]{
+\node[fit=(poptab-3-1)(poptab-3-2),h3,font=\scriptsize\bf]{
   PERCEIVED~SHAKING
 };
 \node[fit=(poptab-2-1)(poptab-2-2),h3ml]{
@@ -311,7 +319,7 @@
 \def \barwidth{7.25cm}
 
 % Top block: Structures
-\node[h2,right=4pt of pop10000.north east,anchor=north west,
+\node[h3,right=4pt of pop10000.north east,anchor=north west,
   yshift=0mm] (str){
   Structures
 };
@@ -338,7 +346,7 @@
   from GeoNames.org
 };
 
-\node[h2,above=0 of citynote.north west,anchor=south west]
+\node[h3,above=0 of citynote.north west,anchor=south west]
      (citytitle){
   Selected City Exposure
 };
@@ -353,7 +361,7 @@
   text width=\barwidth,anchor=west,yshift=-1ex] (htab){
   [HISTORICAL_BLOCK]
 };
-\node[h2,above=2pt of htab.north west,anchor=south west](htitle){
+\node[h3,above=2pt of htab.north west,anchor=south west](htitle){
   Historical Earthquakes (with MMI levels)
 };
 
@@ -377,7 +385,7 @@
 \includegraphics[width=6.75cm,trim={1.8cm 1cm 1.3cm -1.25cm},clip]
   {[VERSIONFOLDER]/alertfatal.pdf}
 };
-\node[h1,above=1cm of fhist.north,
+\node[h2,above=1cm of fhist.north,
       fit={(fhist.west) (fhist.east)},
       anchor=south]{
   Estimated Fatalities
@@ -389,7 +397,7 @@
 \includegraphics[width=6.75cm,trim={1.8cm 1cm 1.3cm -1.25cm},clip]
   {[VERSIONFOLDER]/alertecon.pdf}
 };
-\node[h1,above=1cm of ehist.north,
+\node[h2,above=1cm of ehist.north,
       fit={(ehist.west) (ehist.east)},
       anchor=south]{
   Estimated Economic Losses
@@ -414,17 +422,17 @@
 %-------------------------------------------------------------------------------
 
 % Tsunami
-\node[fn,above=0 of abox.north west,anchor=south west](tsunami){
+\node[info,above=0 of abox.north west,anchor=south west](tsunami){
   \color{red}\textbf{[TSUNAMI]}
 };
 
 % Location
-\node[fn,above=0 of tsunami.north west,anchor=south west](loc){
+\node[info,above=0 of tsunami.north west,anchor=south west](loc){
   Location: [LAT]\degree\,[HEMILAT] [LON]\degree\,[HEMILON] Depth: [DEPTH] km
 };
 
 % Origin time
-\node[fn,above=0 of loc.north west,anchor=south west,
+\node[info,above=0 of loc.north west,anchor=south west,
   inner ysep=0](otime){
   Origin Time: [ORIGTIME] UTC ([LOCALTIME] local)
 };
@@ -436,7 +444,7 @@
 };
 
 % Elapsed time
-\node[fn,above=0 of abox.north east,anchor=south east](elapsed){
+\node[info,above=0 of abox.north east,anchor=south east](elapsed){
   [ELAPSED]};
 
 % Version
