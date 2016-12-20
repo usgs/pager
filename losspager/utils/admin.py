@@ -117,7 +117,11 @@ class PagerAdmin(object):
                     t,etimestr = eventfolder.split('_')
                     etime = datetime.datetime.strptime(etimestr,DATETIMEFMT)
                     if etime < events_before:
-                        self.archiveEvent(eventid)
+                        result = self.archiveEvent(eventid)
+                        if result:
+                            narchived += 1
+                        else:
+                            nerrors += 1
                     else:
                         continue
                 else:
@@ -286,6 +290,7 @@ class PagerAdmin(object):
                 df = df.append(row,ignore_index=True)
         df.Version = df.Version.astype(int)
         df = df.sort_values('EventTime')
+        df = df.set_index('EventID')
         return df
         
     

@@ -32,6 +32,7 @@ from descartes import PolygonPatch
 from scipy.ndimage import gaussian_filter
 
 from impactutils.mapping.cartopycity import CartopyCities
+from impactutils.mapping.mercatormap import MercatorMap
 from impactutils.colors.cpalette import ColorPalette
 from impactutils.textformat.text import round_to_nearest
 from impactutils.mapping.scalebar import draw_scale
@@ -291,16 +292,22 @@ def draw_contour(shakefile,popfile,oceanfile,oceangridfile,cityfile,basename):
 
     aspect = width/height
     figheight = FIGWIDTH/aspect
-    fig = plt.figure(figsize=(FIGWIDTH,figheight))
-
     bbox = (xmin,ymin,xmax,ymax)
+    bounds = (xmin,xmax,ymin,ymax)
+    figsize = (FIGWIDTH,figheight)
+
+    #Create the MercatorMap object, which holds a separate but identical
+    #axes object used to determine collisions between city labels.
+    mmap = MercatorMap(bounds,figsize,cities,padding=0.5)
+    fig = mmap.figure
+    ax = mmap.axes
+    #this needs to be done here so that city label collision detection will work
+    fig.canvas.draw() 
+    
     clon = xmin + (xmax-xmin)/2
     clat = ymin + (ymax-ymin)/2
-    geoproj = ccrs.PlateCarree()
-    proj = ccrs.Mercator(central_longitude=clon, 
-                         min_latitude=ymin, 
-                         max_latitude=ymax, 
-                         globe=None)
+    geoproj = mmap.geoproj
+    proj = mmap.proj
 
     #project our population grid to the map projection
     projstr = proj.proj4_init
@@ -311,9 +318,6 @@ def draw_contour(shakefile,popfile,oceanfile,oceangridfile,cityfile,basename):
     # Use our GMT-inspired palette class to create population and MMI colormaps 
     popmap = ColorPalette.fromPreset('pop')
     mmimap = ColorPalette.fromPreset('mmi')
-
-    ax = plt.axes([0.02,0.02,0.95,0.95],projection=proj)
-    ax.set_extent([xmin, xmax, ymin, ymax])
 
     #set the image extent to that of the data
     img_extent = (newgd.xmin,newgd.xmax,newgd.ymin,newgd.ymax)
@@ -437,14 +441,8 @@ def draw_contour(shakefile,popfile,oceanfile,oceangridfile,cityfile,basename):
                         transform=ccrs.Geodetic())
 
 
-    #Limit the number of cities we show - we may not want to use the population size
-    #filter in the global case, but the map collision filter is a little sketchy right now.
-    mapcities = cities.limitByPopulation(1000)
-    mapcities = mapcities.limitByGrid(nx=3,ny=3,cities_per_grid=2)
-    #mapcities = mapcities.limitByMapCollision2(ax,10.0)
-    for index,row in mapcities._dataframe.iterrows():
-        th = _renderRow(row,ax,shadow=True,zorder=CITIES_ZORDER)
-        ax.plot(row['lon'],row['lat'],'k.')
+    #draw cities
+    mapcities = mmap.drawCities(shadow=True,zorder=CITIES_ZORDER)
 
     #Get the corner of the map with the lowest population
     corner_rect,filled_corner = _get_open_corner(popgrid,ax)
