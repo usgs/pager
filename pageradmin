@@ -254,6 +254,7 @@ def main(args):
         sys.exit(0)
     if args.query:
         pd.set_option('display.width', 1000)
+        pd.set_option('display.max_rows', 1000)
         start_date = get_date(args.query[0])
         end_date = datetime.datetime.utcnow()
         mag_threshold = 0.0
