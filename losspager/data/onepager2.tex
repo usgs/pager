@@ -1,0 +1,471 @@
+\documentclass[10pt]{article}
+\usepackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+
+\usepackage{graphicx}
+\usepackage[english]{babel}
+
+
+\usepackage{tikz}
+\usetikzlibrary{matrix, fit, positioning, calc}
+\usepackage[absolute,overlay]{textpos}
+\usepackage{tabularx}
+\usepackage{colortbl}
+\setlength{\tabcolsep}{3pt}
+\usepackage{gensymb}
+
+\newcommand{\grid}{
+  \draw[step=.5cm,draw opacity=.5] (0,0) grid (\the\paperwidth,\the\paperheight);
+  \foreach \x in {1,2,...,20}
+    \draw[text=black] (\x,.15) node {\footnotesize \x};
+  \foreach \y in {1,2,...,27}
+    \draw[text=black] (.2,\y) node {\footnotesize \y};
+}
+\newcommand{\nogrid}{
+  \draw[step=.5cm,draw opacity=0] (0,0) grid (\the\paperwidth,\the\paperheight);
+}
+
+%\renewcommand{\baselinestretch}{1.0}
+%\setlength{\baselineskip}{1pt}
+
+
+% Define colors for mmi scale
+\definecolor{m105}{rgb}{0.78431372549019607, 0.0, 0.0}
+\definecolor{m10}{rgb}{0.78431372549019607, 0.0, 0.0}
+\definecolor{m95}{rgb}{0.88581314878892736, 0.0, 0.0}
+\definecolor{m9}{rgb}{0.99577085736255289, 0.0, 0.0}
+\definecolor{m85}{rgb}{1.0, 0.27873894655901577, 0.0}
+\definecolor{m8}{rgb}{1.0, 0.56862745098039214, 0.0}
+\definecolor{m75}{rgb}{1.0, 0.67012687427912343, 0.0}
+\definecolor{m7}{rgb}{1.0, 0.78008458285274895, 0.0}
+\definecolor{m65}{rgb}{1.0, 0.89004229142637448, 0.0}
+\definecolor{m6}{rgb}{1.0, 1.0, 0.0}
+\definecolor{m55}{rgb}{0.73410226835832371, 1.0, 0.2938869665513264}
+\definecolor{m5}{rgb}{0.48865820838139179, 1.0, 0.56516724336793533}
+\definecolor{m45}{rgb}{0.48996539792387545, 1.0, 0.78408304498269898}
+\definecolor{m4}{rgb}{0.50196078431372548, 1.0, 1.0}
+\definecolor{m35}{rgb}{0.56593617839292576, 0.95001922337562472, 1.0}
+\definecolor{m25}{rgb}{0.687043444828912, 0.85198000768935023, 1.0}
+\definecolor{m15}{rgb}{0.87697039600153792, 0.90196078431372551, 1.0}
+\definecolor{m1}{rgb}{1.0, 1.0, 1.0}
+\definecolor{m05}{rgb}{1.0, 1.0, 1.0}
+
+% Define colors for population scale
+\definecolor{p0}{gray}{1.0}
+\definecolor{p5}{gray}{0.8571429}
+\definecolor{p50}{gray}{0.7142857}
+\definecolor{p100}{gray}{0.5714286}
+\definecolor{p500}{gray}{0.4285714}
+\definecolor{p1000}{gray}{0.2857143}
+\definecolor{p5000}{gray}{0.1428571}
+\definecolor{p10000}{gray}{0}
+
+
+%-------------------------------------------------------------------------------
+% Begin document
+%-------------------------------------------------------------------------------
+\begin{document}
+\thispagestyle{empty}
+
+% Styles
+\tikzset{
+  % Table style
+  table/.style={
+    text width=17mm, % default column width
+    matrix anchor=west,
+    row sep=-\pgflinewidth,
+    column sep=-\pgflinewidth,
+    execute at empty cell={\node[draw=none]{};}
+    rectangle,
+    draw=black,
+    thin,
+    inner sep=0pt,
+    outer sep=0pt,
+    column 1/.style = {nodes={text width=20mm}},
+    column 2/.style = {nodes={text width=20mm}},
+    column 8/.style = {nodes={text width=22mm}},
+    column 9/.style = {nodes={text width=22mm}},
+    row 2/.style={nodes={
+        font=\bf\large, 
+        align=center,
+        anchor=center,
+        minimum height=7mm,
+        text height = 1.0em,
+        text depth = 0.1em,
+      }
+    }
+  },
+  % Cell style
+  cell/.style={
+    rectangle,
+    draw=black,
+    thin,
+    align=center,
+    minimum height=7mm,
+    text depth=0ex,
+    text height=1ex,
+    inner sep=0pt,
+    outer sep=0pt,
+    font=\scriptsize
+  },
+  % Font for text outside of tables
+  ntext/.style={
+    font=\small,
+    inner sep=0pt,
+    outer sep=0pt
+  },
+  % Border (for adding border to another style)
+  border/.style={
+    rectangle,
+    draw=black,
+    thin,
+    minimum height=7mm
+  },
+  % h1 style
+  h1/.style={
+    align=center,
+    text depth=0.6ex,
+    text height=1.6ex,
+    inner sep=0pt,
+    outer sep=0pt,
+    font=\bf\large
+  },
+  % h2 style
+  h2/.style={
+    align=center,
+    inner sep=0pt,
+    outer sep=0pt,
+    font=\bf\normalsize,
+    anchor=center,
+    text height=1.5ex,
+    text depth=0.5ex
+  },
+  % h3 style
+  h3/.style={
+    align=center,
+    inner sep=0pt,
+    font=\bf\scriptsize,
+    anchor=center,
+    text height=1.3ex,
+    text depth=0.2ex
+  },
+  % h3 style for multiple lines
+  h3ml/.style={
+    align=center,
+    inner sep=0pt,
+    font=\bf\scriptsize,
+    minimum height=7mm,
+    anchor=center,
+    text height=1.0ex,
+    text depth=1.2ex
+  },
+  % Style for empty cells
+  empty/.style={
+    rectangle,
+    minimum height=7mm,
+    draw=none,
+    inner sep=0pt,
+    outer sep=0pt
+  },
+  % Style for cells that take up two rows
+  tworow/.style={
+    align=center,
+    minimum height=14mm,
+    text depth=0ex,
+    text height=1ex,
+    inner sep=0pt,
+    outer sep=0pt
+  },
+  % Shading cells
+  xp/.style={left color=m95,right color=m105,middle color=m10},
+  ix/.style={left color=m85,right color=m95,middle color=m9},
+  viii/.style={left color=m75,right color=m85,middle color=m8},
+  vii/.style={left color=m65,right color=m75,middle color=m7},
+  vi/.style={left color=m55,right color=m65,middle color=m6},
+  v/.style={left color=m45,right color=m55,middle color=m5},
+  iv/.style={left color=m35,right color=m45,middle color=m4},
+  iiv/.style={left color=m15,right color=m35,middle color=m25},
+  i/.style={left color=m05,right color=m15,middle color=m1},
+  % Styles for color bar
+  cbar/.style={font=\bf\footnotesize,rectangle,draw,minimum width=1.625cm,
+    anchor=west,inner sep=0pt,outer sep=0pt,text height=1.6ex,
+    text depth=0.5ex},
+  % Style for footnotes
+  fn/.style={
+    font=\scriptsize,
+    inner xsep=0,
+    inner ysep=1pt,
+    text height=1.3ex,
+    text depth=0.2ex
+  },
+  % For placing a node betwen two other nodes
+  between/.style args={#1 and #2}{
+    at = ($(#1)!0.5!(#2)$)
+  }
+}
+
+% Setup axes
+\begin{textblock}{1}(0,0)
+% Start tikz
+\begin{tikzpicture}
+% Turn grid on or off
+\nogrid
+
+
+%-------------------------------------------------------------------------------
+% Intensity contour and population map
+%-------------------------------------------------------------------------------
+
+% First draw population scale
+\node[cbar,fill=p0](pop0) at (0, 14.8) {0}; % <--------------- absolute position
+\node[cbar,fill=p5,right=0 of pop0](pop5) {5};
+\node[cbar,fill=p50,right=0 of pop5](pop50) {50};
+\node[cbar,fill=p100,text=white,right=0 of pop50](pop100) {100};
+\node[cbar,fill=p500,text=white,right=0 of pop100](pop500) {500};
+\node[cbar,fill=p1000,text=white,right=0 of pop500](pop1000) {1000};
+\node[cbar,fill=p5000,text=white,right=0 of pop1000](pop5000) {5000};
+\node[cbar,fill=p10000,text=white,right=0 of pop5000](pop10000) {10000};
+\node[rectangle,inner xsep=0,above=0 of pop0.north west,anchor=south west,h1]
+     (poptitle){Population Exposure};
+\node[fn,above=0 of pop10000.north east,anchor=south east] 
+     {population per 1 sq. km from Landscan};
+
+% Add map
+\node[rectangle,inner sep=0,outer sep=0,
+      below=0 of pop0.south west,anchor=north west](cmap){
+  \includegraphics[width=13cm]
+    {/Users/emthompson/pager/output/us19891018000415/version.004/exposure.pdf}
+};
+\node[fn,below=0 of cmap.south west,anchor=north west](mapfn1){
+  PAGER content is automatically generated, and only considers losses due to 
+  structural damage.
+};
+\node[fn,below=0 of mapfn1.south west,anchor=north west](mapfn2){
+  Limitations of input data, shaking estimates, and loss models
+  may add uncertainty.
+};
+\node[fn,font=\bf\scriptsize,below=2pt of mapfn2.south west,anchor=north west](eventurl){
+  earthquake.usgs.gov/pager
+};
+
+
+%-------------------------------------------------------------------------------
+% Population exposure table
+%-------------------------------------------------------------------------------
+
+% First, layout table and text with default style
+\matrix [table,matrix of nodes,nodes in empty cells,nodes={cell},font=\tiny]
+  (poptab) at (0, 18) % <------------------------------------- absolute position
+{
+  |[empty]|&|[empty]|& [MMI1] & [MMI2-3] & [MMI4] & [MMI5] & [MMI6] & [MMI7] & [MMI8] & [MMI9] & [MMI10] \\
+  |[empty]|&|[empty]|&|[i]|I &|[iiv]|II-III&|[iv]|IV&|[v]|V&|[vi]|VI&
+      |[vii]|VII &|[viii]|VIII&|[ix]|IX&|[xp]|X+ \\
+  |[empty]|&|[empty]|& Not felt & Weak & Light & Moderate & 
+      Strong & Very Strong & Severe & Violent & Extreme  \\
+  |[empty]|&   & None & None & None & V. Light & Light & 
+      Moderate & Moderate/Heavy & Heavy & V. Heavy \\
+  |[empty]|& & None & None & None & Light & Moderate & 
+      Moderate/Heavy & Heavy & V. Heavy & V. Heavy \\
+};
+\node[fit=(poptab-4-1)(poptab-5-1),tworow]{};
+\node[fit=(poptab-3-1)(poptab-3-2),h1,border]{};
+%\node[fit=(poptab-2-1)(poptab-2-2),h1,border]{};
+\node[fit=(poptab-1-1)(poptab-1-2),h1,border]{};
+\draw[very thick] (poptab-5-1.south west) rectangle (poptab-1-11.north east);
+
+% Fill in text
+\def \pskip {-0.3em}
+\node[fit=(poptab-4-1)(poptab-5-1),h3ml]{
+  \setlength{\parskip}{\pskip} POTENTIAL \par DAMAGE
+};
+\node[fit=(poptab-3-1)(poptab-3-2),h3]{
+  PERCEIVED~SHAKING
+};
+\node[fit=(poptab-2-1)(poptab-2-2),h3ml]{
+  \setlength{\parskip}{\pskip} ESTIMATED~MODIFIED \par MERCALLI~INTENSITY
+};
+\node[fit=(poptab-1-1)(poptab-1-2),h3ml]{
+  \setlength{\parskip}{\pskip} ESTIMATED~POPULATION \par EXPOSURE (k=x1000)
+};
+\node[fit=(poptab-4-2),h3ml]{
+  \setlength{\parskip}{\pskip} Resistant \par Structures
+};
+\node[fit=(poptab-5-2),h3ml]{
+  \setlength{\parskip}{\pskip} Vulnerable \par Structures
+};
+
+\node[above=0 of poptab.north west,anchor=south west,h1](exptitle){
+  Estimated Population Exposed to Earthquake Shaking
+};
+
+% Footnote
+\node[fn,below=0 of poptab.south west,anchor=north west]{
+  *Estimated exposure only includes population within the map area.
+};
+
+%-------------------------------------------------------------------------------
+% Map side bar
+%-------------------------------------------------------------------------------
+
+% Width of side bar
+\def \barwidth{7.25cm}
+
+% Top block: Structures
+\node[h2,right=4pt of pop10000.north east,anchor=north west,
+  yshift=0mm] (str){
+  Structures
+};
+\node[ntext,below=0pt of str.south west,anchor=north west,
+  text width=\barwidth](strtxt){
+  [STRUCTCOMMENT]
+};
+
+% Bottom block: city table
+\node[ntext,right=4pt of cmap.south east,anchor=south west,
+  text width=\barwidth]
+     (citytab){
+  [CITYTABLE]
+};
+
+\node[fn,below=0 of citytab.south west,anchor=north west]
+   {bold cities appear on map.};
+\node[fn,below=0 of citytab.south east,anchor=north east]
+   {(k\,=\,x1000)};
+
+
+\node[fn,above=0 of citytab.north west,anchor=south west]
+     (citynote){
+  from GeoNames.org
+};
+
+\node[h2,above=0 of citynote.north west,anchor=south west]
+     (citytitle){
+  Selected City Exposure
+};
+\node[fn,font=\bf\scriptsize,below=8mm of citytab.south east,anchor=north east](eventid){
+  [EVENTID]
+};
+
+
+% Place historical table evenly between top and bottom
+
+\node[ntext,between=strtxt.south west and citytitle.north west,
+  text width=\barwidth,anchor=west,yshift=-1ex] (htab){
+  [HISTORICAL_BLOCK]
+};
+\node[h2,above=2pt of htab.north west,anchor=south west](htitle){
+  Historical Earthquakes (with MMI levels)
+};
+
+
+
+
+
+
+%-------------------------------------------------------------------------------
+% Alerts and histograms with estimated fatalities and losses 
+%-------------------------------------------------------------------------------
+
+% Outline
+\node[table,very thick,above=2.6cm of poptab.north,% <--- this is no good and should be fixed
+      minimum height=4.2cm,
+      fit={(poptab.west) (poptab.east)},anchor=south](abox){};
+
+% Histogram - fatalities
+\node[above=0 of abox.south west,anchor=south west,
+  xshift=2pt,yshift=2pt,inner sep=0,outer sep=0](fhist){
+\includegraphics[width=6.75cm,trim={1.8cm 1cm 1.3cm -1.25cm},clip]
+  {[VERSIONFOLDER]/alertfatal.pdf}
+};
+\node[h1,above=1cm of fhist.north,
+      fit={(fhist.west) (fhist.east)},
+      anchor=south]{
+  Estimated Fatalities
+};
+
+% Histogram - economic
+\node[above=0 of abox.south east,anchor=south east,
+  xshift=-2pt,yshift=2pt,inner sep=0,outer sep=0](ehist){
+\includegraphics[width=6.75cm,trim={1.8cm 1cm 1.3cm -1.25cm},clip]
+  {[VERSIONFOLDER]/alertecon.pdf}
+};
+\node[h1,above=1cm of ehist.north,
+      fit={(ehist.west) (ehist.east)},
+      anchor=south]{
+  Estimated Economic Losses
+};
+
+
+% Impact 1 statement
+\node[ntext,below=1mm of abox.north,anchor=north,
+  text width=6.5cm](impact1){
+  [IMPACT1]
+};
+
+% Impact 2 statement
+\node[ntext,below=1.5ex of impact1.south,anchor=north,
+  text width=6.5cm](impact2){
+  [IMPACT2]
+};
+
+
+%-------------------------------------------------------------------------------
+% Header stuff
+%-------------------------------------------------------------------------------
+
+% Tsunami
+\node[fn,above=0 of abox.north west,anchor=south west](tsunami){
+  \color{red}\textbf{[TSUNAMI]}
+};
+
+% Location
+\node[fn,above=0 of tsunami.north west,anchor=south west](loc){
+  Location: [LAT]\degree\,[HEMILAT] [LON]\degree\,[HEMILON] Depth: [DEPTH] km
+};
+
+% Origin time
+\node[fn,above=0 of loc.north west,anchor=south west,
+  inner ysep=0](otime){
+  Origin Time: [ORIGTIME] UTC ([LOCALTIME] local)
+};
+
+% Mag and location
+\node[h1,above=0 of otime.north west,anchor=south west,
+  inner ysep=0](magloc){
+  [MAGLOC]
+};
+
+% Elapsed time
+\node[fn,above=0 of abox.north east,anchor=south east](elapsed){
+  [ELAPSED]};
+
+% Version
+\node[h1,above=0 of elapsed.north east,anchor=south east,
+      inner sep=0,outer sep=0](version){[VERSION]};
+\node[h1,above=0 of version.north east,anchor=south east,
+      inner sep=0,outer sep=0,yshift=0pt](pager){PAGER};
+
+% Logos
+\node[above=0cm of pager.north east,anchor=south east,
+      inner sep=0,outer sep=0,yshift=4mm](usaid){
+  \includegraphics[scale=0.59]{[HOMEDIR]/losspager/logos/USAID.pdf}
+};
+\node[above=0.5cm of usaid.north west,anchor=north east,
+      inner sep=0,outer sep=0,xshift=-3mm,yshift=-5mm](gsn){
+  \includegraphics[scale=0.30]{[HOMEDIR]/losspager/logos/GSN.pdf}
+};
+\node[above=0.5cm of gsn.south,anchor=north,
+      inner sep=0,outer sep=0,xshift=6mm,yshift=-6mm](anss){
+  \includegraphics[scale=0.15]{[HOMEDIR]/losspager/logos/ANSS_cropped_bw.pdf}
+};
+\node[above=0pt of magloc.north west,anchor=south west,
+      inner sep=0,outer sep=0,yshift=2mm](usgs){
+  \includegraphics[scale=0.17]{[HOMEDIR]/losspager/logos/USGSid.pdf}
+};
+
+
+
+\end{tikzpicture}
+\end{textblock}
+
+\end{document}
