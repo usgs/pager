@@ -38,7 +38,7 @@ def create_onepager(version_dir, debug = False):
     data_dir = os.path.join(losspager_dir, 'data')
 
     # Onepager latex template file
-    template_file = os.path.join(data_dir, 'onepager.tex')
+    template_file = os.path.join(data_dir, 'onepager2.tex')
 
     #---------------------------------------------------------------------------
     # Read in pager data and latex template
@@ -56,12 +56,6 @@ def create_onepager(version_dir, debug = False):
     #---------------------------------------------------------------------------
     # Fill in template values
     #---------------------------------------------------------------------------
-
-    # For debugging, show boxes
-    if debug is True:
-        template = template.replace('[DEBUG]', 'showboxes')
-    else:
-        template = template.replace('[DEBUG]', '')
 
     # Sort out origin time
     olat = edict['lat']
@@ -164,14 +158,14 @@ def create_onepager(version_dir, debug = False):
     else:
         # build latex table
         htex = """
-\\begin{tabularx}{6.6cm}{lrc*{1}{>{\\centering\\arraybackslash}X}r}
+\\begin{tabularx}{7.25cm}{lrc*{1}{>{\\centering\\arraybackslash}X}r}
 \hline
 \\textbf{Date} &\\textbf{Dist.}&\\textbf{Mag.}&\\textbf{Max}    &\\textbf{Shaking}\\\\
 \\textbf{(UTC)}&\\textbf{(km)} &              &\\textbf{MMI(\#)}&\\textbf{Deaths} \\\\
 \hline
 [TABLEDATA]
 \hline
-\multicolumn{5}{p{6.5cm}}{\\raggedright \\footnotesize [COMMENT]}
+\multicolumn{5}{p{7.2cm}}{\\raggedright \\footnotesize [COMMENT]}
 \end{tabularx}"""
         comment = pdata._pagerdict['comments']['secondary_comment']
         htex = htex.replace("[COMMENT]", comment)
@@ -199,14 +193,12 @@ def create_onepager(version_dir, debug = False):
 
     # City table
     ctex = """
-\\begin{tabularx}{6.6cm}{lXr}
+\\begin{tabularx}{7.25cm}{lXr}
 \hline
 \\textbf{MMI} & \\textbf{City} & \\textbf{Population}  \\\\
 \hline
 [TABLEDATA]
 \hline
-\multicolumn{2}{l}{\\footnotesize bold cities appear on map} &
-\\footnotesize (k = x1000)\\\\
 \end{tabularx}"""
     ctab = pdata.getCityTable()
     nrows = len(ctab.index)
