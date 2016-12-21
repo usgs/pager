@@ -146,7 +146,7 @@ def main(pargs,config):
             
         #create the event directory (if it does not exist), and start logging there
         print('Creating event directory')
-        event_folder = admin.createEventFolder(eid,etime)
+        event_folder = admin.createEventFolder(authid,etime)
         pager_version = get_pager_version(event_folder)
         version_folder = os.path.join(event_folder,'version.%03d' % pager_version)
         os.makedirs(version_folder)
