@@ -31,6 +31,7 @@ from losspager.utils.country import Country
 from losspager.utils.eventpath import get_event_folder
 from losspager.utils.logger import PagerLogger
 from losspager.utils.admin import PagerAdmin
+from losspager.utils.exception import PagerException
 from losspager.onepager.comment import get_impact_comments
 from losspager.onepager.comment import get_structure_comment
 from losspager.onepager.comment import get_secondary_comment
@@ -146,7 +147,7 @@ def main(pargs,config):
             
         #create the event directory (if it does not exist), and start logging there
         print('Creating event directory')
-        event_folder = admin.createEventFolder(eid,etime)
+        event_folder = admin.createEventFolder(authid,etime)
         pager_version = get_pager_version(event_folder)
         version_folder = os.path.join(event_folder,'version.%03d' % pager_version)
         os.makedirs(version_folder)
@@ -277,18 +278,18 @@ def main(pargs,config):
                             sys.stderr.write('Method %s requested but not configured...Skipping.' % method)
                             continue
                         params = config['transfer'][method]
-                        if 'directory' in params:
+                        if 'remote_directory' in params:
                             vpath,vfolder = os.path.split(version_folder)
                             #append the event id and version folder to our pre-specified output directory
-                            params['directory'] = os.path.join(params['directory'],eid,vfolder)
+                            params['remote_directory'] = os.path.join(params['remote_directory'],eid,vfolder)
                         params['code'] = eid
                         if 'productsource' in params:
                             params['eventsourcecode'] = eid.replace(params['productsource'],'')
                         sender_class = get_sender_class(method)
                         try:
-                            sender = sender_class(properties=params,directory=version_folder)
-                            nfiles = sender.send()
-                            print('%i files sent via %s method.' % (nfiles,method))
+                            sender = sender_class(properties=params,local_directory=version_folder)
+                            nfiles,msg = sender.send()
+                            print(msg)
                         except Exception as e:
                             sys.stderr.write('Could not send products via %s method - error "%s"' % (method,str(e)))
                             continue

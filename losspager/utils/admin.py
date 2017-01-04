@@ -54,6 +54,7 @@ class PagerAdmin(object):
         eventfolders = glob.glob(os.path.join(self._pager_folder,'*%s*' % eventid))
         if len(eventfolders):
             return eventfolders[0]
+        
         return None
         
     def archiveEvent(self,eventid):
