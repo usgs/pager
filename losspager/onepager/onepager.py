@@ -236,7 +236,7 @@ def create_onepager(version_dir, debug = False):
     try:
         cwd = os.getcwd()
         os.chdir(version_dir)
-        cmd = '%s -interaction nonstopmode %s' % (LATEX_TO_PDF_BIN,tex_output)
+        cmd = '%s -interaction nonstopmode --output-directory %s %s' % (LATEX_TO_PDF_BIN,version_dir,tex_output)
         print('Running %s...' % cmd)
         res,stdout,stderr = get_command_output(cmd)
         os.chdir(cwd)
