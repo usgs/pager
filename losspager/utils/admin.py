@@ -92,7 +92,9 @@ class PagerAdmin(object):
             event_folder = os.path.join(self._pager_folder,event)
             if os.path.isdir(event_folder):
                 if event.find('_') > -1:
-                    eventid,etime = event.split('_')
+                    parts = event.split('_')
+                    etime = parts[-1]
+                    eventid = '_'.join(parts[0:-1])
                 else:
                     eventid = event
                 events.append(eventid)
@@ -126,7 +128,11 @@ class PagerAdmin(object):
                     else:
                         continue
                 else:
-                    self.archiveEvent(eventid)
+                    result = self.archiveEvent(eventid)
+                    if result:
+                        narchived += 1
+                    else:
+                        nerrors += 1
                 
         return (narchived,nerrors)
 
