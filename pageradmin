@@ -165,7 +165,7 @@ def main(args):
             nrestored = admin.restore(all_events=True)
         else:
             nrestored = admin.restore(events=args.restore)
-        print('%i events restored to %s' % (narchived,pager_folder))
+        print('%i events restored to %s' % (nrestored,pager_folder))
         sys.exit(0)
 
     if args.status is not None:
@@ -292,7 +292,10 @@ def main(args):
                                  alert_threshold=alert_threshold,
                                  version=version)
         if args.output == 'screen':
-            print(pdataframe)
+            if len(pdataframe):
+                print(pdataframe)
+            else:
+                print('No events on filesystem.')
         else:
             fpath,fname = os.path.split(args.output)
             if not os.path.isdir(fpath):

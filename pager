@@ -266,7 +266,7 @@ def main(pargs,config):
             raise PagerException('Could not create onePAGER output: \n%s' % error)
         if plog is not None:
             plog.stopLogging()
-        print('Created onePAGER pdf %s.' % onepager_pdf)
+        print('Created onePAGER pdf %s' % onepager_pdf)
 
         #If system status is primary and transfer options are configured, transfer the output
         #directories using those options

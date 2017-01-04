@@ -1,6 +1,10 @@
+#stdlib imports
 import os
 import copy
-from  datetime import datetime
+from datetime import datetime
+from collections import OrderedDict
+
+#third party imports
 from impactutils.time.timeutils import get_local_time
 from impactutils.textformat.text import pop_round_short
 from impactutils.textformat.text import dec_to_roman
@@ -9,9 +13,29 @@ from impactutils.comcat.query import ComCatInfo
 from impactutils.io.cmd import get_command_output
 import numpy as np
 
+#local imports
 from losspager.io.pagerdata import PagerData
 
 LATEX_TO_PDF_BIN = 'pdflatex'
+
+LATEX_SPECIAL_CHARACTERS = OrderedDict([('\\','\\textbackslash{}'),
+                                        ('{','\{'),
+                                        ('}','\}'),
+                                        ('#','\#'),
+                                        ('$','\$'),
+                                        ('%','\%'),
+                                        ('&','\&'),
+                                        ('^','\\textasciicircum{}'),
+                                        ('_','\_'),
+                                        ('~','\textasciitilde{}')])
+
+DEFAULT_PAGER_URL = 'http://earthquake.usgs.gov/data/pager/'
+
+def texify(text):
+    newtext = text
+    for original,replacement in LATEX_SPECIAL_CHARACTERS.items():
+        newtext = newtext.replace(original,replacement)
+    return newtext
 
 def create_onepager(version_dir, debug = False):
     """
@@ -108,12 +132,9 @@ def create_onepager(version_dir, debug = False):
         template = template.replace("[TSUNAMI]", "")
     elapse = "Created: " + pdict['pager']['elapsed_time'] + " after earthquake"
     template = template.replace("[ELAPSED]", elapse)
-    template = template.replace(
-        "[IMPACT1]", pdict['comments']['impact1'].replace("%", "\%"))
-    template = template.replace(
-        "[IMPACT2]", pdict['comments']['impact2'].replace("%", "\%"))
-    template = template.replace(
-        "[STRUCTCOMMENT]", pdict['comments']['struct_comment'].replace("%", "\%"))
+    template = template.replace("[IMPACT1]", texify(pdict['comments']['impact1']))
+    template = template.replace("[IMPACT2]", texify(pdict['comments']['impact2']))
+    template = template.replace("[STRUCTCOMMENT]", texify(pdict['comments']['struct_comment']))
 
     # Fill in exposure values
     mmi = np.array(pdict['population_exposure']['mmi'])
@@ -168,7 +189,7 @@ def create_onepager(version_dir, debug = False):
 \multicolumn{5}{p{7.2cm}}{\\raggedright \\footnotesize [COMMENT]}
 \end{tabularx}"""
         comment = pdata._pagerdict['comments']['secondary_comment']
-        htex = htex.replace("[COMMENT]", comment)
+        htex = htex.replace("[COMMENT]", texify(comment))
         tabledata = ""
         nrows = len(htab)
         for i in range(nrows):
@@ -221,10 +242,19 @@ def create_onepager(version_dir, debug = False):
 
 
     eventid = edict['eventid']
-#    test = ComCatInfo(eventid) # cannot connect; will if 'ci' is prepended.
+
+    #query ComCat for information about this event
+    #fill in the url, if we can find it
+    try:
+        ccinfo = ComCatInfo(eventid)
+        eventid,allids = ccinfo.getAssociatedIds()
+        event_url = ccinfo.getURL()+'#pager'
+    except:
+        event_url = DEFAULT_PAGER_URL
 
     eventid = "Event ID: " + eventid
-    template = template.replace("[EVENTID]", eventid)
+    template = template.replace("[EVENTID]", texify(eventid))
+    template = template.replace("[EVENTURL]", texify(event_url))
 
     # Write latex file
     tex_output = os.path.join(version_dir, 'onepager.tex')
