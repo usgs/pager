@@ -47,7 +47,7 @@ class PagerData(object):
             return fmt % (eid,eversion,etime,emag,fatalert,ecoalert)
         
     #########Setters########
-    def setInputs(self,shakegrid,pagerversion,versioncode,eventcode,tsunami,location,is_released):
+    def setInputs(self,shakegrid,timezone_file,pagerversion,versioncode,eventcode,tsunami,location,is_released):
         self._event_dict = shakegrid.getEventDict()
         self._shake_dict = shakegrid.getShakeDict()
         self._shakegrid = shakegrid
@@ -58,6 +58,7 @@ class PagerData(object):
         self._location = location
         self._is_released = is_released
         self._input_set = True
+        self._timezone_file = timezone_file
 
     def setExposure(self,exposure,econ_exposure):
         nmmi,self._maxmmi = self._get_maxmmi(exposure)
@@ -703,7 +704,7 @@ class PagerData(object):
         pager['elapsed_time'] = etimestr
         #pager['tsunami'] = get_tsunami_info(self._eventcode,self._event_dict['magnitude'])
         #pager['ccode'] = get_epicenter_ccode(self._event_dict['lat'],self._event_dict['lon'])
-        ltime = LocalTime(self._event_dict['event_timestamp'],
+        ltime = LocalTime(self._timezone_file,self._event_dict['event_timestamp'],
                           self._event_dict['lat'],self._event_dict['lon'])
         localtime = ltime.getLocalTime()
         ltimestr = localtime.strftime(DATETIMEFMT)

@@ -347,7 +347,8 @@ def main(pargs,config):
         #results, and then serialize that to disk in the form of a number of JSON files.
         print('Making PAGER Data object.')
         doc = PagerData()
-        doc.setInputs(shakegrid,pager_version,shakegrid.getEventDict()['event_id'],
+        timezone_file = config['model_data']['timezones_file']
+        doc.setInputs(shakegrid,timezone_file,pager_version,shakegrid.getEventDict()['event_id'],
                       authid,tsunami,location,is_released)
         print('Setting inputs.')
         doc.setExposure(exposure,econexposure)
