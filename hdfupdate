@@ -56,8 +56,8 @@ def load_panel_from_excel(excelfile):
 
 def main(args):
     homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
-    excelfiles = glob.glob(os.path.join(homedir,'test','data','semi_*.xlsx'))
-    hdffiles = glob.glob(os.path.join(homedir,'test','data','semi_*.hdf'))
+    excelfiles = glob.glob(os.path.join(homedir,'losspager','data','semi_*.xlsx'))
+    hdffiles = glob.glob(os.path.join(homedir,'losspager','data','semi_*.hdf'))
     if args.undo:
         cmd = 'git checkout %s' % (' '.join(hdffiles))
         res,stdout,stderr = getCommandOutput(cmd)

@@ -131,11 +131,12 @@ def test():
     at intensity IX or greater, resulting in a reported 5,000 fatalities.'''.replace('\n','')
 
     location = 'At the top of the world.'
+    is_released = True
     
     doc = PagerData()
     eventcode = shakegrid.getEventDict()['event_id']
     versioncode = eventcode
-    doc.setInputs(shakegrid,pagerversion,versioncode,eventcode,tsunami,location)
+    doc.setInputs(shakegrid,pagerversion,versioncode,eventcode,tsunami,location,is_released)
     doc.setExposure(expdict,econexpdict)
     doc.setModelResults(fatmodel,ecomodel,
                         fatdict,ecodict,

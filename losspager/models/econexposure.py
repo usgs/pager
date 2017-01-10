@@ -87,19 +87,27 @@ class GDP(object):
         if yearstr in row:
             gdp = row[yearstr]
         else:
+            row = row.dropna()
             columns = row.index.tolist()
             years = []
             for c in columns:
                 res = re.search('[0-9]{4}',c)
                 if res is not None:
                     years.append(res.group())
+            
             if yearstr < min(years):
                 #assume that the years in the dataframe are sequential and increasing to the right
                 #get the first non-null GDP value
-                gdp = row[row.notnull()][0]
+                if pd.isnull(row[min(years)]):
+                    gdp = GLOBAL_GDP
+                else:
+                    gdp = row[min(years)]
             else:
                 #get the last non-null GDP value
-                gdp = row[row.notnull()][-1]
+                if pd.isnull(row[max(years)]):
+                    gdp = GLOBAL_GDP
+                else:
+                    gdp = row[max(years)]
 
         return (gdp,outccode)
         

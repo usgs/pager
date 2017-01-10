@@ -515,7 +515,10 @@ class SemiEmpiricalFatality(object):
           Pandas series containing Workforce data for given country 
             (WorkForceTotal,WorkForceAgriculture,WorkForceIndustrial,WorkForceServices)
         """
-        wforce = self._workforce.loc[ccode]
+        try:
+            wforce = self._workforce.loc[ccode]
+        except:
+            wforce = None
         return wforce
         
     def getCollapse(self,ccode,mmi,inventory):
@@ -671,6 +674,9 @@ class SemiEmpiricalFatality(object):
             ccode = cdict['ISO2']
             #get the workforce Series data for the current country
             wforce = self.getWorkforce(ccode)
+            if wforce is None:
+                print('No workforce data for %s.  Skipping.' % (cdict['Name']))
+                continue
             
             #loop over MMI values 6-9
             for mmi in np.arange(6,9.5,0.5):

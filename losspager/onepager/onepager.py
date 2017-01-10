@@ -5,7 +5,7 @@ from datetime import datetime
 from collections import OrderedDict
 
 #third party imports
-from impactutils.time.timeutils import get_local_time
+from impactutils.time.timeutils import LocalTime
 from impactutils.textformat.text import pop_round_short
 from impactutils.textformat.text import dec_to_roman
 from impactutils.colors.cpalette import ColorPalette
@@ -37,8 +37,10 @@ def texify(text):
         newtext = newtext.replace(original,replacement)
     return newtext
 
-def create_onepager(version_dir, debug = False):
+def create_onepager(pdata,version_dir, debug = False):
     """
+    :param pdata:
+      PagerData object.
     :param version_dir: 
       Path of event version directory.
     :param debug:
@@ -69,8 +71,6 @@ def create_onepager(version_dir, debug = False):
     #---------------------------------------------------------------------------
 
     json_dir = os.path.join(version_dir, 'json')
-    pdata = PagerData()
-    pdata.loadFromJSON(json_dir)
     pdict = copy.deepcopy(pdata._pagerdict)
     edict = pdata.getEventInfo()
     
@@ -86,7 +86,8 @@ def create_onepager(version_dir, debug = False):
     olon = edict['lon']
     otime_utc = edict['time']
     date_utc = datetime.strptime(otime_utc, "%Y-%m-%d %H:%M:%S")
-    date_local = get_local_time(date_utc, olat, olon)
+    
+    date_local = pdata.local_time
     DoW = date_local.strftime('%a')
     otime_local = date_local.strftime('%H:%M:%S')
     otime_local = DoW + ' ' + otime_local
@@ -130,7 +131,11 @@ def create_onepager(version_dir, debug = False):
         template = template.replace("[TSUNAMI]", "FOR TSUNAMI INFORMATION, SEE: tsunami.gov")
     else:
         template = template.replace("[TSUNAMI]", "")
-    elapse = "Created: " + pdict['pager']['elapsed_time'] + " after earthquake"
+
+    if pdata.isScenario():
+        elapse = ''
+    else:
+        elapse = "Created: " + pdict['pager']['elapsed_time'] + " after earthquake"
     template = template.replace("[ELAPSED]", elapse)
     template = template.replace("[IMPACT1]", texify(pdict['comments']['impact1']))
     template = template.replace("[IMPACT2]", texify(pdict['comments']['impact2']))

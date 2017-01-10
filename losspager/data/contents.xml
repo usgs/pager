@@ -1,0 +1,87 @@
+<contents>
+  <file title="OnePAGER summary" id="onepager">
+    <caption>
+      <![CDATA[ One page summary of earthquake impact information ]]>
+    </caption>
+    <format href="onepager.pdf" type="application/pdf"/>
+  </file>
+
+  <file title="PAGER XML results" id="pagerxml">
+    <caption>
+      <![CDATA[ Summary of PAGER results in XML format ]]>
+    </caption>
+    <format href="pager.xml" type="text/xml"/>
+  </file>
+
+  <file title="Fatality Alert Histogram" id="histograms">
+    <caption>
+      <![CDATA[ Histogram of fatality alert probabilities ]]>
+    </caption>
+    <format href="alertfatal.pdf" type="application/pdf"/>
+  </file>
+
+  <file title="Economic Alert Histogram" id="histograms">
+    <caption>
+      <![CDATA[ Histogram of economic alert probabilities ]]>
+    </caption>
+    <format href="alertecon.pdf" type="application/pdf"/>
+  </file>
+
+  <file title="Exposure map" id="exposure">
+    <caption>
+      <![CDATA[ Map of MMI intensity contours on top of population data ]]>
+    </caption>
+    <format href="exposure.pdf" type="application/pdf"/>
+    <format href="exposure.png" type="application/png"/>
+  </file>
+
+  <file title="Alert information" id="json">
+    <caption>
+      <![CDATA[ Data on fatality and economic alert levels in JSON format ]]>
+    </caption>
+    <format href="json/alerts.json" type="application/json"/>
+  </file>
+
+  <file title="City data" id="json">
+    <caption>
+      <![CDATA[ Data for cities impacted by this event ]]>
+    </caption>
+    <format href="json/cities.json" type="application/json"/>
+  </file>
+
+  <file title="Comment data" id="json">
+    <caption>
+      <![CDATA[ Text comments used on the OnePAGER ]]>
+    </caption>
+    <format href="json/comments.json" type="application/json"/>
+  </file>
+
+  <file title="Event data" id="json">
+    <caption>
+      <![CDATA[ Summary information about this event and PAGER results ]]>
+    </caption>
+    <format href="json/event.json" type="application/json"/>
+  </file>
+
+  <file title="Exposure data" id="json">
+    <caption>
+      <![CDATA[ Tables of population/economic exposure to shaking, per country ]]>
+    </caption>
+    <format href="json/exposures.json" type="application/json"/>
+  </file>
+
+  <file title="Historical earthquakes" id="json">
+    <caption>
+      <![CDATA[ Table of up to three historical earthquakes near this event ]]>
+    </caption>
+    <format href="json/historical_earthquakes.json" type="application/json"/>
+  </file>
+
+  <file title="Fatality/Economic Modeled Loss Information" id="json">
+    <caption>
+      <![CDATA[ Per-country and summary fatality/economic loss results ]]>
+    </caption>
+    <format href="json/losses.json" type="application/json"/>
+  </file>
+  
+</contents>

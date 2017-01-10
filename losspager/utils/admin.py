@@ -276,7 +276,10 @@ class PagerAdmin(object):
                 for vnum in vnums:
                     jsonfolder = os.path.join(event_folder,'version.%03d' % vnum,'json')
                     pdata = PagerData()
-                    pdata.loadFromJSON(jsonfolder)
+                    try:
+                        pdata.loadFromJSON(jsonfolder)
+                    except:
+                        continue
                     if pdata.processing_time >= pdata.time + datetime.timedelta(seconds=EIGHT_HOURS):
                         break
                     jsonfolders.append(jsonfolder)
@@ -289,7 +292,10 @@ class PagerAdmin(object):
 
         for jsonfolder in jsonfolders:
             pdata = PagerData()
-            pdata.loadFromJSON(jsonfolder)
+            try:
+                pdata.loadFromJSON(jsonfolder)
+            except:
+                continue
             meetsLevel = levels[pdata.summary_alert] >= levels[alert_threshold]
             meetsMag = pdata.magnitude >= mag_threshold
             if pdata.time >= start_time and pdata.time <= end_time and meetsLevel and meetsMag:
