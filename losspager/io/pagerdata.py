@@ -7,7 +7,7 @@ import json
 #third party libraries
 from lxml import etree
 import numpy as np
-from impactutils.time.timeutils import get_local_time,ElapsedTime
+from impactutils.time.timeutils import LocalTime,ElapsedTime
 from impactutils.textformat.text import dec_to_roman,pop_round_short
 from mapio.city import Cities
 import pandas as pd
@@ -47,7 +47,7 @@ class PagerData(object):
             return fmt % (eid,eversion,etime,emag,fatalert,ecoalert)
         
     #########Setters########
-    def setInputs(self,shakegrid,pagerversion,versioncode,eventcode,tsunami,location):
+    def setInputs(self,shakegrid,timezone_file,pagerversion,versioncode,eventcode,tsunami,location,is_released):
         self._event_dict = shakegrid.getEventDict()
         self._shake_dict = shakegrid.getShakeDict()
         self._shakegrid = shakegrid
@@ -56,7 +56,9 @@ class PagerData(object):
         self._versioncode = versioncode
         self._tsunami_flag = tsunami
         self._location = location
+        self._is_released = is_released
         self._input_set = True
+        self._timezone_file = timezone_file
 
     def setExposure(self,exposure,econ_exposure):
         nmmi,self._maxmmi = self._get_maxmmi(exposure)
@@ -256,6 +258,11 @@ class PagerData(object):
         if not self._is_validated:
             raise PagerException('PagerData object has not yet been validated.')
         return self._pagerdict['pager']['alert_level']
+
+    def isScenario(self):
+        if self._pagerdict['shake_info']['shake_type'].upper() == 'SCENARIO':
+            return True
+        return False
     #########Getters########
 
     #########Accessors########
@@ -263,6 +270,10 @@ class PagerData(object):
     def time(self):
         return datetime.strptime(self._pagerdict['event_info']['time'],DATETIMEFMT)
 
+    @property
+    def local_time(self):
+        return self._local_time
+    
     @property
     def id(self):
         return self._pagerdict['event_info']['eventid']
@@ -305,6 +316,17 @@ class PagerData(object):
     @property
     def version(self):
         return self._pagerdict['pager']['version_number']
+
+    @property
+    def maxmmi(self):
+        return self._maxmmi
+    
+    @property
+    def summary_alert_pending(self):
+        if self._is_released:
+            return self.summary_alert
+        else:
+            return 'pending'
     
     #########Accessors########
     @classmethod
@@ -675,14 +697,19 @@ class PagerData(object):
         self._nmmi = nmmi
         etime = ElapsedTime()
         origin_time = self._event_dict['event_timestamp']
-        etimestr = etime.getElapsedString(origin_time,process_time)
+        try:
+            etimestr = etime.getElapsedString(origin_time,process_time)
+        except:
+            etimestr = 'This event occurs in the future.'
         pager['elapsed_time'] = etimestr
         #pager['tsunami'] = get_tsunami_info(self._eventcode,self._event_dict['magnitude'])
         #pager['ccode'] = get_epicenter_ccode(self._event_dict['lat'],self._event_dict['lon'])
-        localtime = get_local_time(self._event_dict['event_timestamp'],
-                                   self._event_dict['lat'],self._event_dict['lon'])
+        ltime = LocalTime(self._timezone_file,self._event_dict['event_timestamp'],
+                          self._event_dict['lat'],self._event_dict['lon'])
+        localtime = ltime.getLocalTime()
         ltimestr = localtime.strftime(DATETIMEFMT)
         pager['local_time_string'] = ltimestr
+        self._local_time = localtime
 
         return pager
 
@@ -704,7 +731,9 @@ class PagerData(object):
         shakeinfo['shake_version'] = self._shake_dict['shakemap_version']
         shakeinfo['shake_code_version'] = self._shake_dict['code_version']
         shakeinfo['shake_processing_time'] = self._shake_dict['process_timestamp'].strftime(DATETIMEFMT)
-
+        shakeinfo['shake_source'] = self._shake_dict['shakemap_originator']
+        shakeinfo['shake_id'] = self._shake_dict['shakemap_id']
+        shakeinfo['shake_type'] = self._shake_dict['shakemap_event_type'] #SCENARIO or ACTUAL
         return shakeinfo
 
     def _setAlerts(self):

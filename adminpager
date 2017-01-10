@@ -195,7 +195,7 @@ def main(args):
 
     if args.tsunami:
         if args.tsunami[1] not in ['on','off']:
-            print('Tsunami syntax: pageradmin --tsunami EVENT on/off')
+            print('Tsunami syntax: adminpager --tsunami EVENT on/off')
             sys.exit(1)
         result = pdataframe = admin.toggleTsunami(args.tsunami[0],args.tsunami[1])
         print('Tsunami status has been set to %s for event %s' % (args.tsunami[1],args.tsunami[0]))
@@ -256,7 +256,7 @@ def main(args):
         pd.set_option('display.width', 1000)
         pd.set_option('display.max_rows', 1000)
         start_date = get_date(args.query[0])
-        end_date = datetime.datetime.utcnow()
+        end_date = datetime.datetime(3000,1,1) #some scenarios are in the future.  Sigh.
         mag_threshold = 0.0
         alert_threshold = 'green'
         version = 'last'
@@ -308,27 +308,27 @@ def main(args):
 if __name__ == '__main__':
     desc='Administer the PAGER system with a series of subcommands.'
     usage = '''
-    To query the system status: "pageradmin --status"
-    To switch the system from being primary to secondary: "pageradmin --status secondary"
-    To switch the system from being secondary to primary: "pageradmin --status primary"
-    To prevent an event from being automatically updated: "pageradmin --stop EVENTID"
-    To re-allow an event to be automatically updated: "pageradmin --unstop EVENTID"
-    To archive an event: "pageradmin --archive EVENTID"
-    To delete ALL events:"pageradmin --archive all"
-    To release an event: "pageradmin --release EVENTID"
-    To toggle the tsunami flag ON for an event: "pageradmin --tsunami EVENTID on"
-    To toggle the tsunami flag OFF for an event: "pageradmin --tsunami EVENTID off"
-    To print a list of the events from the last 7 days: "pageradmin --recent"
-    To see the version history of an event: "pageradmin --history EVENTID"
+    To query the system status: "adminpager --status"
+    To switch the system from being primary to secondary: "adminpager --status secondary"
+    To switch the system from being secondary to primary: "adminpager --status primary"
+    To prevent an event from being automatically updated: "adminpager --stop EVENTID"
+    To re-allow an event to be automatically updated: "adminpager --unstop EVENTID"
+    To archive an event: "adminpager --archive EVENTID"
+    To delete ALL events:"adminpager --archive all"
+    To release an event: "adminpager --release EVENTID"
+    To toggle the tsunami flag ON for an event: "adminpager --tsunami EVENTID on"
+    To toggle the tsunami flag OFF for an event: "adminpager --tsunami EVENTID off"
+    To print a list of the events from the last 7 days: "adminpager --recent"
+    To see the version history of an event: "adminpager --history EVENTID"
     Query Syntax:
-    All events from December 15, 2015: pageradmin --query 2015-12-15
-    M5.5+ events from December 15, 2016: pageradmin --query 2015-12-15 5.5
-    All Yellow events > M5.5: pageradmin --query 1900-01-01 5.5 yellow
-    Yellow events > M5.5 until November 15, 2016: pageradmin --query 1900-01-01 5.5 yellow 2016-11-15
-    First version of yellow events > M5.5 until November 15, 2016: pageradmin --query 1900-01-01 5.5 yellow 2016-11-15 first
-    Last version of yellow events > M5.5 until November 15, 2016: pageradmin --query 1900-01-01 5.5 yellow 2016-11-15 last
-    All versions of yellow events > M5.5 until November 15, 2016: pageradmin --query 1900-01-01 5.5 yellow 2016-11-15 all
-    First version of yellow events > M5.5 created 8+ hours after origin, until November 15, 2016: pageradmin --query 1900-01-01 5.5 yellow 2016-11-15 eight
+    All events from December 15, 2015: adminpager --query 2015-12-15
+    M5.5+ events from December 15, 2016: adminpager --query 2015-12-15 5.5
+    All Yellow events > M5.5: adminpager --query 1900-01-01 5.5 yellow
+    Yellow events > M5.5 until November 15, 2016: adminpager --query 1900-01-01 5.5 yellow 2016-11-15
+    First version of yellow events > M5.5 until November 15, 2016: adminpager --query 1900-01-01 5.5 yellow 2016-11-15 first
+    Last version of yellow events > M5.5 until November 15, 2016: adminpager --query 1900-01-01 5.5 yellow 2016-11-15 last
+    All versions of yellow events > M5.5 until November 15, 2016: adminpager --query 1900-01-01 5.5 yellow 2016-11-15 all
+    First version of yellow events > M5.5 created 8+ hours after origin, until November 15, 2016: adminpager --query 1900-01-01 5.5 yellow 2016-11-15 eight
     '''
     argparser = argparse.ArgumentParser(description=desc,
                                         formatter_class=argparse.ArgumentDefaultsHelpFormatter,

@@ -76,6 +76,7 @@ def test():
     urbanfile = os.path.join(homedir,'..','data','eventdata','northridge','northridge_urban.bil')
     oceanfile = os.path.join(homedir,'..','data','eventdata','northridge','northridge_ocean.json')
     oceangridfile = os.path.join(homedir,'..','data','eventdata','northridge','northridge_ocean.bil')
+    timezonefile = os.path.join(homedir,'..','data','eventdata','northridge','northridge_timezone.shp')
     
     invfile = os.path.join(homedir,'..','data','semi_inventory.hdf')
     colfile = os.path.join(homedir,'..','data','semi_collapse_mmi.hdf')
@@ -131,11 +132,12 @@ def test():
     at intensity IX or greater, resulting in a reported 5,000 fatalities.'''.replace('\n','')
 
     location = 'At the top of the world.'
+    is_released = True
     
     doc = PagerData()
     eventcode = shakegrid.getEventDict()['event_id']
     versioncode = eventcode
-    doc.setInputs(shakegrid,pagerversion,versioncode,eventcode,tsunami,location)
+    doc.setInputs(shakegrid,timezonefile,pagerversion,versioncode,eventcode,tsunami,location,is_released)
     doc.setExposure(expdict,econexpdict)
     doc.setModelResults(fatmodel,ecomodel,
                         fatdict,ecodict,
@@ -145,10 +147,7 @@ def test():
     doc.validate()
 
     #let's test the property methods
-    
-    
     tdoc(doc,shakegrid,impact1,impact2,expdict,struct_comment,hist_comment)
-    
 
     #see if we can save this to a bunch of files then read them back in
     try:

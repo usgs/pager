@@ -20,6 +20,7 @@ from losspager.utils.exception import PagerException
 DEFAULT_THETA = 16.0
 DEFAULT_BETA = 0.15
 DEFAULT_L2G = 1.0
+DEFAULT_ALPHA = 1.0
 
 class LossModel(object):
     def __init__(self,name,rates,l2g,alpha=None):
@@ -308,7 +309,7 @@ class EmpiricalLoss(object):
           LognormalModel instance containing model for input country code, or a default model.
         """
         ccode = ccode.upper()
-        default = LognormalModel('default',DEFAULT_THETA,DEFAULT_BETA,DEFAULT_L2G)
+        default = LognormalModel('default',DEFAULT_THETA,DEFAULT_BETA,DEFAULT_L2G,alpha=DEFAULT_ALPHA)
         if ccode in self._model_dict:
             return self._model_dict[ccode]
         else:
@@ -365,7 +366,7 @@ class EmpiricalLoss(object):
             if model.hasAttribute('alpha'):
                 alpha = float(model.getAttribute('alpha'))
             else:
-                alpha = None
+                alpha = 1.0 #what is the appropriate default value for this?
             model_list.append(LognormalModel(key,theta,beta,l2g,alpha=alpha))
         root.unlink()
 
