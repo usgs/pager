@@ -23,5 +23,5 @@ setup(name='losspager',
                                    os.path.join('data', 'semi_workforce.hdf'),
                                    os.path.join('logos', '*')
                                    ]},
-      scripts = ['pagerlite','emailpager'],
+      scripts = ['pagerlite','emailpager','pager','adminpager'],
 )
