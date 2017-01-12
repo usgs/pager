@@ -39,6 +39,7 @@ from losspager.utils.eventpath import get_event_folder
 from losspager.utils.logger import PagerLogger
 from losspager.utils.admin import PagerAdmin
 from losspager.utils.exception import PagerException
+from losspager.utils.datapath import get_data_path
 from losspager.onepager.comment import get_impact_comments
 from losspager.onepager.comment import get_structure_comment
 from losspager.onepager.comment import get_secondary_comment
@@ -385,7 +386,9 @@ def main(pargs,config):
         print('Created onePAGER pdf %s' % onepager_pdf)
 
         #copy the contents.xml file to the version folder
-        contentsfile = os.path.join(script_dir,'losspager','data','contents.xml')
+        contentsfile = get_data_path('contents.xml')
+        if contentsfile is None:
+            raise PagerException('Could not find contents.xml file.')
         shutil.copy(contentsfile,version_folder)
         
         #run transfer, as appropriate and as specified by config
