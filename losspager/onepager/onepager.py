@@ -230,12 +230,12 @@ def create_onepager(pdata,version_dir, debug = False):
     nrows = len(ctab.index)
     tabledata = ""
     for i in range(nrows):
-        mmi = dec_to_roman(np.round(ctab['mmi'][i], 0))
-        city = ctab['name'][i]
-        pop = pop_round_short(ctab['pop'][i])
-        col = pal.getDataColor(ctab['mmi'][i])
+        mmi = dec_to_roman(np.round(ctab['mmi'].iloc[i], 0))
+        city = ctab['name'].iloc[i]
+        pop = pop_round_short(ctab['pop'].iloc[i])
+        col = pal.getDataColor(ctab['mmi'].iloc[i])
         texcol = "%s,%s,%s" %(col[0], col[1], col[2])
-        if ctab['on_map'][i] == 1:
+        if ctab['on_map'].iloc[i] == 1:
             row = '\\rowcolor[rgb]{%s}\\textbf{%s} & \\textbf{%s} & '\
                   '\\textbf{%s}\\\\ \n' %(texcol, mmi, city, pop)
         else:
