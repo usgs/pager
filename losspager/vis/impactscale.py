@@ -4,10 +4,15 @@
 from collections import OrderedDict
 
 #third party imports
+import matplotlib
+
+#this allows us to have a non-interactive backend - essential on systems without a display
+matplotlib.use('Agg')
+
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Rectangle,Ellipse
-import matplotlib
+
 
 #local imports
 from losspager.utils.exception import PagerException
@@ -21,7 +26,7 @@ YELLOW = '#FFFF00'
 ORANGE = '#FF9900'
 RED = '#FF0000'
 
-matplotlib.use('Agg')
+
 
 def _find_renderer(fig):
     if hasattr(fig.canvas, "get_renderer"):

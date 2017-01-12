@@ -3,11 +3,16 @@ import os.path
 from datetime import datetime
 
 #third party imports
+import matplotlib
+
+#this allows us to have a non-interactive backend - essential on systems without a display
+matplotlib.use('Agg')
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import matplotlib.patheffects as path_effects
-import matplotlib
+
 
 import cartopy
 import cartopy.crs as ccrs  # projections
@@ -38,7 +43,7 @@ from impactutils.colors.cpalette import ColorPalette
 from impactutils.textformat.text import round_to_nearest
 from impactutils.mapping.scalebar import draw_scale
 
-matplotlib.use('Agg')
+
 
 #define some constants
 WATERCOLOR = '#7AA1DA'
