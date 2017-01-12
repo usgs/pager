@@ -17,12 +17,16 @@ import datetime
 import shutil
 
 #third party imports
+import matplotlib
+
+#this allows us to have a non-interactive backend - essential on systems without a display
+matplotlib.use('Agg')
+
 import pandas as pd
 import numpy as np
 from mapio.shake import getHeaderData
 from impactutils.comcat.query import ComCatInfo
 from impactutils.transfer.factory import get_sender_class
-import matplotlib
 
 #local imports
 from losspager.models.exposure import Exposure
@@ -49,7 +53,7 @@ COUNTRY = Country()
 TIMEFMT = '%Y-%m-%d %H:%M:%S'
 TSUNAMI_MAG_THRESH = 7.3
 
-matplotlib.use('Agg')
+
 
 def _get_release_status(pargs,config,
                         fatmodel,fatdict,
