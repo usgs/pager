@@ -22,6 +22,7 @@ import numpy as np
 from mapio.shake import getHeaderData
 from impactutils.comcat.query import ComCatInfo
 from impactutils.transfer.factory import get_sender_class
+import matplotlib
 
 #local imports
 from losspager.models.exposure import Exposure
@@ -47,6 +48,8 @@ from losspager.utils.config import read_config
 COUNTRY = Country()
 TIMEFMT = '%Y-%m-%d %H:%M:%S'
 TSUNAMI_MAG_THRESH = 7.3
+
+matplotlib.use('Agg')
 
 def _get_release_status(pargs,config,
                         fatmodel,fatdict,
