@@ -27,9 +27,23 @@ conda install -y psutil
 #do pip installs of those things that are not available via conda.
 pip install 'SQLAlchemy==1.1.0b3' #installs any sqlalchemy greater than 1.1.0
 pip install SQLAlchemy-Utils
-pip -v install --no-deps https://github.com/gem/oq-hazardlib/archive/master.zip
-pip install https://github.com/usgs/MapIO/archive/master.zip
-pip install https://github.com/usgs/earthquake-impact-utils/archive/master.zip
+
+#download openquake, install it using pip locally, ignore specified dependencies,
+#as these should be installed using conda above
+wget https://github.com/gem/oq-hazardlib/archive/master.zip
+pip -v install --no-deps master.zip
+rm master.zip
+
+#download MapIO, install it using pip locally
+wget https://github.com/usgs/MapIO/archive/master.zip
+pip install master.zip
+rm master.zip
+
+#download MapIO, install it using pip locally
+wget https://github.com/usgs/earthquake-impact-utils/archive/master.zip
+pip install master.zip
+rm master.zip
+
 pip install sphinx_rtd_theme
 pip install flake8
 pip install pep8-naming
