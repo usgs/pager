@@ -27,7 +27,7 @@ conda install -y psutil
 #do pip installs of those things that are not available via conda.
 pip install 'SQLAlchemy==1.1.0b3' #installs any sqlalchemy greater than 1.1.0
 pip install SQLAlchemy-Utils
-pip -v install https://github.com/gem/oq-hazardlib/archive/master.zip
+pip -v install --no-deps https://github.com/gem/oq-hazardlib/archive/master.zip
 pip install https://github.com/usgs/MapIO/archive/master.zip
 pip install https://github.com/usgs/earthquake-impact-utils/archive/master.zip
 pip install sphinx_rtd_theme
