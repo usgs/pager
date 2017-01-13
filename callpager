@@ -1,0 +1,105 @@
+#!/usr/bin/env python
+
+#stdlib imports
+import argparse
+import os.path
+import sys
+from urllib import request
+import json
+
+#third party imports
+from impactutils.io.cmd import get_command_output
+
+WHITELIST = ['us','ci','nc','nn','hv','uw','nn','uu','ak']
+GEOSERVE_URL = 'http://earthquake.usgs.gov/ws/geoserve/regions.json?latitude=[LAT]&longitude=[LON]'
+MAG_THRESHOLD = 4.0
+
+def get_authoritative(source,lat,lon):
+    is_authoritative = True
+    auth_source = 'unknown'
+    try:
+        url = GEOSERVE_URL.replace('[LAT]',str(lat))
+        url = url.replace('[LON]',str(lon))
+        fh = request.urlopen(url)
+        data = fh.read().decode('utf-8')
+        fh.close()
+        jdict = json.loads(data)
+        auth_source = jdict['authoritative']['features'][0]['properties']['network']
+    except:
+        pass
+    if source.upper() != auth_source.upper():
+        is_authoritative = False
+    return is_authoritative,auth_source
+
+def main(args):
+    if args.status == 'DELETE':
+        #look at this with respect to archiving and sending cancel messages
+        print('No action to take with delete messages.')
+        sys.exit(1)
+
+    if args.status != 'UPDATE':
+        print('No action to take with %s messages.' % args.status)
+        sys.exit(1)
+
+    if args.action not in ('EVENT_ADDED','EVENT_UPDATED','PRODUCT_ADDED','PRODUCT_UPDATED'):
+        print('No action to take with %s messages.' % args.action)
+        sys.exit(1)
+        
+    if args.source not in WHITELIST:
+        print('Input ShakeMaps must be from an approved list of sources: %s.  Exiting.' % str(WHITELIST))
+        sys.exit(1)
+
+    if args.magnitude < MAG_THRESHOLD:
+        print('Input ShakeMaps must be larger than M%.1.  Exiting.' % MAG_THRESHOLD)
+        sys.exit(1)
+
+    #Use lat,lon and source to exclude ShakeMap providers who are playing outside their sandbox
+    is_authoritative,auth_source = get_authoritative(args.source,args.lat,args.lon)
+    if not is_authoritative:
+        print('Source %s is not authoritative for this region (%s is).  Exiting.' % (args.source,auth_source))
+        sys.exit(1)
+    
+    gridfile = os.path.join(args.directory,'download','grid.xml')
+    if not os.path.isfile(gridfile):
+        print('Could not find input ShakeMap grid file at %s.  Exiting.' % gridfile)
+        sys.exit(1)
+
+    #We've passed all the filters, so call PAGER
+    cmd = 'pager %s' % gridfile
+    res,stdout,stderr = get_command_output(cmd)
+    if res:
+        print('Successful run.  Output returned: "%s".' % stdout)
+        sys.exit(0)
+    else:
+        print('Unsuccessful run.  Output returned: "%s", "%s".' % (stdout,stderr))
+        sys.exit(1)
+    
+
+if __name__ == '__main__':
+    desc='Call the PAGER main program with arguments from PDL.'
+    argparser = argparse.ArgumentParser(description=desc,
+                                        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    argparser.add_argument("--directory",
+                           help="Directory where ShakeMap data can be found",metavar='DIRECTORY')
+    argparser.add_argument("--type", 
+                           help="Product type",metavar='TYPE')
+    argparser.add_argument("--code", 
+                           help="Product code",metavar='CODE')
+    argparser.add_argument("--source", 
+                           help="Product source",metavar='SOURCE')
+    argparser.add_argument("--status", 
+                           help="Product status",metavar='STATUS')
+    argparser.add_argument("--action", 
+                           help="Product action",metavar='ACTION')
+    argparser.add_argument("--preferred-latitude", type=float,
+                           help="Event latitude",metavar='LAT',dest='lat')
+    argparser.add_argument("--preferred-longitude", type=float,
+                           help="Event longitude",metavar='LON',dest='lon')
+    argparser.add_argument("--preferred-depth", type=float,
+                           help="Event depth",metavar='DEPTH',dest='depth')
+    argparser.add_argument("--preferred-magnitude", type=float,
+                           help="Event magnitude",metavar='MAG',dest='mag')
+    argparser.add_argument("--preferred-eventtime", 
+                           help="Event time",metavar='TIME',dest='time')
+    pargs, unknown = argparser.parse_known_args()
+    main(pargs)
