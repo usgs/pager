@@ -15,6 +15,9 @@ import traceback
 import io
 import datetime
 import shutil
+import textwrap
+from urllib import request
+import tempfile
 
 #third party imports
 import matplotlib
@@ -54,8 +57,44 @@ COUNTRY = Country()
 TIMEFMT = '%Y-%m-%d %H:%M:%S'
 TSUNAMI_MAG_THRESH = 7.3
 
-
-
+def _is_url(gridfile):
+    try:
+        fh = request.urlopen(gridfile)
+        tdir = tempfile.mkdtemp()
+        grid_file = os.path.join(tdir,'grid.xml')
+        data = fh.read().decode('utf-8')
+        fh.close()
+        f = open(grid_file,'wt')
+        f.write(data)
+        f.close()
+        return (True,grid_file)
+    except:
+        return (False,None)
+    
+def _check_pdl(gridfile,config):
+    try:
+        configfile = config['transfer']['pdl']['configfile']
+        configbase,configname = os.path.split(configfile)
+        lines = open(configfile,'rt').readlines()
+        index_on = False
+        for line in lines:
+            if line.find('[indexer_listener_exec_storage]') > -1:
+                index_on = True
+                continue
+            if index_on:
+                if line.find('directory') > -1:
+                    parts = line.split('=')
+                    storage_dir = parts[1].strip()
+                    storage_parts = storage_dir.split(os.path.sep)
+                    grid_file = os.path.join(configbase,storage_parts,'shakemap',gridfile,'download','grid.xml')
+                    if not os.path.isfile(grid_file):
+                        return (False,None)
+                    return (True,grid_file)
+        return (False,None)
+    except:
+        return (False,None)
+    
+    
 def _get_release_status(pargs,config,
                         fatmodel,fatdict,
                         ecomodel,ecodict,
@@ -189,12 +228,22 @@ def main(pargs,config):
     #get the users home directory
     homedir = os.path.expanduser('~')
     script_dir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
-    
-    #Make sure grid.xml file exists
-    if not os.path.isfile(pargs.gridfile):
+
+    #what kind of thing is gridfile?
+    is_file = os.path.isfile(pargs.gridfile)
+    is_url,url_gridfile = _is_url(pargs.gridfile)
+    is_pdl,pdl_gridfile = _check_pdl(pargs.gridfile,config)
+    if is_file:
+        gridfile = pargs.gridfile
+    elif is_url:
+        gridfile = url_gridfile
+    elif is_pdl:
+        gridfile = pdl_gridfile
+    else:
         print('ShakeMap Grid file %s does not exist.' % pargs.gridfile)
         sys.exit(1)
-
+        
+    
     pager_folder = os.path.join(homedir,config['output_folder'])
     pager_archive = os.path.join(homedir,config['output_folder'])
     
@@ -214,7 +263,7 @@ def main(pargs,config):
 
     try:
         #get all the basic event information and print it, if requested
-        shake_tuple = getHeaderData(pargs.gridfile)
+        shake_tuple = getHeaderData(gridfile)
         eid = shake_tuple[1]['event_id']
         etime = shake_tuple[1]['event_timestamp']
         if not len(eid):
@@ -290,7 +339,7 @@ def main(pargs,config):
         isofile = config['model_data']['country_grid']
         expomodel = Exposure(popfile,pop_year,isofile)
         exposure = None
-        exposure = expomodel.calcExposure(pargs.gridfile)
+        exposure = expomodel.calcExposure(gridfile)
 
         #get fatality results, if requested
         print('Calculating empirical fatalities.')
@@ -301,7 +350,7 @@ def main(pargs,config):
         print('Calculating economic exposure.')
         econexpmodel = EconExposure(popfile,pop_year,isofile)
         ecomodel = EmpiricalLoss.fromDefaultEconomic()
-        econexposure = econexpmodel.calcExposure(pargs.gridfile)
+        econexposure = econexpmodel.calcExposure(gridfile)
         ecodict = ecomodel.getLosses(econexposure)
         shakegrid = econexpmodel.getShakeGrid()
 
@@ -313,7 +362,7 @@ def main(pargs,config):
 
         semi = SemiEmpiricalFatality.fromDefault()
         semi.setGlobalFiles(popfile,pop_year,urbanfile,isofile)
-        semiloss,resfat,nonresfat = semi.getLosses(pargs.gridfile)
+        semiloss,resfat,nonresfat = semi.getLosses(gridfile)
 
         #get all of the other components of PAGER
         print('Getting all comments.')
@@ -338,7 +387,7 @@ def main(pargs,config):
         oceanfile = config['model_data']['ocean_vectors']
         oceangrid = config['model_data']['ocean_grid']
         cityfile = config['model_data']['city_file']
-        pdf_file,png_file,mapcities = draw_contour(pargs.gridfile,popfile,
+        pdf_file,png_file,mapcities = draw_contour(gridfile,popfile,
                                          oceanfile,oceangrid,cityfile,
                                          exposure_base)
         print('Generated exposure map %s' % pdf_file)
@@ -422,34 +471,33 @@ def main(pargs,config):
 if __name__ == '__main__':
     desc = '''Run PAGER loss models and create all PAGER products.
 
-    This program presumes that you have a configuration file in ~/.losspager/config.json,
-    consisting of the following entries:
-
-    model_data:
-      population_data:
-        - population_year: 1998
-          population_grid: /Users/user/pager/data/lspop1998.flt
-        - population_year: 2011
-          population_grid: /Users/user/pager/data/lspop2011.flt
-        - population_year: 2012
-          population_grid: /Users/user/pager/data/lspop2012.flt
-        - population_year: 2013
-          population_grid: /Users/user/pager/data/lspop2013.flt
-
-
-      country_grid: /Users/user/pager/data/isogrid.bil
-      urban_rural_grid: /Users/user/pager/data/glurextents.bil
-
-    database:
-        url: sqlite:////Users/user/.losspager/losspager_schema.db
-    
+    This program presumes that you have a configuration file in ~/.losspager/config.yml.
     
     Example usage:
-    %(prog)s grid.xml
+    %(prog)s grid
+     , where grid can be either:
+      - A path to a local ShakeMap grid.xml file.
+      - An event ID (i.e., us2010abcd), which (on a primary system) will find the most recently PDL-downloaded grid file.
+      - A url (http://earthquake.usgs.gov/realtime/product/shakemap/us10007tas/us/1484425631405/download/grid.xml)
+
+    On either a primary or secondary system, the PAGER models will be run, and will generate maps, figures, JSON files,
+    XML files, and a onePAGER PDF file in the output directory specified in the above config file.
+
+    On primary systems that have had transfer modules configured, this output will be transferred (usually via PDL) 
+    to remote systems.
+
+    On secondary systems, the PAGER run will end with generating the content.
+
+    
     '''
-    parser = argparse.ArgumentParser(description=desc,formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(description=desc,formatter_class=argparse.RawTextHelpFormatter)
+    gridhelp = '''gridfile can be either:
+      - A path to a local ShakeMap grid.xml file.
+      - An event ID (i.e., us2010abcd), which (on a primary system) will find the most recently PDL-downloaded grid file.
+      - A url (http://earthquake.usgs.gov/realtime/product/shakemap/us10007tas/us/1484425631405/download/grid.xml)
+    '''
     parser.add_argument('gridfile',
-                        help='The path to a ShakeMap grid.xml file')
+                        help=textwrap.dedent(gridhelp))
     parser.add_argument('-d','--debug', action='store_true',
                         default=False, help='Print debug information (mostly useful to developers)')
     parser.add_argument('-i','--eventinfo', action='store_false',
