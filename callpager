@@ -16,7 +16,7 @@ MAG_THRESHOLD = 4.0
 
 def get_authoritative(source,lat,lon):
     is_authoritative = True
-    auth_source = 'unknown'
+    auth_source = 'us'
     try:
         url = GEOSERVE_URL.replace('[LAT]',str(lat))
         url = url.replace('[LON]',str(lon))
