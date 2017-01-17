@@ -13,5 +13,5 @@ setup(name='losspager',
       package_data = {'losspager':[os.path.join('data', '*'),
                                    os.path.join('logos', '*')
                                    ]},
-      scripts = ['pagerlite','emailpager','pager','adminpager'],
+      scripts = ['pagerlite','emailpager','pager','adminpager','callpager'],
 )
