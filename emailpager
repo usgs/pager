@@ -121,7 +121,7 @@ def parse_xml(xmlfile):
     return (eventcode,vdict,eventinfo)
 
 def alert_user(email,format,config,version,send_mail=False):
-    pass
+    
         
 
 def main(args,configfile):
@@ -161,8 +161,15 @@ def main(args,configfile):
     if (datetime.utcnow() - version.time) > elapsed:
         print('More than %i hours have elapsed since event origin time.  No emails will be sent.' % elapsed_hours)
         sys.exit(0)
-        
+
+    formats = {'long':[],
+               'short':[],
+               'pdf':[]}
     for address in session.query(es.Address):
+        formats[address.format].append(address.email)
+    for eformat,addresses in formats.items():
+        sender = EmailSender(
+        
         if address.shouldAlert(version):
             alert_user(address.email,address.format,send_mail=args.production)
     
