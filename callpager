@@ -65,7 +65,9 @@ def main(args):
         sys.exit(1)
 
     #We've passed all the filters, so call PAGER
-    cmd = 'pager %s' % gridfile
+    homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
+    pagerpath = os.path.join(homedir,'pager')
+    cmd = '%s %s' % (pagerpath,gridfile)
     res,stdout,stderr = get_command_output(cmd)
     if res:
         print('Successful run.  Output returned: "%s".' % stdout)
@@ -91,15 +93,15 @@ if __name__ == '__main__':
                            help="Product status",metavar='STATUS')
     argparser.add_argument("--action", 
                            help="Product action",metavar='ACTION')
-    argparser.add_argument("--preferred-latitude", type=float,
+    argparser.add_argument("--property-latitude", type=float,
                            help="Event latitude",metavar='LAT',dest='lat')
-    argparser.add_argument("--preferred-longitude", type=float,
+    argparser.add_argument("--property-longitude", type=float,
                            help="Event longitude",metavar='LON',dest='lon')
-    argparser.add_argument("--preferred-depth", type=float,
+    argparser.add_argument("--property-depth", type=float,
                            help="Event depth",metavar='DEPTH',dest='depth')
-    argparser.add_argument("--preferred-magnitude", type=float,
-                           help="Event magnitude",metavar='MAG',dest='mag')
-    argparser.add_argument("--preferred-eventtime", 
+    argparser.add_argument("--property-magnitude", type=float,
+                           help="Event magnitude",metavar='MAG',dest='magnitude')
+    argparser.add_argument("--property-eventtime", 
                            help="Event time",metavar='TIME',dest='time')
     pargs, unknown = argparser.parse_known_args()
     main(pargs)
