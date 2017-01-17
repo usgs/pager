@@ -50,7 +50,7 @@ def main(args):
         sys.exit(1)
 
     if args.magnitude < MAG_THRESHOLD:
-        print('Input ShakeMaps must be larger than M%.1.  Exiting.' % MAG_THRESHOLD)
+        print('Input ShakeMaps must be larger than M%.1f.  Exiting.' % MAG_THRESHOLD)
         sys.exit(1)
 
     #Use lat,lon and source to exclude ShakeMap providers who are playing outside their sandbox
