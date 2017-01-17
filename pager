@@ -151,7 +151,7 @@ def _transfer(config,pagerdata,authid,authsource,version_folder):
                     if 'remote_directory' in params:
                         vpath,vfolder = os.path.split(version_folder)
                         #append the event id and version folder to our pre-specified output directory
-                        params['remote_directory'] = os.path.join(params['remote_directory'],eid,vfolder)
+                        params['remote_directory'] = os.path.join(params['remote_directory'],authid,vfolder)
                     params['code'] = authid
                     params['eventsource'] = authsource
                     params['eventsourcecode'] = authid.replace(authsource,'')
