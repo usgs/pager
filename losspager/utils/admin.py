@@ -6,6 +6,7 @@ import glob
 import re
 import shutil
 import json
+import getpass
 
 #local imports
 from losspager.utils.exception import PagerException
@@ -14,10 +15,67 @@ from losspager.io.pagerdata import PagerData
 
 #third-party imports
 from impactutils.comcat.query import ComCatInfo
+from impactutils.io.cmd import get_command_output
 import pandas as pd
 
 DATETIMEFMT = '%Y%m%d%H%M%S'
 EIGHT_HOURS = 8 * 3600
+ALLOWED_ACTIONS = ['release','switch-status','cancel','renotify','stop','unstop','tsunami']
+SHAKEMAP_SOURCES = ['us','ci','nc','nn','hv','uw','nn','uu','ak']
+
+def split_event(eventid):
+    event_source = None
+    event_source_code = None
+    for network in SHAKEMAP_SOURCES:
+        if eventid.startswith(network):
+            event_source = network
+            event_source_code = eventid.replace(network,'')
+    if event_source is None:
+        event_source = eventid[0:2]
+        event_source_code = eventid[2:]
+    return (event_source,event_source_code)
+            
+class RemoteAdmin(object):
+    _pdlcmd_pieces = ['[JAVA] -jar [JARFILE] --send --status=UPDATE',
+                      '--source=us --type=pager-admin --code=[CODE]',
+                      '--property-action=[ACTION]',
+                      '--property-action=[EVENTSOURCE]',
+                      '--property-action=[EVENTSOURCECODE]',
+                      '--property-user=[USER]',
+                      '--property-action-time=[ACTION-TIME]',
+                      '--privateKey=[PRIVATEKEY]  --configFile=[CONFIGFILE]']
+    _pdlcmd = ' '.join(_pdlcmd_pieces)
+
+    _required_init = ['java','jarfile','privatekey','configfile']
+    
+    _date_time_fmt = '%Y-%m-%dT%H:%M:%S'
+    def __init__(self,init_params):
+        if not set(self._required_init) <= set(init_params):
+            fmt = 'Missing at least one of the required parameters: %s'
+            raise Exception(fmt % str(self._required_init))
+        self._init_params = init_params
+
+    def sendAction(self,action,eventid):
+        if action not in self._allowed_actions:
+            fmt = 'Action "%s" not in list of allowed actions: "%s"'
+            raise Exception(fmt % (action,str(self._allowed_actions)))
+
+        pdl_cmd = self._pdlcmd.replace('[JAVA]',self._init_params['java'])
+        pdl_cmd = pdl_cmd.replace('[JARFILE]',self._init_params['jarfile'])
+        pdl_cmd = pdl_cmd.replace('[privatekey]',self._init_params['privatekey'])
+        pdl_cmd = pdl_cmd.replace('[configfile]',self._init_params['configfile'])
+        pdl_cmd = pdl_cmd.replace('[CODE]',eventid)
+        source,source_code = split_event(eventid)
+        pdl_cmd = pdl_cmd.replace('[EVENTSOURCE]',source)
+        pdl_cmd = pdl_cmd.replace('[EVENTSOURCECODE]',source_code)
+        user = getpass.getuser()
+        action_time = datetime.datetime.utcnow().strftime(self._date_time_fmt)
+        pdl_cmd = pdl_cmd.replace('[ACTION]',action)
+        pdl_cmd = pdl_cmd.replace('[USER]',user)
+        pdl_cmd = pdl_cmd.replace('[ACTION-TIME]',action_time)
+        res,stdout,stderr = get_command_output(pdl_cmd)
+        return (res,stdout,stderr)
+
 
 class PagerAdmin(object):
     def __init__(self,pager_folder,archive_folder):
@@ -217,6 +275,11 @@ class PagerAdmin(object):
             return 'primary'
         return status
 
+    def getLastVersion(self,event_folder):
+        version_folders = glob.glob(os.path.join(event_folder,'version.*'))
+        version_folders.sort()
+        return version_folders[-1]
+    
     def getVersionNumbers(self,event_folder):
         version_folders = glob.glob(os.path.join(event_folder,'version.*'))
         vnums = []

@@ -8,6 +8,7 @@ from collections import OrderedDict
 from impactutils.time.timeutils import LocalTime
 from impactutils.textformat.text import pop_round_short
 from impactutils.textformat.text import dec_to_roman
+from impactutils.textformat.text import floor_to_nearest
 from impactutils.colors.cpalette import ColorPalette
 from impactutils.comcat.query import ComCatInfo
 from impactutils.io.cmd import get_command_output
@@ -30,6 +31,7 @@ LATEX_SPECIAL_CHARACTERS = OrderedDict([('\\','\\textbackslash{}'),
                                         ('~','\textasciitilde{}')])
 
 DEFAULT_PAGER_URL = 'http://earthquake.usgs.gov/data/pager/'
+MIN_DISPLAY_POP = 1000
 
 def texify(text):
     newtext = text
@@ -99,8 +101,7 @@ def create_onepager(pdata,version_dir, debug = False):
     template = template.replace("[HOMEDIR]", root_dir)
 
     # Magnitude location string under USGS logo
-    magloc = "M " + str(edict['mag']) + ", " + \
-        edict['location']
+    magloc = 'M%.1f, %s' % (edict['mag'],texify(edict['location']))
     template = template.replace("[MAGLOC]", magloc)
 
     # Pager version
@@ -120,11 +121,11 @@ def create_onepager(pdata,version_dir, debug = False):
         hlon = "E"
     else:
         hlon = "W"
-    template = template.replace("[LAT]", str(abs(lat)))
-    template = template.replace("[LON]", str(abs(lon)))
-    template = template.replace("[HEMILAT]", str(hlat))
-    template = template.replace("[HEMILON]", str(hlon))
-    template = template.replace("[DEPTH]", str(dep))
+    template = template.replace("[LAT]", '%.4f' % abs(lat))
+    template = template.replace("[LON]", '%.4f' % abs(lon))
+    template = template.replace("[HEMILAT]", hlat)
+    template = template.replace("[HEMILON]", hlon)
+    template = template.replace("[DEPTH]", '%.1f' % dep)
 
     # Tsunami warning? --- need to fix to be a function of tsunamic flag
     if edict['tsunami']:
@@ -143,35 +144,45 @@ def create_onepager(pdata,version_dir, debug = False):
 
     # Fill in exposure values
     mmi = np.array(pdict['population_exposure']['mmi'])
-    exp = np.array(pdict['population_exposure']['aggregated_exposure'])
-    cum_exp = np.cumsum(exp)
+    expt = pdict['population_exposure']['aggregated_exposure']
+    exp = [floor_to_nearest(e,MIN_DISPLAY_POP) for e in expt]
+    exp[0] = expt[0]
+    exp[1] = expt[1]
+    exp[2] = expt[2]
+    cum_exp = np.cumsum(np.array(exp))
     not_covered = cum_exp == 0
     template = template.replace("[MMI]", "MMI")
     if not_covered[0] == True:
         mmi1 = '--*'
     else:
-        mmi1 = pop_round_short(exp[mmi == 1][0])
+        if exp[0] >= MIN_DISPLAY_POP:
+            mmi1 = pop_round_short(exp[0])
+        else:
+            mmi1 = '0'
     template = template.replace("[MMI1]", mmi1)
     if not_covered[2] == True:
         mmi23 = '--*'
     else:
-        mmi23 = pop_round_short(np.sum(exp[(mmi == 2) | (mmi == 3)]))
+        if np.sum(exp[1:3]) >= MIN_DISPLAY_POP:
+            mmi23 = pop_round_short(np.sum(exp[1:3]))
+        else:
+            mmi23 = '0'
     template = template.replace("[MMI2-3]", mmi23)
     if not_covered[3] == True:
         mmi4 = '--*'
     else:
-        mmi4 = pop_round_short(exp[mmi == 4][0])
+        mmi4 = pop_round_short(exp[3])
     template = template.replace("[MMI4]", mmi4)
     if not_covered[4] == True:
         mmi5 = '--*'
     else:
-        mmi5 = pop_round_short(exp[mmi == 5][0])
+        mmi5 = pop_round_short(exp[4])
     template = template.replace("[MMI5]", mmi5)
-    template = template.replace("[MMI6]", pop_round_short(exp[mmi == 6][0]))
-    template = template.replace("[MMI7]", pop_round_short(exp[mmi == 7][0]))
-    template = template.replace("[MMI8]", pop_round_short(exp[mmi == 8][0]))
-    template = template.replace("[MMI9]", pop_round_short(exp[mmi == 9][0]))
-    template = template.replace("[MMI10]", pop_round_short(exp[mmi == 10][0]))
+    template = template.replace("[MMI6]", pop_round_short(exp[5]))
+    template = template.replace("[MMI7]", pop_round_short(exp[6]))
+    template = template.replace("[MMI8]", pop_round_short(exp[7]))
+    template = template.replace("[MMI9]", pop_round_short(exp[8]))
+    template = template.replace("[MMI10]", pop_round_short(exp[9]))
 
     # MMI color pal
     pal = ColorPalette.fromPreset('mmi')

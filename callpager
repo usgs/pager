@@ -31,7 +31,7 @@ def get_authoritative(source,lat,lon):
         is_authoritative = False
     return is_authoritative,auth_source
 
-def main(args):
+def process_shakemap(args):
     if args.status == 'DELETE':
         #look at this with respect to archiving and sending cancel messages
         print('No action to take with delete messages.')
@@ -75,7 +75,92 @@ def main(args):
     else:
         print('Unsuccessful run.  Output returned: "%s", "%s".' % (stdout,stderr))
         sys.exit(1)
+
+def process_admin(args):
+    homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
+    admin_path = os.path.join(homedir,'adminpager')
+    pager_path = os.path.join(homedir,'adminpager')
+    pager_folder = config['output']
+    archive_folder = config['archive']
+    admin = PagerAdmin(pager_folder,archive_folder)
+    eventid = args.code
+    if args.status != 'UPDATE':
+        print('No action to take with %s messages.' % args.status)
+        sys.exit(1)
+        
+    if args.action not in admin.ALLOWED_ACTIONS:
+        print('Action %s not supported.' % args.action)
+        sys.exit(1)
+        
+    if args.action == 'release':
+        event_folder = admin.getEventFolder(eventid)
+        version = admin.getLastVersion(event_folder)
+        xmlfile = os.path.join(version,xmlfile)
+        if not os.path.isfile(xmlfile):
+            print('Release process failed on event %s - XML file %s does not exist.' % (eventid,xmlfile))
+            sys.exit(1)
+        pager_cmd = '%s --release %s' % (pager_path,eventid)
+        res,stdout,stderr = get_command_output(pager_cmd)
+        if not res:
+            print('Release process failed on event %s.  "%s" "%s"' % (eventid,stdout,stderr))
+            sys.exit(1)
+        print('Release of event %s successful with message "%s".' % (eventid,stdout))
+        sys.exit(0)
+        
+    if args.action == 'switch-status':
+        admin_cmd1 = '%s --status check' % (admin_path)
+        res,stdout,stderr = get_command_output(admin_cmd1)
+        if not res:
+            print('Failed to get current system status.')
+            sys.exit(1)
+        if stdout.lower().find('secondary') > -1:
+            new_status = 'primary'
+        else:
+            new_status = 'secondary'
+        admin_cmd2 = '%s --status %s' % (admin_path,new_status)
+        res,stdout,stderr = get_command_output(admin_cmd2)
+        if not res:
+            print('Failure to switch system status to %s.  "%s" "%s"' % (new_status,stdout,stderr))
+            sys.exit(1)
+        print('Successfully switched system status to %s.' % (new_status))
+        sys.exit(0)
+        
+    if args.action == 'cancel':
+        pager_cmd = '%s --cancel %s' % (pager_path,eventid)
+        res,stdout,stderr = get_command_output(admin_cmd2)
+        if not res:
+            print('Failure to send cancel message for event %s.  "%s" "%s"' % (eventid,stdout,stderr))
+            sys.exit(1)
+        print('Successfully sent cancel message for %s.' % (eventid))
+        sys.exit(0)
+        
+    if args.action == 'renotify':
+        pass
     
+    if args.action == 'stop':
+        admin_cmd = '%s --stop %s' % (admin_path,eventid)
+        res,stdout,stderr = get_command_output(admin_cmd)
+        if not res:
+            print('Failure to stop processing for event %s.  "%s" "%s"' % (eventid,stdout,stderr))
+            sys.exit(1)
+        print('Successfully stopped processing for %s.' % (eventid))
+        sys.exit(0)
+        
+    if args.action == 'unstop':
+        admin_cmd = '%s --unstop %s' % (admin_path,eventid)
+        res,stdout,stderr = get_command_output(admin_cmd)
+        if not res:
+            print('Failure to re-enable processing for event %s.  "%s" "%s"' % (eventid,stdout,stderr))
+            sys.exit(1)
+        print('Successfully re-enabled processing for %s.' % (eventid))
+        sys.exit(0)
+            
+
+def main(args):
+    if args.type == 'shakemap':
+        process_shakemap(args)
+    elif args.type == 'pager-admin':
+        process_admin(args)
 
 if __name__ == '__main__':
     desc='Call the PAGER main program with arguments from PDL.'
@@ -103,5 +188,7 @@ if __name__ == '__main__':
                            help="Event magnitude",metavar='MAG',dest='magnitude')
     argparser.add_argument("--property-eventtime", 
                            help="Event time",metavar='TIME',dest='time')
+    argparser.add_argument("--property-action", 
+                           help="Event action",metavar='ACTION',dest='time')
     pargs, unknown = argparser.parse_known_args()
     main(pargs)
