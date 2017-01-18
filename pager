@@ -40,7 +40,7 @@ from losspager.models.growth import PopulationGrowth
 from losspager.utils.country import Country
 from losspager.utils.eventpath import get_event_folder
 from losspager.utils.logger import PagerLogger
-from losspager.utils.admin import PagerAdmin
+from losspager.utils.admin import PagerAdmin,split_event
 from losspager.utils.exception import PagerException
 from losspager.utils.datapath import get_data_path
 from losspager.onepager.comment import get_impact_comments
@@ -224,11 +224,57 @@ def _draw_probs(fatmodel,fatdict,ecomodel,ecodict,version_folder):
     eco_figure.savefig(eco_probs_file,bbox_inches='tight')
     return (fat_probs_file,eco_probs_file)
 
+def _cancel(eventid,config):
+    event_source,event_source_code = split_event(eventid)
+    msg = ''
+    if 'status' in config and config['status'] == 'primary':
+        if 'transfer' in config:
+            if 'methods' in config['transfer']:
+                for method in config['transfer']['methods']:
+                    if method not in config['transfer']:
+                        sys.stderr.write('Method %s requested but not configured...Skipping.' % method)
+                        continue
+                    params = config['transfer'][method]
+                    if 'remote_directory' in params:
+                        vpath,vfolder = os.path.split(version_folder)
+                        #append the event id and version folder to our pre-specified output directory
+                        params['remote_directory'] = os.path.join(params['remote_directory'],authid,vfolder)
+                    params['code'] = eventid
+                    params['eventsource'] = event_source
+                    params['eventsourcecode'] = event_source_code
+                    params['magnitude'] = 0
+                    params['latitude'] = 0
+                    params['longitude'] = 0
+                    params['depth'] = 0
+                    params['eventtime'] = ''
+                    sender_class = get_sender_class(method)
+                    try:
+                        if method == 'pdl':
+                            sender = sender_class(properties=params,local_directory=version_folder,
+                                                  product_properties=product_params)
+                        else:
+                            sender = sender_class(properties=params,local_directory=version_folder)
+                        try:
+                            msg += sender.cancel()
+                        except Exception as e:
+                            msg += 'Failed to send products via PDL: %s' % str(e)
+                    except Exception as e:
+                        msg += 'Could not send products via %s method - error "%s"' % (method,str(e))
+                        
+    return msg
+
 def main(pargs,config):
     #get the users home directory
     homedir = os.path.expanduser('~')
     script_dir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
 
+    #handle cancel messages
+    if pargs.cancel:
+        #we presume that pargs.gridfile in this context is an event ID.
+        msg = _cancel(pargs.gridfile,config)
+        print(msg)
+        sys.exit(0)
+     
     #what kind of thing is gridfile?
     is_file = os.path.isfile(pargs.gridfile)
     is_url,url_gridfile = _is_url(pargs.gridfile)
@@ -312,6 +358,9 @@ def main(pargs,config):
         if plog is not None:
             plog.switchToEventFileHandler(event_logfile)
 
+        #Copy the grid.xml file to the version folder
+        shutil.copy(gridfile,version_folder)
+            
         #Check to see if the tsunami flag has been previously set
         tsunami_toggle = {'on':1,'off':0}
         tsunami_file = os.path.join(event_folder,'tsunami')
@@ -488,7 +537,8 @@ if __name__ == '__main__':
 
     On secondary systems, the PAGER run will end with generating the content.
 
-    
+    To send a cancel message for an event (does nothing in laptop configuration):
+    %(prog)s --cancel eventid
     '''
     parser = argparse.ArgumentParser(description=desc,formatter_class=argparse.RawTextHelpFormatter)
     gridhelp = '''gridfile can be either:
@@ -504,8 +554,11 @@ if __name__ == '__main__':
                         default=True, help='Turn off printing of basic event information')
     parser.add_argument('--release', action='store_true',
                         default=False, help='Set release status to True (override other criteria)')
+    parser.add_argument('--cancel', action='store_true',
+                        default=False, help='Send a cancel message using any configured transfer methods')
     parser.add_argument('--tsunami', choices=['on','off','auto'],
                         default='auto', help='Set tsunami flag to True/False (override other criteria), or use default criteria')
+    
     
     args = parser.parse_args()
 

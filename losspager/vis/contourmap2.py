@@ -403,14 +403,19 @@ def draw_contour(shakefile,popfile,oceanfile,oceangridfile,cityfile,basename):
     #draw meridians and parallels using Cartopy's functions for that
     gl = ax.gridlines(draw_labels=True,
                       linewidth=2, color=(0.9,0.9,0.9), alpha=0.5, linestyle='-',
-                     zorder=GRID_ZORDER)
+                      zorder=GRID_ZORDER)
     gl.xlabels_top = False
     gl.xlabels_bottom = False
     gl.ylabels_left = False
     gl.ylabels_right = False
     gl.xlines = True
-    xlocs = np.arange(np.floor(xmin-1),np.ceil(xmax+1))
-    ylocs = np.arange(np.floor(ymin-1),np.ceil(ymax+1))
+    step = 1
+    xlocs = np.arange(np.floor(xmin-1),np.ceil(xmax+1),step)
+    ylocs = np.arange(np.floor(ymin-1),np.ceil(ymax+1),step)
+    while len(xlocs) > 5:
+        step += 1
+        xlocs = np.arange(np.floor(xmin-1),np.ceil(xmax+1),step)
+        ylocs = np.arange(np.floor(ymin-1),np.ceil(ymax+1),step)
     gl.xlocator = mticker.FixedLocator(xlocs)
     gl.ylocator = mticker.FixedLocator(ylocs)
     gl.xformatter = LONGITUDE_FORMATTER
