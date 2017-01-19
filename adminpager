@@ -17,7 +17,7 @@ from calendar import monthrange
 #local imports
 from losspager.utils.config import read_config,write_config
 from losspager.io.pagerdata import PagerData
-from losspager.utils.admin import PagerAdmin
+from losspager.utils.admin import PagerAdmin,RemoteAdmin
 from losspager.utils.exception import PagerException
 
 #third party imports
@@ -294,7 +294,6 @@ def main(args):
     #if we're on a laptop, then status should not be set in the config at all
     if 'status' not in config:
         if 'pdl' in config:
-            print('You are not on a primary system, but have PDL configured.  Trying remote admin actions...')
             admin = RemoteAdmin(config['pdl'])
             action = ''
             eventid = ''
@@ -315,13 +314,15 @@ def main(args):
             if args.unstop:
                 action = 'unstop'
                 eventid = args.unstop
-            res,stdout,stderr = admin.sendAction(action,eventid)
-            if not res:
-                print('Sending remote action %s failed. "%s", %s".' % (action,stdout,stderr))
-                sys.exit(1)
-            else:
-                print('Successfully sent remote action %s. "%s".' % (action,stdout))
-                sys.exit(0)
+            if action != '':
+                print('You are not on a primary system, but have PDL configured.  Trying remote admin actions...')
+                res,stdout,stderr = admin.sendAction(action,eventid)
+                if not res:
+                    print('Sending remote action %s failed. "%s", %s".' % (action,stdout,stderr))
+                    sys.exit(1)
+                else:
+                    print('Successfully sent remote action %s. "%s".' % (action,stdout))
+                    sys.exit(0)
                 
     
     admin = PagerAdmin(pager_folder,archive_folder)
@@ -458,6 +459,12 @@ if __name__ == '__main__':
                            choices = ('month','quarter','year'),metavar='PERIOD')
     argparser.add_argument("--release", nargs=1,
                            help="Release orange/red alert level event.",
+                           metavar='EVENT')
+    argparser.add_argument("--renotify", nargs=1,
+                           help="Renotify users about an event.",
+                           metavar='EVENT')
+    argparser.add_argument("--cancel", nargs=1,
+                           help="Cancel event.",
                            metavar='EVENT')
     
     # argparser.add_argument("--renotify", nargs=1,

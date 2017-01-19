@@ -56,9 +56,9 @@ class RemoteAdmin(object):
         self._init_params = init_params
 
     def sendAction(self,action,eventid):
-        if action not in self._allowed_actions:
+        if action not in ALLOWED_ACTIONS:
             fmt = 'Action "%s" not in list of allowed actions: "%s"'
-            raise Exception(fmt % (action,str(self._allowed_actions)))
+            raise Exception(fmt % (action,str(ALLOWED_ACTIONS)))
 
         pdl_cmd = self._pdlcmd.replace('[JAVA]',self._init_params['java'])
         pdl_cmd = pdl_cmd.replace('[JARFILE]',self._init_params['jarfile'])
