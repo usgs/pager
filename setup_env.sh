@@ -30,19 +30,19 @@ pip install SQLAlchemy-Utils
 
 #download openquake, install it using pip locally, ignore specified dependencies,
 #as these should be installed using conda above
-wget --tries=3 https://github.com/gem/oq-hazardlib/archive/master.zip -O openquake.zip
+curl --retry 3 -L https://github.com/gem/oq-hazardlib/archive/master.zip -o openquake.zip
 pip -v install --no-deps openquake.zip
 rm openquake.zip
 #pip install git+https://github.com/gem/oq-hazardlib.git
 
 #download MapIO, install it using pip locally
-wget --tries=3 https://github.com/usgs/MapIO/archive/master.zip -O mapio.zip
+curl --retry 3 -L https://github.com/usgs/MapIO/archive/master.zip -o mapio.zip
 pip install mapio.zip
 rm mapio.zip
 #pip install git+https://github.com/usgs/MapIO.git
 
 #download MapIO, install it using pip locally
-wget --tries=3 https://github.com/usgs/earthquake-impact-utils/archive/master.zip -O impact.zip
+curl --retry 3 -L https://github.com/usgs/earthquake-impact-utils/archive/master.zip -o impact.zip
 pip install impact.zip
 rm impact.zip
 #pip install git+https://github.com/usgs/earthquake-impact-utils.git
