@@ -504,7 +504,7 @@ class PagerData(object):
         #<alertcomment></alertcomment>
         alert_tag = etree.SubElement(pager,'alertcomment',text=self._pagerdict['comments']['historical_comment'])
         # <impact_comment>Green alert for shaking-related fatalities and economic losses.  There is a low likelihood of casualties and damage.#	</impact_comment>
-        text = self._pagerdict['comments']['impact1'] + self._pagerdict['comments']['impact2']
+        text = self._pagerdict['comments']['impact1'] + '#' + self._pagerdict['comments']['impact2']
         impact_tag = etree.SubElement(pager,'impact_comment',text=text)
         #<secondary_effects>Earthquakes in this region...</secondary_effects>
         secondary_tag = etree.SubElement(pager,'secondary_effects',
