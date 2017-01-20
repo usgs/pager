@@ -500,15 +500,19 @@ class PagerData(object):
 
     def __renderComments(self,pager):
         #<structcomment>Overall, the population in this region...</structcomment>
-        struct_tag = etree.SubElement(pager,'structcomment',text=self._pagerdict['comments']['struct_comment'])
-        #<alertcomment></alertcomment>
-        alert_tag = etree.SubElement(pager,'alertcomment',text=self._pagerdict['comments']['historical_comment'])
-        # <impact_comment>Green alert for shaking-related fatalities and economic losses.  There is a low likelihood of casualties and damage.#	</impact_comment>
-        text = self._pagerdict['comments']['impact1'] + '#' + self._pagerdict['comments']['impact2']
-        impact_tag = etree.SubElement(pager,'impact_comment',text=text)
-        #<secondary_effects>Earthquakes in this region...</secondary_effects>
-        secondary_tag = etree.SubElement(pager,'secondary_effects',
-                                         text=self._pagerdict['comments']['secondary_comment'])
+
+        struct_tag = etree.SubElement(pager,'structcomment')
+        struct_tag.text = self._pagerdict['comments']['struct_comment']
+
+        alert_tag = etree.SubElement(pager,'alertcomment')
+        alert_tag.text = self._pagerdict['comments']['historical_comment']
+        
+        impact_tag = etree.SubElement(pager,'impact_comment')
+        impact_tag.text = self._pagerdict['comments']['impact1'] + self._pagerdict['comments']['impact2']
+
+        secondary_tag = etree.SubElement(pager,'secondary_effects')
+        secondary_tag.text = self._pagerdict['comments']['secondary_comment']
+
         return pager
 
     def __renderHistory(self,pager):
