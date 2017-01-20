@@ -500,6 +500,7 @@ class PagerData(object):
 
     def __renderComments(self,pager):
         #<structcomment>Overall, the population in this region...</structcomment>
+
         struct_tag = etree.SubElement(pager,'structcomment')
         struct_tag.text = self._pagerdict['comments']['struct_comment']
 
@@ -511,6 +512,7 @@ class PagerData(object):
 
         secondary_tag = etree.SubElement(pager,'secondary_effects')
         secondary_tag.text = self._pagerdict['comments']['secondary_comment']
+
         return pager
 
     def __renderHistory(self,pager):

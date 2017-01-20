@@ -74,9 +74,11 @@ def pandify_exposure(exposure,human_readable=False):
     mmi = ['MMI%i' % i for i in range(1,11)]
     columns = columns + mmi
     rows = {}
-    for c in columns:
-        rows[c] = []
+    for col in columns:
+        rows[col] = []
     for ccode,array in exposure.items():
+        if ccode == 'maximum_border_mmi':
+            continue
         if human_readable and ccode.find('Total') < 0:
             cname = COUNTRY.getCountry(ccode)['Name']
             rows['Country Code'].append(cname)

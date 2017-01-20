@@ -370,6 +370,8 @@ def main(args):
         sys.exit(0)
 
     if args.history:
+        pd.set_option('display.width', 1000)
+        pd.set_option('display.max_rows', 1000)
         pdataframe = admin.query(eventid=args.history)
         print(pdataframe)
         sys.exit(0)
