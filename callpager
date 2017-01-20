@@ -13,6 +13,7 @@ from impactutils.io.cmd import get_command_output
 WHITELIST = ['us','ci','nc','nn','hv','uw','nn','uu','ak']
 GEOSERVE_URL = 'http://earthquake.usgs.gov/ws/geoserve/regions.json?latitude=[LAT]&longitude=[LON]'
 MAG_THRESHOLD = 4.0
+ANSS_FLAG = 'A'
 
 def get_authoritative(source,lat,lon):
     is_authoritative = True
@@ -25,6 +26,11 @@ def get_authoritative(source,lat,lon):
         fh.close()
         jdict = json.loads(data)
         auth_source = jdict['authoritative']['features'][0]['properties']['network']
+        #we seem to have all the worlds networks in geoserve, not just ANSS.  'A'
+        #indicates that this region is an ANSS one.  If it's JMA or something, we ignore that.
+        auth_type = jdict['authoritative']['features'][0]['properties']['type']
+        if auth_type != ANSS_FLAG:
+            auth_source = 'us'
     except:
         pass
     if source.upper() != auth_source.upper():
