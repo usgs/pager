@@ -47,7 +47,8 @@ class PagerData(object):
             return fmt % (eid,eversion,etime,emag,fatalert,ecoalert)
         
     #########Setters########
-    def setInputs(self,shakegrid,timezone_file,pagerversion,versioncode,eventcode,tsunami,location,is_released):
+    def setInputs(self,shakegrid,timezone_file,pagerversion,versioncode,
+                  eventcode,tsunami,location,is_released,elapsed=None):
         self._event_dict = shakegrid.getEventDict()
         self._shake_dict = shakegrid.getShakeDict()
         self._shakegrid = shakegrid
@@ -59,6 +60,7 @@ class PagerData(object):
         self._is_released = is_released
         self._input_set = True
         self._timezone_file = timezone_file
+        self._elapsed_minutes = elapsed
 
     def setExposure(self,exposure,econ_exposure):
         nmmi,self._maxmmi = self._get_maxmmi(exposure)
@@ -699,12 +701,15 @@ class PagerData(object):
         maxmmi,nmmi = self._get_maxmmi(self._exposure)
         pager['maxmmi'] = maxmmi
         self._nmmi = nmmi
-        etime = ElapsedTime()
-        origin_time = self._event_dict['event_timestamp']
-        try:
-            etimestr = etime.getElapsedString(origin_time,process_time)
-        except:
-            etimestr = 'This event occurs in the future.'
+        if self._elapsed_minutes is None:
+            etime = ElapsedTime()
+            origin_time = self._event_dict['event_timestamp']
+            try:
+                etimestr = etime.getElapsedString(origin_time,process_time)
+            except:
+                etimestr = 'This event occurs in the future.'
+        else:
+            etimestr = '%i minutes' % self._elapsed_minutes
         pager['elapsed_time'] = etimestr
         #pager['tsunami'] = get_tsunami_info(self._eventcode,self._event_dict['magnitude'])
         #pager['ccode'] = get_epicenter_ccode(self._event_dict['lat'],self._event_dict['lon'])

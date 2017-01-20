@@ -454,8 +454,9 @@ def main(pargs,config):
         print('Making PAGER Data object.')
         doc = PagerData()
         timezone_file = config['model_data']['timezones_file']
+        elapsed = pargs.elapsed
         doc.setInputs(shakegrid,timezone_file,pager_version,shakegrid.getEventDict()['event_id'],
-                      authid,tsunami,location,is_released)
+                      authid,tsunami,location,is_released,elapsed=elapsed)
         print('Setting inputs.')
         doc.setExposure(exposure,econexposure)
         print('Setting exposure.')
@@ -550,14 +551,15 @@ if __name__ == '__main__':
                         help=textwrap.dedent(gridhelp))
     parser.add_argument('-d','--debug', action='store_true',
                         default=False, help='Print debug information (mostly useful to developers)')
-    parser.add_argument('-i','--eventinfo', action='store_false',
-                        default=True, help='Turn off printing of basic event information')
     parser.add_argument('--release', action='store_true',
                         default=False, help='Set release status to True (override other criteria)')
     parser.add_argument('--cancel', action='store_true',
                         default=False, help='Send a cancel message using any configured transfer methods')
     parser.add_argument('--tsunami', choices=['on','off','auto'],
                         default='auto', help='Set tsunami flag to True/False (override other criteria), or use default criteria')
+    parser.add_argument('--elapsed', type=int, metavar='ELAPSED',
+                        help='Override calculated elapsed time with minutes.  Usually used for scenarios.')
+    
     
     
     args = parser.parse_args()
