@@ -210,7 +210,7 @@ class PagerAdmin(object):
     
     def restore(self,events=[],all_events=False):
         nrestored = 0
-        if all:
+        if all_events:
             zipfiles = glob.glob(os.path.join(self._archive_folder,'*.zip'))
             for zipfile in zipfiles:
                 result = self.restoreEvent(zipfile)

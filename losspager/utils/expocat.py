@@ -108,7 +108,7 @@ class ExpoCat(object):
         
         mmicols = ['MMI1','MMI2','MMI3','MMI4','MMI5','MMI6','MMI7','MMI8','MMI9+']
         mmicols.reverse()
-        maxmmi = np.zeros(len(df))
+        maxmmi = np.ones(len(df))
         nmaxmmi = np.zeros(len(df))
         for mmicol in mmicols:
             mmival = int(re.search('[0-9]',mmicol).group())

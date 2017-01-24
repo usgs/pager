@@ -673,9 +673,10 @@ def create_db(url,jsonfile,nusers=None,create_db=False):
     sys.stderr.flush()
 
     #Get the data that links versions to addresses
-    versionid,addressid = zip(*jdict['version_address'])
-    versionid = np.array(versionid)
-    addressid = np.array(addressid)
+    if len(jdict['version_address']):
+        versionid,addressid = zip(*jdict['version_address'])
+        versionid = np.array(versionid)
+        addressid = np.array(addressid)
     
     #Now start adding users, addresses, etc.
     adict = {} #old address id => new address id
