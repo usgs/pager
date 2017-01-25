@@ -450,7 +450,7 @@ if __name__ == '__main__':
                            metavar=('EVENT','on/off'))
     argparser.add_argument('--query',nargs='*',metavar='PARAM',
                            help="List events that match the query. Params are [START/all [MAG [ALERT [END [VERSION]]]]].")
-    argparser.add_argument("--history", nargs=1,
+    argparser.add_argument("--history", 
                            help="Print history of input event.",
                            metavar='EVENT')
     argparser.add_argument("--output", nargs='*', 

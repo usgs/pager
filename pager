@@ -18,6 +18,7 @@ import shutil
 import textwrap
 from urllib import request
 import tempfile
+import warnings
 
 #third party imports
 import matplotlib
@@ -143,6 +144,7 @@ def _transfer(config,pagerdata,authid,authsource,version_folder):
     if 'status' in config and config['status'] == 'primary':
         if 'transfer' in config:
             if 'methods' in config['transfer']:
+                print('Running transfer.')
                 for method in config['transfer']['methods']:
                     if method not in config['transfer']:
                         sys.stderr.write('Method %s requested but not configured...Skipping.' % method)
@@ -343,8 +345,10 @@ def main(pargs,config):
                 tsunami = False
             
         #check to see if this event is a scenario
+        is_scenario = False
         shakemap_type = shake_tuple[0]['shakemap_event_type']
         if shakemap_type == 'SCENARIO':
+            is_scenario = True
             if re.search('scenario',location.lower()) is None:
                 location = 'Scenario '+location
             
@@ -438,7 +442,7 @@ def main(pargs,config):
         cityfile = config['model_data']['city_file']
         pdf_file,png_file,mapcities = draw_contour(gridfile,popfile,
                                          oceanfile,oceangrid,cityfile,
-                                         exposure_base)
+                                         exposure_base,is_scenario=is_scenario)
         print('Generated exposure map %s' % pdf_file)
 
         #figure out whether this event has been "released".
@@ -491,7 +495,6 @@ def main(pargs,config):
         shutil.copy(contentsfile,version_folder)
         
         #run transfer, as appropriate and as specified by config
-        print('Running transfer (as appropriate).')
         _transfer(config,doc,authid,authsource,version_folder)
         
         print('Done.')

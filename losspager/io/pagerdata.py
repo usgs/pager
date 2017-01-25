@@ -22,6 +22,8 @@ TIMEFMT = '%H:%M:%S'
 MINEXP = 1000 #minimum population required to declare maxmmi at a given intensity
 SOFTWARE_VERSION = '2.0b' #THIS SHOULD GET REPLACED WITH SOMETHING SET BY VERSIONEER
 EVENT_RADIUS = 400 #distance around epicenter to search for similar historical earthquakes
+MINS_PER_DAY = 60*24
+SECS_PER_MIN = 60
 
 class PagerData(object):
     def __init__(self):
@@ -332,7 +334,7 @@ class PagerData(object):
     
     #########Accessors########
     @classmethod
-    def getSeriesColumns(self):
+    def getSeriesColumns(self,processtime=False):
         columns = ['EventID',
                    'Version',
                    'EventTime',
@@ -342,10 +344,21 @@ class PagerData(object):
                    'Mag',
                    'FatalityAlert',
                    'EconomicAlert',
-                   'SummaryAlert']
+                   'SummaryAlert',
+                   'Elapsed']
+        if processtime:
+            columns.append('ProcessTime')
         return columns
     
-    def toSeries(self):
+    def toSeries(self,processtime=False):
+        if self.summary_alert_pending == 'pending':
+            alert = 'pending/%s' % self.summary_alert
+            elapsed_dt = (datetime.utcnow() - self.time)
+        else:
+            alert = self.summary_alert
+            elapsed_dt = (self.processing_time - self.time)
+            
+        elapsed_minutes = int(elapsed_dt.days*MINS_PER_DAY + elapsed_dt.seconds/SECS_PER_MIN)
         d = {'EventID':self.id,
              'Version':self.version,
              'EventTime':self.time,
@@ -355,7 +368,10 @@ class PagerData(object):
              'Mag':self.magnitude,
              'FatalityAlert':self.fatality_alert,
              'EconomicAlert':self.economic_alert,
-             'SummaryAlert':self.summary_alert}
+             'SummaryAlert':alert,
+             'Elapsed':elapsed_minutes}
+        if processtime:
+            d['ProcessTime'] = self.processing_time
         sd = pd.Series(d)
         return sd
              
@@ -627,6 +643,10 @@ class PagerData(object):
         f.close()
         self._pagerdict['event_info'] = event['event'].copy()
         self._pagerdict['pager'] = event['pager'].copy()
+        self._is_released = True
+        if self._pagerdict['pager']['alert_level'] == 'pending':
+            self._is_released = False
+            
         self._pagerdict['shake_info'] = event['shakemap'].copy()
 
         #load the information about the alerts

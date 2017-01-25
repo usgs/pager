@@ -210,7 +210,7 @@ class PagerAdmin(object):
     
     def restore(self,events=[],all_events=False):
         nrestored = 0
-        if all:
+        if all_events:
             zipfiles = glob.glob(os.path.join(self._archive_folder,'*.zip'))
             for zipfile in zipfiles:
                 result = self.restoreEvent(zipfile)
@@ -325,7 +325,11 @@ class PagerAdmin(object):
         else:
             all_event_folders = self.getAllEventFolders()
         event_data = []
-        df = pd.DataFrame(columns=PagerData.getSeriesColumns())
+        do_process_time = False
+        if eventid is not None:
+            do_process_time = True
+        
+        df = pd.DataFrame(columns=PagerData.getSeriesColumns(processtime=do_process_time))
         jsonfolders = []
         for event_folder in all_event_folders:
             vnums = self.getVersionNumbers(event_folder)
@@ -362,7 +366,7 @@ class PagerAdmin(object):
             meetsLevel = levels[pdata.summary_alert] >= levels[alert_threshold]
             meetsMag = pdata.magnitude >= mag_threshold
             if pdata.time >= start_time and pdata.time <= end_time and meetsLevel and meetsMag:
-                row = pdata.toSeries()
+                row = pdata.toSeries(processtime=do_process_time)
                 df = df.append(row,ignore_index=True)
         df.Version = df.Version.astype(int)
         df = df.sort_values('EventTime')

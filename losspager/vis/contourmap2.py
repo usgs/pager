@@ -1,6 +1,7 @@
 #stdlib imports
 import os.path
 from datetime import datetime
+import warnings
 
 #third party imports
 import matplotlib
@@ -61,6 +62,10 @@ OCEAN_ORDER = 10
 GRID_ZORDER = 20
 EPICENTER_ZORDER = 30
 CITIES_ZORDER = 12
+WATERMARK_ZORDER = 60
+
+#default font for cities
+DEFAULT_FONT = 'DejaVu Sans'
 
 #define dictionary of MMI integer values to Roman numeral equivalents
 MMI_LABELS = {'1':'I',
@@ -98,7 +103,7 @@ def _clip_bounds(bbox,filename):
     f.close()
     return gc
 
-def _renderRow(row,ax,fontname='Bitstream Vera Sans',fontsize=10,zorder=10,shadow=False):
+def _renderRow(row,ax,fontname=DEFAULT_FONT,fontsize=10,zorder=10,shadow=False):
     """Internal method to consistently render city names.
     :param row:
       pandas dataframe row.
@@ -242,7 +247,7 @@ def _get_open_corner(popgrid,ax,filled_corner=None,need_bottom=True):
     if imin == 3:
         return urbounds,'ur'
 
-def draw_contour(shakefile,popfile,oceanfile,oceangridfile,cityfile,basename):
+def draw_contour(shakefile,popfile,oceanfile,oceangridfile,cityfile,basename,is_scenario=False):
     """Create a contour map showing population (greyscale) underneath contoured MMI.
 
     :param shakefile:
@@ -435,7 +440,7 @@ def draw_contour(shakefile,popfile,oceanfile,oceangridfile,cityfile,basename):
         xtext = r'$%s^\circ$W' % str(abs(int(xloc)))
         ax.text(xloc,gd.ymax-(yrange/35),xtext,
                 fontsize=14,zorder=GRID_ZORDER,ha='center',
-                fontname='Bitstream Vera Sans',
+                fontname=DEFAULT_FONT,
                 transform=ccrs.Geodetic())
 
     for yloc in gl.ylocator.locs:
@@ -450,7 +455,7 @@ def draw_contour(shakefile,popfile,oceanfile,oceangridfile,cityfile,basename):
             ytext = r'$%s^\circ$N' % str(int(yloc))
         thing = ax.text(gd.xmin+(xrange/100),yloc,ytext,
                         fontsize=14,zorder=GRID_ZORDER,va='center',
-                        fontname='Bitstream Vera Sans',
+                        fontname=DEFAULT_FONT,
                         transform=ccrs.Geodetic())
 
 
@@ -484,6 +489,11 @@ def draw_contour(shakefile,popfile,oceanfile,oceangridfile,cityfile,basename):
     plt.sca(ax)
     plt.plot(clon,clat,'k*',markersize=16,zorder=EPICENTER_ZORDER,transform=geoproj)
 
+    if is_scenario:
+        plt.text(clon,clat,'SCENARIO',fontsize=64,
+                 zorder=WATERMARK_ZORDER,transform=geoproj,
+                 alpha=0.2,color='red',horizontalalignment='center')
+    
     #create pdf and png output file names
     pdf_file = basename+'.pdf'
     png_file = basename+'.png'
