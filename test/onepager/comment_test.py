@@ -46,8 +46,8 @@ def test_impact():
                'UG':262049,
                'TotalDollars':262332}
     impact1,impact2 = get_impact_comments(fatdict,ecodict,econexp,event_year)
-    impact1_c2 = 'Some casualties are possible and the impact should be relatively localized. Past events with this alert level have required a local or regional level response.'
-    impact2_c2 = 'There is a low likelihood of damage.'
+    impact1_c2 = 'Yellow alert for shaking-related fatalities. Some casualties are possible and the impact should be relatively localized. Past events with this alert level have required a local or regional level response.'
+    impact2_c2 = 'Green alert for economic losses. There is a low likelihood of damage.'
     assert impact1 == impact1_c2
     assert impact2 == impact2_c2
 
@@ -59,8 +59,8 @@ def test_impact():
                'UG':262049,
                'TotalDollars':262332}
     impact1,impact2 = get_impact_comments(fatdict,ecodict,econexp,event_year)
-    impact1_c3 = 'Significant casualties are likely and the disaster is potentially widespread. Past events with this alert level have required a regional or national level response.'
-    impact2_c3 = 'There is a low likelihood of damage.'
+    impact1_c3 = 'Orange alert for shaking-related fatalities. Significant casualties are likely and the disaster is potentially widespread. Past events with this alert level have required a regional or national level response.'
+    impact2_c3 = 'Green alert for economic losses. There is a low likelihood of damage.'
     assert impact1 == impact1_c3
     assert impact2 == impact2_c3
 
@@ -72,8 +72,8 @@ def test_impact():
                'UG':262049,
                'TotalDollars':262332}
     impact1,impact2 = get_impact_comments(fatdict,ecodict,econexp,event_year)
-    impact1_c4 = 'High casualties are probable and the disaster is likely widespread. Past events with this alert level have required a national or international level response.'
-    impact2_c4 = 'There is a low likelihood of damage.'
+    impact1_c4 = 'Red alert for shaking-related fatalities. High casualties are probable and the disaster is likely widespread. Past events with this alert level have required a national or international level response.'
+    impact2_c4 = 'Green alert for economic losses. There is a low likelihood of damage.'
     assert impact1 == impact1_c4
     assert impact2 == impact2_c4
 
@@ -85,8 +85,8 @@ def test_impact():
                'UG':1000001,
                'TotalDollars':1000001}
     impact1,impact2 = get_impact_comments(fatdict,ecodict,econexp,event_year)
-    impact1_c5 = 'Some damage is possible and the impact should be relatively localized. Estimated economic losses are less than 1% of GDP of Uganda. Past events with this alert level have required a local or regional level response.'
-    impact2_c5 = 'There is a low likelihood of casualties.'
+    impact1_c5 = 'Yellow alert for economic losses. Some damage is possible and the impact should be relatively localized. Estimated economic losses are less than 1% of GDP of Uganda. Past events with this alert level have required a local or regional level response.'
+    impact2_c5 = 'Green alert for shaking-related fatalities. There is a low likelihood of casualties.'
     assert impact1 == impact1_c5
     assert impact2 == impact2_c5
 
@@ -98,8 +98,8 @@ def test_impact():
                'UG':100e6+1,
                'TotalDollars':100e6+1}
     impact1,impact2 = get_impact_comments(fatdict,ecodict,econexp,event_year)
-    impact1_c5 = 'Significant damage is likely and the disaster is potentially widespread. Estimated economic losses are 0-1% GDP of Uganda. Past events with this alert level have required a regional or national level response.'
-    impact2_c5 = 'There is a low likelihood of casualties.'
+    impact1_c5 = 'Orange alert for economic losses. Significant damage is likely and the disaster is potentially widespread. Estimated economic losses are 0-1% GDP of Uganda. Past events with this alert level have required a regional or national level response.'
+    impact2_c5 = 'Green alert for shaking-related fatalities. There is a low likelihood of casualties.'
     assert impact1 == impact1_c5
     assert impact2 == impact2_c5
 
@@ -111,8 +111,8 @@ def test_impact():
                'UG':1000e6+1,
                'TotalDollars':1000e6+1}
     impact1,impact2 = get_impact_comments(fatdict,ecodict,econexp,event_year)
-    impact1_c5 = 'Extensive damage is probable and the disaster is likely widespread. Estimated economic losses are 1-10% GDP of Uganda.  Past events with this alert level have required a national or international level response.'
-    impact2_c5 = 'There is a low likelihood of casualties.'
+    impact1_c5 = 'Red alert for economic losses. Extensive damage is probable and the disaster is likely widespread. Estimated economic losses are 1-10% GDP of Uganda.  Past events with this alert level have required a national or international level response.'
+    impact2_c5 = 'Green alert for shaking-related fatalities. There is a low likelihood of casualties.'
     assert impact1 == impact1_c5
     assert impact2 == impact2_c5
 
@@ -124,8 +124,8 @@ def test_impact():
                'UG':15e9,
                'TotalDollars':15e9}
     impact1,impact2 = get_impact_comments(fatdict,ecodict,econexp,event_year)
-    impact1_c5 = 'Extensive damage is probable and the disaster is likely widespread. Estimated economic losses may exceed the GDP of Uganda.  Past events with this alert level have required a national or international level response.'
-    impact2_c5 = 'There is a low likelihood of casualties.'
+    impact1_c5 = 'Red alert for economic losses. Extensive damage is probable and the disaster is likely widespread. Estimated economic losses may exceed the GDP of Uganda.  Past events with this alert level have required a national or international level response.'
+    impact2_c5 = 'Green alert for shaking-related fatalities. There is a low likelihood of casualties.'
     assert impact1 == impact1_c5
     assert impact2 == impact2_c5
 

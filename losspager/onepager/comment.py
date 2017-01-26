@@ -17,31 +17,31 @@ from losspager.utils.expocat import ExpoCat
 from losspager.utils.mathutil import invphi
 from losspager.utils.region import PagerRegions
 
-GREEN_FAT_HIGH = 'There is a low likelihood of casualties.'
-YELLOW_FAT_HIGH = '''Some casualties are possible and the impact should be relatively localized.
+GREEN_FAT_HIGH = 'Green alert for shaking-related fatalities. There is a low likelihood of casualties.'
+YELLOW_FAT_HIGH = '''Yellow alert for shaking-related fatalities. Some casualties are possible and the impact should be relatively localized.
 Past events with this alert level have required a local or regional level response.'''
-ORANGE_FAT_HIGH = '''Significant casualties are likely and the disaster is potentially widespread.
+ORANGE_FAT_HIGH = '''Orange alert for shaking-related fatalities. Significant casualties are likely and the disaster is potentially widespread.
 Past events with this alert level have required a regional or national level response.'''
-RED_FAT_HIGH = '''High casualties are probable and the disaster is likely widespread.
+RED_FAT_HIGH = '''Red alert for shaking-related fatalities. High casualties are probable and the disaster is likely widespread.
 Past events with this alert level have required a national or international level response.'''
 
-GREEN_ECON_HIGH = 'There is a low likelihood of damage.'
-YELLOW_ECON_HIGH = '''Some damage is possible and the impact should be relatively localized. [GDPCOMMENT]
+GREEN_ECON_HIGH = 'Green alert for economic losses. There is a low likelihood of damage.'
+YELLOW_ECON_HIGH = '''Yellow alert for economic losses. Some damage is possible and the impact should be relatively localized. [GDPCOMMENT]
 Past events with this alert level have required a local or regional level response.'''
-ORANGE_ECON_HIGH = '''Significant damage is likely and the disaster is potentially widespread. [GDPCOMMENT]
+ORANGE_ECON_HIGH = '''Orange alert for economic losses. Significant damage is likely and the disaster is potentially widespread. [GDPCOMMENT]
 Past events with this alert level have required a regional or national level response.'''
-RED_ECON_HIGH = '''Extensive damage is probable and the disaster is likely widespread. [GDPCOMMENT]
+RED_ECON_HIGH = '''Red alert for economic losses. Extensive damage is probable and the disaster is likely widespread. [GDPCOMMENT]
  Past events with this alert level have required a national or international level response.'''
 
-GREEN_FAT_LOW = 'There is a low likelihood of casualties.'
-YELLOW_FAT_LOW = 'Some casualties are possible.'
-ORANGE_FAT_LOW = 'Significant casualties are likely.'
+GREEN_FAT_LOW = 'Green alert for shaking-related fatalities. There is a low likelihood of casualties.'
+YELLOW_FAT_LOW = 'Yellow alert for shaking-related fatalities. Some casualties are possible.'
+ORANGE_FAT_LOW = 'Orange alert for shaking-related fatalities. Significant casualties are likely.'
 RED_FAT_LOW = ''
 
 
-GREEN_ECON_LOW = 'There is a low likelihood of damage.'
-YELLOW_ECON_LOW = 'Some damage is possible. [GDPCOMMENT]'
-ORANGE_ECON_LOW = 'Significant damage is likely. [GDPCOMMENT]'
+GREEN_ECON_LOW = 'Green alert for economic losses. There is a low likelihood of damage.'
+YELLOW_ECON_LOW = 'Yellow alert for economic losses. Some damage is possible. [GDPCOMMENT]'
+ORANGE_ECON_LOW = 'Orange alert for economic losses. Significant damage is likely. [GDPCOMMENT]'
 RED_ECON_LOW = ''
 
 GREEN_FAT_EQUAL = '''Green alert for shaking-related fatalities and economic losses.

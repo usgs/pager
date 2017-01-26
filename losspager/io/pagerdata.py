@@ -506,7 +506,17 @@ class PagerData(object):
 
     def __renderCities(self,pager):
         #<city name="Kirakira" lat="-10.454420" lon="161.920450" population="1122" mmi="3.500000" iscapital="0"/>
-        for idx,city in self._pagerdict['city_table'].iterrows():
+        #The javascript that renders this draws nothing if the number of cities is 11 or less, so let's add a dummy city
+        #at the end that will be ignored.
+        dummy_row = pd.Series({'iscap':0,
+                               'lat':0.0,
+                               'lon':0.0,
+                               'mmi':0.0,
+                               'name':'',
+                               'pop':0})
+        
+        temptable = self._pagerdict['city_table'].append(dummy_row,ignore_index=True)
+        for idx,city in temptable.iterrows():
             cdict = {'name':city['name'],
                      'lat':'%.4f' % city['lat'],
                      'lon':'%.4f' % city['lon'],
@@ -526,7 +536,7 @@ class PagerData(object):
         alert_tag.text = self._pagerdict['comments']['historical_comment']
         
         impact_tag = etree.SubElement(pager,'impact_comment')
-        impact_tag.text = self._pagerdict['comments']['impact1'] + self._pagerdict['comments']['impact2']
+        impact_tag.text = self._pagerdict['comments']['impact1'] + '#' + self._pagerdict['comments']['impact2']
 
         secondary_tag = etree.SubElement(pager,'secondary_effects')
         secondary_tag.text = self._pagerdict['comments']['secondary_comment']
