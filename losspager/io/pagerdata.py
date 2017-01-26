@@ -300,10 +300,7 @@ class PagerData(object):
     
     @property
     def summary_alert(self):
-        if self._pagerdict['alerts']['fatality']['summary']:
-            return self._pagerdict['alerts']['fatality']['level']
-        else:
-            return self._pagerdict['alerts']['economic']['level']
+        return self._pagerdict['pager']['alert_level']
 
     @property
     def fatality_alert(self):
