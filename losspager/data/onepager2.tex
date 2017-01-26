@@ -60,6 +60,10 @@
 \definecolor{p5000}{gray}{0.1428571}
 \definecolor{p10000}{gray}{0}
 
+\definecolor{green}{HTML}{00B04F}
+\definecolor{yellow}{HTML}{FFFF00}
+\definecolor{orange}{HTML}{FF9900}
+\definecolor{red}{HTML}{FF0000}
 
 %-------------------------------------------------------------------------------
 % Begin document
@@ -282,7 +286,7 @@
 \draw[very thick] (poptab-5-1.south west) rectangle (poptab-1-11.north east);
 
 % Fill in text
-\def \pskip {-0.3em}
+\def \pskip {0em}
 \node[fit=(poptab-4-1)(poptab-5-1),h3ml]{
   \setlength{\parskip}{\pskip} POTENTIAL \par DAMAGE
 };
@@ -381,9 +385,8 @@
 \includegraphics[width=6.75cm,trim={1.8cm 1cm 1.3cm -1.25cm},clip]
   {[VERSIONFOLDER]/alertfatal.pdf}
 };
-\node[h2,above=1.5cm of abox.north,
-      fit={(fhist.west) (fhist.east)},
-      anchor=south]{
+\node[h2,xshift=1.5cm,below=1mm of abox.north west,
+      anchor=north west]{
   Estimated Fatalities
 };
 
@@ -393,9 +396,8 @@
 \includegraphics[width=6.75cm,trim={1.8cm 1cm 1.3cm -1.25cm},clip]
   {[VERSIONFOLDER]/alertecon.pdf}
 };
-\node[h2,above=1.5cm of abox.north,
-      fit={(ehist.west) (ehist.east)},
-      anchor=south]{
+\node[h2,xshift=-5mm,below=1mm of abox.north east,
+      anchor=north east]{
   Estimated Economic Losses
 };
 
@@ -412,6 +414,20 @@
   [IMPACT2]
 };
 
+% Summary level
+\node[circle,draw,fill=[ALERTFILL],minimum size=12mm]
+  (scir) 
+  at (10.5cm,26.75cm) {};
+
+\node[h3,left=1mm of scir.west,anchor=east,text width=2.5cm,
+      align=right,yshift=10pt]{
+  Earthquake \\ Shaking
+};
+
+\node[h3,right=1mm of scir.east,anchor=west,text width=2.5cm,
+      align=left,yshift=10pt]{
+  [SUMMARYCOLOR] \\ Alert
+};
 
 %-------------------------------------------------------------------------------
 % Header stuff

@@ -138,9 +138,19 @@ def create_onepager(pdata,version_dir, debug = False):
     else:
         elapse = "Created: " + pdict['pager']['elapsed_time'] + " after earthquake"
     template = template.replace("[ELAPSED]", elapse)
-    template = template.replace("[IMPACT1]", texify(pdict['comments']['impact1']))
-    template = template.replace("[IMPACT2]", texify(pdict['comments']['impact2']))
-    template = template.replace("[STRUCTCOMMENT]", texify(pdict['comments']['struct_comment']))
+    template = template.replace("[IMPACT1]",
+                                texify(pdict['comments']['impact1']))
+    template = template.replace("[IMPACT2]",
+                                texify(pdict['comments']['impact2']))
+    template = template.replace("[STRUCTCOMMENT]",
+                                texify(pdict['comments']['struct_comment']))
+
+
+    # Summary alert color
+    template = template.replace("[SUMMARYCOLOR]",
+                                pdata.summary_alert.capitalize())
+    template = template.replace("[ALERTFILL]",
+                                pdata.summary_alert)
 
     # Fill in exposure values
     mmi = np.array(pdict['population_exposure']['mmi'])
