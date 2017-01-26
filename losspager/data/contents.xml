@@ -18,6 +18,8 @@
       <![CDATA[ Histogram of fatality alert probabilities ]]>
     </caption>
     <format href="alertfatal.pdf" type="application/pdf"/>
+    <format href="alertfatal.png" type="application/png"/>
+    <format href="alertfatal_small.png" type="application/png"/>
   </file>
 
   <file title="Economic Alert Histogram" id="histograms">
@@ -25,6 +27,8 @@
       <![CDATA[ Histogram of economic alert probabilities ]]>
     </caption>
     <format href="alertecon.pdf" type="application/pdf"/>
+    <format href="alertecon.png" type="application/png"/>
+    <format href="alertecon_small.png" type="application/png"/>
   </file>
 
   <file title="Exposure map" id="exposure">
