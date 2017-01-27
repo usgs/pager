@@ -59,6 +59,7 @@ def process_shakemap(args,config):
         logfile.close()
         sys.exit(1)
 
+    logfile.write('Checking if status is update...\n\n')
     if args.status != 'UPDATE':
         msg = 'No action to take with %s messages.' % args.status
         print(msg)
@@ -66,13 +67,15 @@ def process_shakemap(args,config):
         logfile.close()
         sys.exit(1)
 
+    logfile.write('Checking action...\n\n')
     if args.action not in ('EVENT_ADDED','EVENT_UPDATED','PRODUCT_ADDED','PRODUCT_UPDATED'):
         msg = 'No action to take with %s messages.' % args.action
         print(msg)
         logfile.write(msg+'\n\n')
         logfile.close()
         sys.exit(1)
-        
+
+    logfile.write('Checking source...\n\n')
     if args.source not in WHITELIST:
         msg = 'Input ShakeMaps must be from an approved list of sources: %s.  Exiting.' % str(WHITELIST)
         print(msg)
@@ -80,6 +83,7 @@ def process_shakemap(args,config):
         logfile.close()
         sys.exit(1)
 
+    logfile.write('Checking magnitude...\n\n')
     if args.magnitude < MAG_THRESHOLD:
         msg = 'Input ShakeMaps must be larger than M%.1f.  Exiting.' % MAG_THRESHOLD
         print(msg)
@@ -96,7 +100,8 @@ def process_shakemap(args,config):
         logfile.write(msg+'\n\n')
         logfile.close()
         sys.exit(1)
-    
+
+    logfile.write('Checking gridfile...\n\n')
     gridfile = os.path.join(args.directory,'download','grid.xml')
     if not os.path.isfile(gridfile):
         msg = 'Could not find input ShakeMap grid file at %s.  Exiting.' % gridfile
@@ -106,6 +111,7 @@ def process_shakemap(args,config):
         sys.exit(1)
 
     #We've passed all the filters, so call PAGER
+    logfile.write('Checking path...\n\n')
     homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
     pagerpath = os.path.join(homedir,'pager')
     cmd = '%s %s' % (pagerpath,gridfile)
