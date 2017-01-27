@@ -6,6 +6,7 @@ import os.path
 import sys
 from urllib import request
 import json
+import io
 
 #third party imports
 from impactutils.io.cmd import get_command_output
@@ -43,36 +44,63 @@ def get_authoritative(source,lat,lon):
     return is_authoritative,auth_source
 
 def process_shakemap(args,config):
+    if DEBUG:
+        logfilename = os.path.join(config['log_folder'],'callpager_%s.log' % args.code)
+        logfile = open(logfilename,'at')
+    else:
+        logfile = io.StringIO()
+    logfile.write('######Event %s####\n' % args.code)
     if args.status == 'DELETE':
         #look at this with respect to archiving and sending cancel messages
-        print('No action to take with delete messages.')
+        msg = 'No action to take with delete messages.'
+        print(msg)
+        logfile.write(msg+'\n\n')
+        logfile.close()
         sys.exit(1)
 
     if args.status != 'UPDATE':
-        print('No action to take with %s messages.' % args.status)
+        msg = 'No action to take with %s messages.' % args.status
+        print(msg)
+        logfile.write(msg+'\n\n')
+        logfile.close()
         sys.exit(1)
 
     if args.action not in ('EVENT_ADDED','EVENT_UPDATED','PRODUCT_ADDED','PRODUCT_UPDATED'):
-        print('No action to take with %s messages.' % args.action)
+        msg = 'No action to take with %s messages.' % args.action
+        print(msg)
+        logfile.write(msg+'\n\n')
+        logfile.close()
         sys.exit(1)
         
     if args.source not in WHITELIST:
-        print('Input ShakeMaps must be from an approved list of sources: %s.  Exiting.' % str(WHITELIST))
+        msg = 'Input ShakeMaps must be from an approved list of sources: %s.  Exiting.' % str(WHITELIST)
+        print(msg)
+        logfile.write(msg+'\n\n')
+        logfile.close()
         sys.exit(1)
 
     if args.magnitude < MAG_THRESHOLD:
-        print('Input ShakeMaps must be larger than M%.1f.  Exiting.' % MAG_THRESHOLD)
+        msg = 'Input ShakeMaps must be larger than M%.1f.  Exiting.' % MAG_THRESHOLD
+        print(msg)
+        logfile.write(msg+'\n\n')
+        logfile.close()
         sys.exit(1)
 
     #Use lat,lon and source to exclude ShakeMap providers who are playing outside their sandbox
     is_authoritative,auth_source = get_authoritative(args.source,args.lat,args.lon)
     if not is_authoritative:
-        print('Source %s is not authoritative for this region (%s is).  Exiting.' % (args.source,auth_source))
+        msg = 'Source %s is not authoritative for this region (%s is).  Exiting.' % (args.source,auth_source)
+        print(msg)
+        logfile.write(msg+'\n\n')
+        logfile.close()
         sys.exit(1)
     
     gridfile = os.path.join(args.directory,'download','grid.xml')
     if not os.path.isfile(gridfile):
-        print('Could not find input ShakeMap grid file at %s.  Exiting.' % gridfile)
+        msg = 'Could not find input ShakeMap grid file at %s.  Exiting.' % gridfile
+        print(msg)
+        logfile.write(msg+'\n\n')
+        logfile.close()
         sys.exit(1)
 
     #We've passed all the filters, so call PAGER
@@ -81,15 +109,16 @@ def process_shakemap(args,config):
     cmd = '%s %s' % (pagerpath,gridfile)
     res,stdout,stderr = get_command_output(cmd)
     if res:
-        print('Successful run.  Output returned: "%s".' % stdout)
+        msg = 'Successful run.  Output returned: "%s".' % stdout
+        print(msg)
+        logfile.write(msg+'\n\n')
+        logfile.close()
         sys.exit(0)
     else:
-        print('Unsuccessful run.  Output returned: "%s", "%s".' % (stdout,stderr))
-        if DEBUG:
-            logfile = os.path.join(config['output_folder'],'callpager.log')
-            f = open(logfile,'at')
-            f.write('Unsuccessful run on file %s.\n\n%s\n\n%s\n' % (gridfile,stdout,stderr))
-            f.close()
+        msg = 'Unsuccessful run.  Output returned: "%s", "%s".' % (stdout,stderr)
+        print(msg)
+        logfile.write(msg+'\n\n')
+        logfile.close()
         sys.exit(1)
 
 def process_admin(args,config):
@@ -173,6 +202,10 @@ def process_admin(args,config):
             
 
 def main(args):
+    logfile = os.path.join(os.path.expanduser('~'),'callpagerlog.log')
+    f = open(logfile,'wt')
+    f.write('Arguments: "%s"' % str(args))
+    f.close()
     config = read_config()
     if args.type == 'shakemap':
         process_shakemap(args,config)
