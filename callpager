@@ -10,10 +10,15 @@ import json
 #third party imports
 from impactutils.io.cmd import get_command_output
 
+#local imports
+from losspager.utils.config import read_config
+
 WHITELIST = ['us','ci','nc','nn','hv','uw','nn','uu','ak']
 GEOSERVE_URL = 'http://earthquake.usgs.gov/ws/geoserve/regions.json?latitude=[LAT]&longitude=[LON]'
 MAG_THRESHOLD = 4.0
 ANSS_FLAG = 'A'
+
+DEBUG = True
 
 def get_authoritative(source,lat,lon):
     is_authoritative = True
@@ -37,7 +42,7 @@ def get_authoritative(source,lat,lon):
         is_authoritative = False
     return is_authoritative,auth_source
 
-def process_shakemap(args):
+def process_shakemap(args,config):
     if args.status == 'DELETE':
         #look at this with respect to archiving and sending cancel messages
         print('No action to take with delete messages.')
@@ -80,9 +85,14 @@ def process_shakemap(args):
         sys.exit(0)
     else:
         print('Unsuccessful run.  Output returned: "%s", "%s".' % (stdout,stderr))
+        if DEBUG:
+            logfile = os.path.join(config['output_folder'],'callpager.log')
+            f = open(logfile,'at')
+            f.write('Unsuccessful run on file %s.\n\n%s\n\n%s\n' % (gridfile,stdout,stderr))
+            f.close()
         sys.exit(1)
 
-def process_admin(args):
+def process_admin(args,config):
     homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
     admin_path = os.path.join(homedir,'adminpager')
     pager_path = os.path.join(homedir,'adminpager')
@@ -163,10 +173,11 @@ def process_admin(args):
             
 
 def main(args):
+    config = read_config()
     if args.type == 'shakemap':
-        process_shakemap(args)
+        process_shakemap(args,config)
     elif args.type == 'pager-admin':
-        process_admin(args)
+        process_admin(args,config)
 
 if __name__ == '__main__':
     desc='Call the PAGER main program with arguments from PDL.'
