@@ -495,9 +495,6 @@ def main(pargs,config):
         onepager_pdf,error = create_onepager(doc,version_folder)
         if onepager_pdf is None:
             raise PagerException('Could not create onePAGER output: \n%s' % error)
-        if plog is not None:
-            plog.stopLogging()
-        print('Created onePAGER pdf %s' % onepager_pdf)
 
         #copy the contents.xml file to the version folder
         contentsfile = get_data_path('contents.xml')
@@ -507,6 +504,10 @@ def main(pargs,config):
         
         #run transfer, as appropriate and as specified by config
         _transfer(config,doc,authid,authsource,version_folder)
+
+        if plog is not None:
+            plog.stopLogging()
+        print('Created onePAGER pdf %s' % onepager_pdf)
         
         print('Done.')
         sys.exit(0)
