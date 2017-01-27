@@ -237,17 +237,15 @@ if __name__ == '__main__':
                            help="Product status",metavar='STATUS')
     argparser.add_argument("--action", 
                            help="Product action",metavar='ACTION')
-    argparser.add_argument("--property-latitude", type=float,
+    argparser.add_argument("--preferred-latitude", type=float,
                            help="Event latitude",metavar='LAT',dest='lat')
-    argparser.add_argument("--property-longitude", type=float,
+    argparser.add_argument("--preferred-longitude", type=float,
                            help="Event longitude",metavar='LON',dest='lon')
-    argparser.add_argument("--property-depth", type=float,
+    argparser.add_argument("--preferred-depth", type=float,
                            help="Event depth",metavar='DEPTH',dest='depth')
-    argparser.add_argument("--property-magnitude", type=float,
+    argparser.add_argument("--preferred-magnitude", type=float,
                            help="Event magnitude",metavar='MAG',dest='magnitude')
-    argparser.add_argument("--property-eventtime", 
+    argparser.add_argument("--preferred-eventtime", 
                            help="Event time",metavar='TIME',dest='time')
-    argparser.add_argument("--property-action", 
-                           help="Event action",metavar='ACTION',dest='time')
     pargs, unknown = argparser.parse_known_args()
     main(pargs)
