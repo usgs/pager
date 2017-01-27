@@ -50,6 +50,7 @@ def process_shakemap(args,config):
     else:
         logfile = io.StringIO()
     logfile.write('######Event %s####\n' % args.code)
+    logfile.write('args%s\n\n' % str(args))
     if args.status == 'DELETE':
         #look at this with respect to archiving and sending cancel messages
         msg = 'No action to take with delete messages.'
@@ -87,6 +88,7 @@ def process_shakemap(args,config):
         sys.exit(1)
 
     #Use lat,lon and source to exclude ShakeMap providers who are playing outside their sandbox
+    logfile.write('Checking for authoritativeness...\n\n')
     is_authoritative,auth_source = get_authoritative(args.source,args.lat,args.lon)
     if not is_authoritative:
         msg = 'Source %s is not authoritative for this region (%s is).  Exiting.' % (args.source,auth_source)
@@ -107,6 +109,7 @@ def process_shakemap(args,config):
     homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
     pagerpath = os.path.join(homedir,'pager')
     cmd = '%s %s' % (pagerpath,gridfile)
+    logfile.write('Calling command %s\n\n' % cmd)
     res,stdout,stderr = get_command_output(cmd)
     if res:
         msg = 'Successful run.  Output returned: "%s".' % stdout
