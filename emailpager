@@ -12,10 +12,11 @@ from datetime import datetime
 #third party imports
 import pandas as pd
 import numpy as np
+from impactutils.transfer.emailsender import EmailSender
 
 #local imports
 from losspager.schema import emailschema as es
-from losspager.mail import send_message
+
 
 TIMEFMT = '%Y-%m-%d %H:%M:%S'
 
@@ -121,8 +122,11 @@ def parse_xml(xmlfile):
     return (eventcode,vdict,eventinfo)
 
 def alert_user(email,format,config,version,send_mail=False):
-    
-        
+    params = config['transfer']['email']
+    props = {'smtp_servers':params['smtp_servers'],
+             'sender':params['sender']}
+    sender = EmailSender(
+
 
 def main(args,configfile):
     config = configparser.ConfigParser()
@@ -168,8 +172,6 @@ def main(args,configfile):
     for address in session.query(es.Address):
         formats[address.format].append(address.email)
     for eformat,addresses in formats.items():
-        sender = EmailSender(
-        
         if address.shouldAlert(version):
             alert_user(address.email,address.format,send_mail=args.production)
     
@@ -188,10 +190,6 @@ if __name__ == '__main__':
     pargs = parser.parse_args()
 
     #get config file name, make sure it exists
-    configfilename = os.path.join(os.path.expanduser('~'),'.losspager','mailconfig.ini')
-    if not os.path.isfile(configfilename):
-        print('Config file could not be found at %s.  Exiting.\n\n' % configfilename)
-        parser.print_help()
-        sys.exit(1)
+    config = read_mail_config()
     
     main(pargs,configfilename)
