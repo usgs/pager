@@ -221,9 +221,20 @@ def _draw_probs(fatmodel,fatdict,ecomodel,ecodict,version_folder):
     eco_figure = drawImpactScale(eco_probs,'economic')
 
     fat_probs_file = os.path.join(version_folder,'alertfatal.pdf')
+    fat_probs_file_png = os.path.join(version_folder,'alertfatal.png')
+    fat_probs_file_small = os.path.join(version_folder,'alertfatal_small.png')
+    
     eco_probs_file = os.path.join(version_folder,'alertecon.pdf')
+    eco_probs_file_png = os.path.join(version_folder,'alertecon.png')
+    eco_probs_file_small = os.path.join(version_folder,'alertecon_small.png')
+    
     fat_figure.savefig(fat_probs_file,bbox_inches='tight')
+    fat_figure.savefig(fat_probs_file_png,bbox_inches='tight')
+    fat_figure.savefig(fat_probs_file_small,bbox_inches='tight',dpi=57)
+    
     eco_figure.savefig(eco_probs_file,bbox_inches='tight')
+    eco_figure.savefig(eco_probs_file_png,bbox_inches='tight')
+    eco_figure.savefig(eco_probs_file_small,bbox_inches='tight',dpi=57)
     return (fat_probs_file,eco_probs_file)
 
 def _cancel(eventid,config):
@@ -293,7 +304,7 @@ def main(pargs,config):
         
     
     pager_folder = os.path.join(homedir,config['output_folder'])
-    pager_archive = os.path.join(homedir,config['output_folder'])
+    pager_archive = os.path.join(homedir,config['archive_folder'])
     
     admin = PagerAdmin(pager_folder,pager_archive)
     
@@ -484,9 +495,6 @@ def main(pargs,config):
         onepager_pdf,error = create_onepager(doc,version_folder)
         if onepager_pdf is None:
             raise PagerException('Could not create onePAGER output: \n%s' % error)
-        if plog is not None:
-            plog.stopLogging()
-        print('Created onePAGER pdf %s' % onepager_pdf)
 
         #copy the contents.xml file to the version folder
         contentsfile = get_data_path('contents.xml')
@@ -496,8 +504,13 @@ def main(pargs,config):
         
         #run transfer, as appropriate and as specified by config
         _transfer(config,doc,authid,authsource,version_folder)
+
+        if plog is not None:
+            plog.stopLogging()
+        print('Created onePAGER pdf %s' % onepager_pdf)
         
         print('Done.')
+        sys.exit(0)
     except Exception as e:
         if plog is not None:
             f = io.StringIO()

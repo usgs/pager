@@ -17,7 +17,7 @@ from matplotlib.patches import Rectangle,Ellipse
 #local imports
 from losspager.utils.exception import PagerException
 
-ASPECT = 63/23 #width of old impact scale/height
+ASPECT = 390/187 #width of old impact scale/height
 WIDTH = 8.0 #desired width in inches of new impact scale (doesn't matter much as it's a vector, and we'll scale
 #up or down as necessary
 

@@ -6,14 +6,20 @@ import os.path
 import sys
 from urllib import request
 import json
+import io
 
 #third party imports
 from impactutils.io.cmd import get_command_output
+
+#local imports
+from losspager.utils.config import read_config
 
 WHITELIST = ['us','ci','nc','nn','hv','uw','nn','uu','ak']
 GEOSERVE_URL = 'http://earthquake.usgs.gov/ws/geoserve/regions.json?latitude=[LAT]&longitude=[LON]'
 MAG_THRESHOLD = 4.0
 ANSS_FLAG = 'A'
+
+DEBUG = True
 
 def get_authoritative(source,lat,lon):
     is_authoritative = True
@@ -37,52 +43,94 @@ def get_authoritative(source,lat,lon):
         is_authoritative = False
     return is_authoritative,auth_source
 
-def process_shakemap(args):
+def process_shakemap(args,config):
+    if DEBUG:
+        logfilename = os.path.join(config['log_folder'],'callpager_%s.log' % args.code)
+        logfile = open(logfilename,'at')
+    else:
+        logfile = io.StringIO()
+    logfile.write('######Event %s####\n' % args.code)
+    logfile.write('args%s\n\n' % str(args))
     if args.status == 'DELETE':
         #look at this with respect to archiving and sending cancel messages
-        print('No action to take with delete messages.')
+        msg = 'No action to take with delete messages.'
+        print(msg)
+        logfile.write(msg+'\n\n')
+        logfile.close()
         sys.exit(1)
 
+    logfile.write('Checking if status is update...\n\n')
     if args.status != 'UPDATE':
-        print('No action to take with %s messages.' % args.status)
+        msg = 'No action to take with %s messages.' % args.status
+        print(msg)
+        logfile.write(msg+'\n\n')
+        logfile.close()
         sys.exit(1)
 
+    logfile.write('Checking action...\n\n')
     if args.action not in ('EVENT_ADDED','EVENT_UPDATED','PRODUCT_ADDED','PRODUCT_UPDATED'):
-        print('No action to take with %s messages.' % args.action)
-        sys.exit(1)
-        
-    if args.source not in WHITELIST:
-        print('Input ShakeMaps must be from an approved list of sources: %s.  Exiting.' % str(WHITELIST))
+        msg = 'No action to take with %s messages.' % args.action
+        print(msg)
+        logfile.write(msg+'\n\n')
+        logfile.close()
         sys.exit(1)
 
+    logfile.write('Checking source...\n\n')
+    if args.source not in WHITELIST:
+        msg = 'Input ShakeMaps must be from an approved list of sources: %s.  Exiting.' % str(WHITELIST)
+        print(msg)
+        logfile.write(msg+'\n\n')
+        logfile.close()
+        sys.exit(1)
+
+    logfile.write('Checking magnitude...\n\n')
     if args.magnitude < MAG_THRESHOLD:
-        print('Input ShakeMaps must be larger than M%.1f.  Exiting.' % MAG_THRESHOLD)
+        msg = 'Input ShakeMaps must be larger than M%.1f.  Exiting.' % MAG_THRESHOLD
+        print(msg)
+        logfile.write(msg+'\n\n')
+        logfile.close()
         sys.exit(1)
 
     #Use lat,lon and source to exclude ShakeMap providers who are playing outside their sandbox
+    logfile.write('Checking for authoritativeness...\n\n')
     is_authoritative,auth_source = get_authoritative(args.source,args.lat,args.lon)
     if not is_authoritative:
-        print('Source %s is not authoritative for this region (%s is).  Exiting.' % (args.source,auth_source))
+        msg = 'Source %s is not authoritative for this region (%s is).  Exiting.' % (args.source,auth_source)
+        print(msg)
+        logfile.write(msg+'\n\n')
+        logfile.close()
         sys.exit(1)
-    
+
+    logfile.write('Checking gridfile...\n\n')
     gridfile = os.path.join(args.directory,'download','grid.xml')
     if not os.path.isfile(gridfile):
-        print('Could not find input ShakeMap grid file at %s.  Exiting.' % gridfile)
+        msg = 'Could not find input ShakeMap grid file at %s.  Exiting.' % gridfile
+        print(msg)
+        logfile.write(msg+'\n\n')
+        logfile.close()
         sys.exit(1)
 
     #We've passed all the filters, so call PAGER
+    logfile.write('Checking path...\n\n')
     homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
     pagerpath = os.path.join(homedir,'pager')
     cmd = '%s %s' % (pagerpath,gridfile)
+    logfile.write('Calling command %s\n\n' % cmd)
     res,stdout,stderr = get_command_output(cmd)
     if res:
-        print('Successful run.  Output returned: "%s".' % stdout)
+        msg = 'Successful run.  Output returned: "%s".' % stdout
+        print(msg)
+        logfile.write(msg+'\n\n')
+        logfile.close()
         sys.exit(0)
     else:
-        print('Unsuccessful run.  Output returned: "%s", "%s".' % (stdout,stderr))
+        msg = 'Unsuccessful run.  Output returned: "%s", "%s".' % (stdout,stderr)
+        print(msg)
+        logfile.write(msg+'\n\n')
+        logfile.close()
         sys.exit(1)
 
-def process_admin(args):
+def process_admin(args,config):
     homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
     admin_path = os.path.join(homedir,'adminpager')
     pager_path = os.path.join(homedir,'adminpager')
@@ -163,10 +211,15 @@ def process_admin(args):
             
 
 def main(args):
+    logfile = os.path.join(os.path.expanduser('~'),'callpagerlog.log')
+    f = open(logfile,'wt')
+    f.write('Arguments: "%s"' % str(args))
+    f.close()
+    config = read_config()
     if args.type == 'shakemap':
-        process_shakemap(args)
+        process_shakemap(args,config)
     elif args.type == 'pager-admin':
-        process_admin(args)
+        process_admin(args,config)
 
 if __name__ == '__main__':
     desc='Call the PAGER main program with arguments from PDL.'
@@ -184,17 +237,15 @@ if __name__ == '__main__':
                            help="Product status",metavar='STATUS')
     argparser.add_argument("--action", 
                            help="Product action",metavar='ACTION')
-    argparser.add_argument("--property-latitude", type=float,
+    argparser.add_argument("--preferred-latitude", type=float,
                            help="Event latitude",metavar='LAT',dest='lat')
-    argparser.add_argument("--property-longitude", type=float,
+    argparser.add_argument("--preferred-longitude", type=float,
                            help="Event longitude",metavar='LON',dest='lon')
-    argparser.add_argument("--property-depth", type=float,
+    argparser.add_argument("--preferred-depth", type=float,
                            help="Event depth",metavar='DEPTH',dest='depth')
-    argparser.add_argument("--property-magnitude", type=float,
+    argparser.add_argument("--preferred-magnitude", type=float,
                            help="Event magnitude",metavar='MAG',dest='magnitude')
-    argparser.add_argument("--property-eventtime", 
+    argparser.add_argument("--preferred-eventtime", 
                            help="Event time",metavar='TIME',dest='time')
-    argparser.add_argument("--property-action", 
-                           help="Event action",metavar='ACTION',dest='time')
     pargs, unknown = argparser.parse_known_args()
     main(pargs)
