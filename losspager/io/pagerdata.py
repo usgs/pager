@@ -47,7 +47,7 @@ class PagerData(object):
             fatalert = self._pagerdict['alerts']['fatality']['level']
             ecoalert = self._pagerdict['alerts']['economic']['level']
             return fmt % (eid,eversion,etime,emag,fatalert,ecoalert)
-        
+
     #########Setters########
     def setInputs(self,shakegrid,timezone_file,pagerversion,versioncode,
                   eventcode,tsunami,location,is_released,elapsed=None):
@@ -300,7 +300,10 @@ class PagerData(object):
     
     @property
     def summary_alert(self):
-        return self._pagerdict['pager']['alert_level']
+        """Get the actual alert level (ignoring any pending status).
+
+        """
+        return self._pagerdict['pager']['true_alert_level']
 
     @property
     def fatality_alert(self):
@@ -324,10 +327,11 @@ class PagerData(object):
     
     @property
     def summary_alert_pending(self):
-        if self._is_released:
-            return self.summary_alert
-        else:
-            return 'pending'
+        """Get alert level.  Will return pending if orange or red and not yet released.
+
+        """
+        return self._pagerdict['pager']['alert_level']
+
     
     #########Accessors########
     @classmethod
@@ -427,12 +431,16 @@ class PagerData(object):
 
     def __renderPager(self):
         #<pager version="1.0 Revision 1516" xml_version="1" process_timestamp="2016-12-09T20:03:58Z" elapsed="20 minutes, 32 seconds" ccode="SB" approved="A" tsunami="0">
+        if self._is_released:
+            approved = 'Y'
+        else:
+            approved = 'N'
         pdict = {'version':self.getSoftwareVersion(),
                  'xml_version':'1',
                  'process_timestamp':self.processing_time.strftime(DATETIMEFMT),
                  'elapsed':self.getElapsed(),
                  'ccode':'UK',
-                 'approved':'A',
+                 'approved':approved,
                  'tsunami':'%i' % (int(self._tsunami_flag))}
         pager = etree.Element('pager',attrib=pdict)
         return pager
@@ -724,7 +732,12 @@ class PagerData(object):
         ecolevel = self._ecomodel.getAlertLevel(self._ecomodel_results)
         levels = {'green':0,'yellow':1,'orange':2,'red':3}
         rlevels = {0:'green',1:'yellow',2:'orange',3:'red'}
-        pager['alert_level'] = rlevels[max(levels[fatlevel],levels[ecolevel])]
+        max_level = rlevels[max(levels[fatlevel],levels[ecolevel])]
+        alert_level = max_level
+        if max_level == 'orange' or max_level == 'red' and not self._is_released:
+            alert_level = 'pending'
+        pager['alert_level'] = alert_level
+        pager['true_alert_level'] = max_level
         maxmmi,nmmi = self._get_maxmmi(self._exposure)
         pager['maxmmi'] = maxmmi
         self._nmmi = nmmi
