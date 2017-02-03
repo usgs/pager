@@ -1,0 +1,57 @@
+#!/usr/bin/env python
+
+#stdlib imports
+import argparse
+import sys
+import os.path
+
+#local imports
+from losspager.utils.config import read_config
+from losspager.utils.datapath import get_data_path
+
+#third party imports
+from impactutils.io.cmd import get_command_output
+
+PAGERUPDATE = 'cd %s;git pull;cd ..;pip install --upgrade src/'
+ENVUPDATE = 'cd %s;git pull;bash setup_env.sh'
+
+def main(args):
+    config = read_config()
+    output_folder = config['output_folder']
+    pager_dir,output = os.path.split(output_folder.rstrip(os.sep))
+    src_folder = os.path.join(pager_dir,'src')
+    if not os.path.isdir(src_folder):
+        print('Could not find src/ directory in your PAGER installation directory.  Exiting.')
+        sys.exit(1)
+    pagercmd = PAGERUPDATE % src_folder
+    envcmd = ENVUPDATE % src_folder
+    if args.all:
+        res1,stdout1,stderr1 = get_command_output(envcmd)
+        if not res1:
+            print('Failed to update Python environment, error:\n "%s" \n "%s".  Exiting.' % (stderr1.decode('utf-8'),stdout1.decode('utf-8')))
+            sys.exit(1)
+        else:
+            print('Your Python environment has been updated:\n%s' % stdout1.decode('utf-8'))
+    res2,stdout2,stderr2 = get_command_output(pagercmd)
+    if not res2:
+        print('Failed to update PAGER code, error:\n "%s" \n "%s".  Exiting.' % (stderr2.decode('utf-8'),stdout2.decode('utf-8')))
+        sys.exit(1)
+    else:
+        print('The PAGER code has been updated:\n%s.' % stdout2.decode('utf-8'))
+    
+    sys.exit(0)
+
+if __name__ == '__main__':
+    desc='Update some or all of the PAGER code infrastructure.'
+    usage = '''
+    To update just the PAGER source code (not its dependencies), run %(prog)s.
+    To update everything, including the PAGER source code and its dependencies, run %(prog)s --all.
+    '''
+    argparser = argparse.ArgumentParser(description=desc,
+                                        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+                                        usage=usage)
+    argparser.add_argument("--all", action='store_true',default=False,
+                           help='Update the PAGER environment, including dependencies, and PAGER code.')
+
+    pargs = argparser.parse_args()
+    main(pargs)

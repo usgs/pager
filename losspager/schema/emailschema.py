@@ -134,6 +134,7 @@ class Address(Base):
     email = Column(String, nullable=False)
     user_id = Column(Integer, ForeignKey('user.id'))
     is_primary = Column(Boolean,nullable=False)
+    #a low priority (i.e., 1) means this address should be emailed before addresses with higher numbers.
     priority = Column(Integer, nullable=False)
     format = Column(String,nullable=False)
 
