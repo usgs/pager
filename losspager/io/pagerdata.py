@@ -16,6 +16,7 @@ import pandas as pd
 from losspager.utils.expocat import ExpoCat
 from losspager.onepager.pagercity import PagerCities
 from losspager.utils.exception import PagerException
+from losspager.utils.country import Country
 
 DATETIMEFMT = '%Y-%m-%d %H:%M:%S'
 TIMEFMT = '%H:%M:%S'
@@ -243,6 +244,16 @@ class PagerData(object):
             raise PagerException('PagerData object has not yet been validated.')
         return self._pagerdict['comments']['struct_comment']
 
+    def getSecondaryComment(self):
+        """Return a paragraph describing the history of secondary hazards in the region.
+
+        :returns:
+          Paragraph of text describing the history of secondary hazards in the region.
+        """
+        if not self._is_validated:
+            raise PagerException('PagerData object has not yet been validated.')
+        return self._pagerdict['comments']['secondary_comment']
+    
     def getHistoricalComment(self):
         """Return a string describing the most impactful historical earthquake near the current event.
 
@@ -332,11 +343,18 @@ class PagerData(object):
         """
         return self._pagerdict['pager']['alert_level']
 
+    @property
+    def location(self):
+        """Get event location string.
+
+        """
+        return self._location
     
     #########Accessors########
     @classmethod
     def getSeriesColumns(self,processtime=False):
         columns = ['EventID',
+                   'Impacted Country ($)',
                    'Version',
                    'EventTime',
                    'Lat',
@@ -358,9 +376,23 @@ class PagerData(object):
         else:
             alert = self.summary_alert
             elapsed_dt = (self.processing_time - self.time)
+
+
+        country = Country()
             
         elapsed_minutes = int(elapsed_dt.days*MINS_PER_DAY + elapsed_dt.seconds/SECS_PER_MIN)
+        max_dollars = 0
+        max_ccode = ''
+        for cresult in self._pagerdict['model_results']['empirical_economic']['country_dollars']:
+            if cresult['us_dollars'] >= max_dollars:
+                max_dollars = cresult['us_dollars']
+                max_ccode = cresult['country_code']
+        if max_ccode == 'UK':
+            cname = 'Unspecified'
+        else:
+            cname = country.getCountry(max_ccode)['Name']
         d = {'EventID':self.id,
+             'Impacted Country ($)':cname,
              'Version':self.version,
              'EventTime':self.time,
              'Lat':self.latitude,
@@ -663,6 +695,9 @@ class PagerData(object):
             self._is_released = False
             
         self._pagerdict['shake_info'] = event['shakemap'].copy()
+
+        #set the maxmmi property
+        self._maxmmi = self._pagerdict['pager']['maxmmi']
 
         #load the information about the alerts
         f = open(os.path.join(jsonfolder,'alerts.json'),'rt')

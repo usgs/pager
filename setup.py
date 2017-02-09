@@ -11,6 +11,7 @@ setup(name='losspager',
                 'losspager.onepager','losspager.schema','losspager.mail',
                 'losspager.io'],
       package_data = {'losspager':[os.path.join('data', '*'),
+                                   os.path.join('data','schema','*'),
                                    os.path.join('logos', '*')
                                    ]},
       scripts = ['pagerlite','emailpager','pager','adminpager','callpager'],

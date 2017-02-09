@@ -223,18 +223,22 @@ def _draw_probs(fatmodel,fatdict,ecomodel,ecodict,version_folder):
     fat_probs_file = os.path.join(version_folder,'alertfatal.pdf')
     fat_probs_file_png = os.path.join(version_folder,'alertfatal.png')
     fat_probs_file_small = os.path.join(version_folder,'alertfatal_small.png')
+    fat_probs_file_smaller = os.path.join(version_folder,'alertfatal_smaller.png')
     
     eco_probs_file = os.path.join(version_folder,'alertecon.pdf')
     eco_probs_file_png = os.path.join(version_folder,'alertecon.png')
     eco_probs_file_small = os.path.join(version_folder,'alertecon_small.png')
+    eco_probs_file_smaller = os.path.join(version_folder,'alertecon_smaller.png')
     
     fat_figure.savefig(fat_probs_file,bbox_inches='tight')
     fat_figure.savefig(fat_probs_file_png,bbox_inches='tight')
     fat_figure.savefig(fat_probs_file_small,bbox_inches='tight',dpi=57)
+    fat_figure.savefig(fat_probs_file_smaller,bbox_inches='tight',dpi=35)
     
     eco_figure.savefig(eco_probs_file,bbox_inches='tight')
     eco_figure.savefig(eco_probs_file_png,bbox_inches='tight')
     eco_figure.savefig(eco_probs_file_small,bbox_inches='tight',dpi=57)
+    eco_figure.savefig(eco_probs_file_smaller,bbox_inches='tight',dpi=35)
     return (fat_probs_file,eco_probs_file)
 
 def _cancel(eventid,config):
@@ -510,7 +514,14 @@ def main(pargs,config):
         print('Created onePAGER pdf %s' % onepager_pdf)
         
         print('Done.')
-        sys.exit(0)
+        #There is a weird error that happens (sometimes) after calling exit.  I *think* it has to do with
+        #Python trying to delete an object that happens to be None.  It's not clear where it's coming from
+        #and as it happens after the code completes, I'm not terribly concerned about it other than
+        #confusion for users.  Hence the try block around sys.exit().
+        try:
+            sys.exit(0)
+        except:
+            sys.exit(0)
     except Exception as e:
         if plog is not None:
             f = io.StringIO()

@@ -13,183 +13,181 @@ from datetime import datetime
 import pandas as pd
 import numpy as np
 from impactutils.transfer.emailsender import EmailSender
+from impactutils.comcat.query import ComCatInfo
 
 #local imports
 from losspager.schema import emailschema as es
+from losspager.mail.formatter import format_msg
+from losspager.utils.config import read_mail_config
+from losspager.io.pagerdata import PagerData
 
+DEFAULT_PAGER_URL = 'http://earthquake.usgs.gov/data/pager/'
 
-TIMEFMT = '%Y-%m-%d %H:%M:%S'
+ALERT_DICT = {'green':0,
+              'yellow':1,
+              'orange':2,
+              'red':3}
 
-def parse_xml(xmlfile):
-    alert_dict = {'green':0,
-                  'yellow':1,
-                  'orange':2,
-                  'red':3}
-    rev_alert_dict = {0:'green',
-                      1:'yellow',
-                      2:'orange',
-                      3:'red'}
-    eventcode = ''
-    vdict = {}
-    root = minidom.parse(xmlfile)
-    pager = root.getElementsByTagName('pager')[0]
-    event = pager.getElementsByTagName('event')[0]
-
-    vdict['versioncode'] = event.getAttribute('versioncode')
-    vdict['time'] = datetime.strptime(event.getAttribute('event_timestamp'),TIMEFMT)
-    vdict['lat'] = float(event.getAttribute('lat'))
-    vdict['lon'] = float(event.getAttribute('lon'))
-    vdict['depth'] = float(event.getAttribute('depth'))
-    vdict['magnitude'] = float(event.getAttribute('magnitude'))
-    vdict['number'] = int(event.getAttribute('number'))
-    #summarylevel = Column(Enum(_AlertEnum), nullable=False)
-    vdict['processtime'] = datetime.strptime(event.getAttribute('process_timestamp'),TIMEFMT)
-    vdict['maxmmi'] = float(event.getAttribute('maxmmi'))
-
-    alerts = pager.getElementsByTagName('alert')
-    levels = [alert_dict[alert.getAttribute(level)] for alert in alerts]
-    vdict['summarylevel'] = rev_alert_dict[max(levels)]
-    eventcode = event.getAttribute('eventcode')
-
-    #now we need to build a dictionary with:
-    #location string, both alert levels, alert comment, tsunami flag, exposures, 
-    #city table, structure comment, historical earthquakes, secondary hazards comment, 
-    #event url, pdf file location.
-    eventinfo = {}
-    eventinfo['location'] = event.getAttribute('event_description')
-    for alert in alerts:
-        if alert.getAttribute('type') == 'fatality':
-            eventinfo['fatalert'] = alert.getAttribute('level')
-        else:
-            eventinfo['ecoalert'] = alert.getAttribute('level')
-
-    #tsunami info
-    eventinfo['tsunami'] = int(event.getAttribute('tsunami'))
-
-    #get exposures
-    aggexp = pager.getElementsByTagName('impact')[0].getElementsByTagName('aggregated_exposures')[0]
-    exposures = aggexp.getElementsByTagName('exposure')
-    expo = []
-    tdict = {'False':False,'True':True}
-    for exp in exposures:
-        expo.append({'inside':tdict[expo.getAttribute('rangeInsideMap')],
-                     'exposure':int(expo.getAttribute('exposure'))})
-    eventinfo['exposure'] = expo
-
-    #get city table
-    cities = pager.getElementsByTagName('cities')[0].getElementsByTagName('pagercity')
-    citylist = []
-    for city in cities:
-        citylist.append({'name':city.getAttribute('name'),
-                         'mmi':float(city.getAttribute('mmi')),
-                         'pop':int(city.getAttribute('pop'))})
-    eventinfo['cities'] = citylist
-
-    #get comments
-    topcomment = pager.getElementsByTagName('comments')[0]
-    impact1 = topcomment.getElementsByTagName('impact1')[0]
-    impact2 = topcomment.getElementsByTagName('impact2')[0]
-    eventinfo['alert_comment'] = impact1.firstChild.data + ' ' + impact2.firstChild.data
-    struct = topcomment.getElementsByTagName('structure_comment')[0]
-    eventinfo['structure_comment'] = struct.firstChild.data
-    sec = topcomment.getElementsByTagName('secondary_comment')[0]
-    eventinfo['secondary_comment'] = sec.firstChild.data
-    
-    #get historical earthquakes
-    histevents = pager.getElementsByTagName('historical_events')[0]
-    historical_events = []
-    for histevent in histevents.getElementsByTagName('historical_event'):
-        historical_events.append({'distance':float(histevent.getAttribute('distance')),
-                                  'date':datetime.strptime(histevent.getAttribute('date'),TIMEFMT),
-                                  'magnitude':float(histevent.getAttribute('magnitude')),
-                                  'maxmmi':int(histevent.getAttribute('maxmmi')),
-                                  'maxmmiexp':int(histevent.getAttribute('maxmmiexp')),
-                                  'deaths':int(histevent.getAttribute('shakingdeaths'))})
-    eventinfo['historical_earthquakes'] = historical_events
-
-    #insert the url for the event
-    urltemplate = config.get('URL_TEMPLATE','template')
-    url = url.replace('EVENTID',eventcode)
-    eventinfo['url'] = url
-
-    #ARE WE STILL DOING THE PDF ATTACHMENT?
-    folder,xmlname = os.path.split(xmlfile)
-    pdfpath = os.path.join(folder,'onepager.pdf')
-    eventinfo['pdf'] = pdfpath
-                                  
-    
-    root.unlink()
-    return (eventcode,vdict,eventinfo)
-
-def alert_user(email,format,config,version,send_mail=False):
-    params = config['transfer']['email']
-    props = {'smtp_servers':params['smtp_servers'],
-             'sender':params['sender']}
-    sender = EmailSender(
-
-
-def main(args,configfile):
-    config = configparser.ConfigParser()
-    config.read(configfile)
-    
-    xmlfile = os.path.join(args.pagerdir,'pager.xml')
-    eventcode,vdict,eventinfo = parse_xml(xmlfile)
-
-    database_url = config.get('DATABASE','url')
-    session = emailschema.get_session(database_url)
-
-    #first, check to see if this event already exists in the database
-    event = session.query(es.Event).filter(es.Event.eventcode == eventcode).first()
+def get_version(session,pdata):
+    eventid = pdata.id
+    event = session.query(es.Event).filter(es.Event.eventcode == eventid).first()
+    ccinfo = None
+    authid = eventid
     if event is None:
-        event = es.Event(eventcode=eventcode)
-        session.add(event)
-        
-    version = es.Version(versioncode=vdict['versioncode'],
-                         time=vdict['time'],
-                         lat=vdict['lat'],
-                         lon=vdict['lon'],
-                         depth=vdict['depth'],
-                         magnitude=vdict['magnitude'],
-                         number=vdict['number'],
-                         summarylevel=vdict['summarylevel'],
-                         processtime=vdict['processtime'],
-                         maxmmi=vdict['maxmmi'])
+        try:
+            ccinfo = ComCatInfo(eventid)
+            authid,allids = ccinfo.getAssociatedIds()
+            allids.insert(0,authid)
+            allids.remove(eventid)
+            for testid in allids:
+                event = session.query(es.Event).filter(es.Event.eventcode == testid).first()
+                if event is not None:
+                    break
+        except:
+            pass
+    if event is None:
+        #we need to create a new event
+        event = es.Event(eventcode=authid)
+    #Now create a new version
+    version = es.Version(versioncode = eventid,
+                         time = pdata.time,
+                         lat = pdata.latitude,
+                         lon = pdata.longitude,
+                         depth = pdata.depth,
+                         magnitude = pdata.magnitude,
+                         number = len(event.versions) + 1,
+                         summarylevel = ALERT_DICT[pdata.summary_alert],
+                         processtime = pdata.processing_time,
+                         maxmmi = pdata.maxmmi)
     event.versions.append(version)
+    #commit this event and version to the database
+    session.add(event)
     session.commit()
+    return (version,ccinfo)
 
-    #first check to see that the event time is less than the threshold elapsed
-    #time after which emails should not be sent
-    #TODO - allow for force option?
-    elapsed_hours = int(config.get('THRESHOLDS','elapsed_threshold'))
-    elapsed = timedelta(seconds=elapsed_hours*3600)
-    if (datetime.utcnow() - version.time) > elapsed:
-        print('More than %i hours have elapsed since event origin time.  No emails will be sent.' % elapsed_hours)
-        sys.exit(0)
-
-    formats = {'long':[],
-               'short':[],
-               'pdf':[]}
-    for address in session.query(es.Address):
-        formats[address.format].append(address.email)
-    for eformat,addresses in formats.items():
-        if address.shouldAlert(version):
-            alert_user(address.email,address.format,send_mail=args.production)
-    
-    session.close()
-
-if __name__ == '__main__':
-    desc = """Send emails to PAGER users, given a PAGER product as input.
-
-    THIS SCRIPT IS A PLACEHOLDER!
-    """
-    parser = argparse.ArgumentParser(description='desc')
-    parser.add_argument('pagerdir',
-                        help='The path to a PAGER product directory')
-    parser.add_argument('-p','--production', action='store_true',
-                        default=False, help='Actually send emails')
-    pargs = parser.parse_args()
-
-    #get config file name, make sure it exists
+def main(args):
+    #get all of the information from the mail config file
     config = read_mail_config()
     
-    main(pargs,configfilename)
+    #first make sure this is a losspager product
+    if args.type != 'losspager':
+        print('emailpager is only configured to work with losspager products. Exiting.')
+        sys.exit(1)
+
+    #Make sure this action is something we're interested in.
+    if args.action not in ('EVENT_ADDED','EVENT_UPDATED','PRODUCT_ADDED','PRODUCT_UPDATED'):
+        msg = 'No action to take with %s messages.' % args.action
+        print(msg)
+        sys.exit(1)
+
+    #TODO: Do something with delete messages
+    if args.status == 'DELETE':
+        msg = 'No action to take with delete messages.' % args.status
+        print(msg)
+        sys.exit(1)
+
+    jsondir = os.path.join(args.directory,'json')
+    if not os.path.isdir(jsondir):
+        print('JSON directory containing PAGER output not found. Exiting.')
+        sys.exit(1)
+
+    #Everything is cool...
+    pdata = PagerData()
+    pdata.loadFromJSON(jsondir)
+
+    #Instantiate a session with our database
+    dburl = config['email']['database']['url']
+    session = es.get_session(url=dburl,create_db=False)
+    
+    #Find event in database, or create it if not found.  Return a new version for that event
+    version,ccinfo = get_version(session,pdata)
+
+    #loop over all adddresses, check to see if they should get notified
+    all_addresses = session.query(es.Address).all()
+    short_addresses = []
+    long_addresses = []
+    pdf_addresses = []
+    for address in all_addresses:
+        if address.shouldAlert(version):
+            if address.format == 'short':
+                short_addresses.append(address)
+            elif address.format == 'long':
+                long_addresses.append(address)
+            else:
+                pdf_addresses.append(address)
+
+
+    #try to find the event url
+    if ccinfo is not None:
+        event_url = ccinfo.getURL()+'#pager'
+    else:
+        event_url = DEFAULT_PAGER_URL
+                
+    #create the short and long message texts
+    short_msg = format_msg(version,pdata,'short',event_url)
+    long_msg = format_msg(version,pdata,'long',event_url)
+
+    #create the long and short subjects
+    subject = generate_subject_line(version,pdata)
+
+    all_props['smtp_servers'] = config['email']['smtp_servers']
+    all_props['sender'] = config['email']['sender']
+    all_props['subject'] = subject
+    
+    #set up mail transfer object for short messages
+    if len(short_addresses):
+        props = all_props.copy()
+        props['recipients'] = [address.email for address in short_addresses]
+        props['message'] = short_msg
+        sender = EmailSender(properties=props)
+        print('Sending short message to %i recipients...' % len(short_addresses))
+        sender.send()
+        
+    if len(long_addresses):
+        props = all_props.copy()
+        props['recipients'] = [address.email for address in long_addresses]
+        props['message'] = long_msg
+        sender = EmailSender(properties=props)
+        print('Sending long message to %i recipients...' % len(long_addresses))
+        sender.send()
+
+    if len(pdf_addresses):
+        onepager_file = os.path.join(args.directory,'onepager.pdf')
+        props = all_props.copy()
+        props['recipients'] = [address.email for address in pdf_addresses]
+        props['message'] = long_msg
+        sender = EmailSender(properties=props,local_files=[onepager_file])
+        print('Sending long message, with PDF attachment to %i recipients...' % len(long_addresses))
+        sender.send()
+    
+        
+    
+    
+if __name__ == '__main__':
+    desc='Send emails to PAGER users.'
+    argparser = argparse.ArgumentParser(description=desc,
+                                        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    argparser.add_argument("--directory",
+                           help="Directory where PAGER data can be found",metavar='DIRECTORY')
+    argparser.add_argument("--type", 
+                           help="Product type",metavar='TYPE')
+    argparser.add_argument("--code", 
+                           help="Product code",metavar='CODE')
+    argparser.add_argument("--source", 
+                           help="Product source",metavar='SOURCE')
+    argparser.add_argument("--status", 
+                           help="Product status",metavar='STATUS')
+    argparser.add_argument("--action", 
+                           help="Product action",metavar='ACTION')
+    argparser.add_argument("--preferred-latitude", type=float,
+                           help="Event latitude",metavar='LAT',dest='lat')
+    argparser.add_argument("--preferred-longitude", type=float,
+                           help="Event longitude",metavar='LON',dest='lon')
+    argparser.add_argument("--preferred-depth", type=float,
+                           help="Event depth",metavar='DEPTH',dest='depth')
+    argparser.add_argument("--preferred-magnitude", type=float,
+                           help="Event magnitude",metavar='MAG',dest='magnitude')
+    argparser.add_argument("--preferred-eventtime", 
+                           help="Event time",metavar='TIME',dest='time')
+    pargs, unknown = argparser.parse_known_args()
+    main(pargs)

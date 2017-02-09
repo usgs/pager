@@ -5,6 +5,7 @@ import argparse
 import sys
 import os.path
 from urllib.parse import urlparse
+from datetime import datetime
 
 #local imports
 from losspager.schema import emailschema
@@ -32,13 +33,15 @@ DEFAULT_PRIORITY = 10
 
 USERFILE = 'pager_users.xlsx'
 
+TIMEFMT = '%Y%m%d%H%M%S'
+
 def sync_db(session,config):
     statsfolder = config['stats_folder']
     userfile = os.path.join(statsfolder,USERFILE)
     print('Syncing database to %s...' % userfile)
     users = session.query(emailschema.User).all()
     columns = ['LastName','FirstName','CreatedDate','Organization',
-               'PrimaryEmail','Priority','PrimaryMMI',
+               'PrimaryEmail','PrimaryFormat','Priority','PrimaryMMI',
                'PrimaryMag','PrimaryEIS']
     df = pd.DataFrame(columns=columns)
     for user in users:
@@ -51,6 +54,7 @@ def sync_db(session,config):
             if address.is_primary:
                 priority = address.priority
                 primary_email = address.email
+                primary_format = address.format
                 for profile in address.profiles:
                     for threshold in profile.thresholds:
                         if threshold.alertscheme.name == 'mmi':
@@ -64,6 +68,7 @@ def sync_db(session,config):
              'CreatedDate':user.createdon,
              'Organization':user.organization.shortname,
              'PrimaryEmail':primary_email,
+             'PrimaryFormat':primary_format,
              'Priority':priority,
              'PrimaryMMI':mmi_threshold,
              'PrimaryMag':mag_threshold,
@@ -137,7 +142,7 @@ def add_address(session,user,email=None):
                 address.is_primary = False
         else:
             address.is_primary = is_primary
-        pri_resp = input("Enter an integer priority for this user [%i]? " % DEFAULT_PRIORITY)
+        pri_resp = input("Enter an integer priority for this address [%i] " % DEFAULT_PRIORITY)
         if pri_resp == '':
             pri_resp = '%i' % DEFAULT_PRIORITY
         try:
@@ -145,7 +150,7 @@ def add_address(session,user,email=None):
         except Exception as e:
             print('Priority must be an integer.  Exiting.')
             sys.exit(1)
-        format_resp = input("What email format should this user get [short]/long/pdf? ").strip()
+        format_resp = input("What email format should this address get [short]/long/pdf? ").strip()
         if format_resp == '':
             format_resp = 'short'
         if format_resp not in FORMATS:
@@ -155,6 +160,7 @@ def add_address(session,user,email=None):
         if format_resp != '':
             address.format = format_resp
         do_profile = True
+        print('Gathering profile information...')
         while do_profile:
             profile = add_profile(session,address)
             address.profiles.append(profile)
@@ -170,7 +176,7 @@ def add_address(session,user,email=None):
 
 def add_threshold(session,profile,scheme):
     threshold = None
-    scheme_prompt = 'Should this user use a %s threshold[no]/yes? ' % scheme.name
+    scheme_prompt = 'Should this profile use a %s threshold[no]/yes? ' % scheme.name
     scheme_answer = input(scheme_prompt)
     if scheme_answer == '':
         return None
@@ -182,7 +188,7 @@ def add_threshold(session,profile,scheme):
             sys.exit(1)
         mag_threshold = emailschema.Threshold()
         mag_threshold.alertscheme = scheme
-        mag_threshold.value = mag_answer
+        mag_threshold.value = mag
         return mag_threshold
     elif scheme.name == 'eis':
         eis_answer = input('Enter the EIS threshold (green,yellow,orange,red)[%s]: ' % DEFAULT_EIS)
@@ -252,7 +258,10 @@ def add_user(session):
     if org is None:
         msg = 'Could not find an organization called %s.  Add using --add-org.' % org_short
         return (False,msg)
-    user = emailschema.User(last,first)
+    user = emailschema.User()
+    user.lastname = last
+    user.firstname = first
+    user.createdon = datetime.utcnow()
     user.organization = org
 
     address = add_address(session,user,email=primary_email)
@@ -269,11 +278,28 @@ def add_user(session):
     msg = 'The user %s has now been entered in the database.' % (print_user(user))
     return (True,msg)
 
-def init_db(db_url):
-    jsonfile = get_data_path('mail_init.json')
-    session = emailschema.create_db(db_url,jsonfile,create_db=True)
+def init_db(db_url,session,userfile=None,orgfile=None):
+    resp = input('Are you sure to want to re-create the database? [No]/Yes ')
+    if resp != 'Yes':
+        print('That was a No.  Exiting.')
+        sys.exit(0)
+
+    #Before we nuke everything, let's at least back up the list of users
+    #create a time-stamped json file in the directory where the sqlite file lives.
+    urlparts = urlparse(db_url)
+    sqlite_path = os.path.abspath(urlparts.path)
+    schemadir,sqlite_file = os.path.split(sqlite_path)
+    nowstr = datetime.utcnow().strftime(TIMEFMT)
+    user_backup = os.path.join(schemadir,'%s_users.json' % nowstr)
+    print('Saving user profiles to %s.' % user_backup)
+    emailschema.serialize_users(session,user_backup)
     session.close()
-    return (True,'Empty database created successfully.')    
+        
+    jsondir = get_data_path('schema')
+    session = emailschema.create_db(db_url,jsondir,users_jsonfile=userfile,
+                                    orgs_jsonfile=orgfile)
+    session.close()
+    return (True,'Database created successfully.')    
 
 def get_threshold(session,scheme_name,value):
     scheme = session.query(emailschema.AlertScheme).filter(emailschema.AlertScheme.name==scheme_name).first()
@@ -306,7 +332,10 @@ def add_fema(session,fema_user):
     if len(fema_user) > 4:
         region_names = fema_user[4:]
     org = session.query(emailschema.Organization).filter(emailschema.Organization.shortname=='FEMA').first()
-    user = emailschema.User(lastname,firstname)
+    user = emailschema.User()
+    user.lastname = lastname
+    user.firstname = firstname
+    user.createdon = datetime.utcnow()
     user.organization = org
     address1 = emailschema.Address(email=email,is_primary=True,priority=DEFAULT_PRIORITY,format='pdf')
     address1.user = user
@@ -383,7 +412,10 @@ def add_generic(session,generic_user):
     if len(generic_user) > 5:
         region_names = generic_user[5:]
     org = session.query(emailschema.Organization).filter(emailschema.Organization.shortname==org).first()
-    user = emailschema.User(lastname,firstname)
+    user = emailschema.User()
+    user.lastname = lastname
+    user.firstname = firstname
+    user.createdon = datetime.utcnow()
     user.organization = org
     address1 = emailschema.Address(email=email,is_primary=True,priority=DEFAULT_PRIORITY,format='pdf')
     address1.user = user
@@ -472,7 +504,11 @@ def main(args):
     do_sync = False
 
     if args.init_db:
-        res,msg = init_db(dburl)
+        if len(args.init_db) >= 1:
+            userfile = args.init_db[0]
+        if len(args.init_db) >= 2:
+            orgfile = args.init_db[1]
+        res,msg = init_db(dburl,session,userfile=userfile,orgfile=orgfile)
         do_sync = True
     
     if args.add_user:
@@ -529,9 +565,23 @@ def main(args):
         gid = regiongroup.id
         regions = session.query(emailschema.Region).filter(emailschema.Region.regiongroup_id == gid).all()
         for region in regions:
-            print('%-40s' % (region.name))
+            print('%-40s %-40s' % (region.name,region.desc))
         res = True
         msg = ''
+
+    if args.list_events is not None:
+        start_time = datetime(1900,1,1)
+        end_time = datetime.utcnow()
+        if len(args.list_events) == 1:
+            start_time = datetime.strptime(args.list_events[0])
+        if len(args.list_events) > 1:
+            end_time = datetime.strptime(args.list_events[1])
+        versions = session.query(emailschema.Version).filter(emailschema.Version.time > start_time,emailschema.Version.time > start_time).order_by(emailschema.Version.time)
+        newversions = []
+        for version in versions:
+            newversion = version.event.versions[-1]
+            
+            
 
     if args.show_user:
         email = args.show_user
@@ -635,14 +685,18 @@ if __name__ == '__main__':
                            help='List the available region groups.')
     argparser.add_argument("--list-regions", metavar='REGIONGROUP',
                            help='List the regions associated with the given region group.')
+    argparser.add_argument("--list-events", nargs='*',
+                           help='List the regions associated with the given region group.')
     argparser.add_argument("--add-generic", nargs='*',
                            help='Add a generic user by providing: Org FirstName LastName PrimaryEmail SMSEmail (or "null") [regions].')
     argparser.add_argument("--add-fema", nargs='*',
                            help='Add a FEMA user by providing: FirstName LastName PrimaryEmail SMSEmail (or "null") [regions].')
     argparser.add_argument("--delete-user", 
                            help="Delete a user by providing the user's last name.  If not unique, you will be prompted to select from a list.")
-    argparser.add_argument("--init-db", action='store_true',default=False,
-                           help='Recreate the database file.  Mostly used for debugging.')
+    ihelp = '''Recreate the database file by (optionally) providing JSON user file and
+    a JSON org file.
+    '''
+    argparser.add_argument("--init-db", nargs='*',help=ihelp,metavar=('userfile','orgfile'))
     pargs = argparser.parse_args()
     main(pargs)
     
