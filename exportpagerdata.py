@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import mysql.connector as mysql
+import MySQLdb as mysql
 import json
 import numpy
 import io
@@ -34,16 +34,16 @@ def getUserOrg(cursor,orgid):
     return org
 
 def getOrgs(cursor,wordlist,anonymize=False):
-    query = 'SELECT id,name,shortname FROM organization'
+    query = 'SELECT name,shortname FROM organization'
     cursor.execute(query)
     orglist = []
     for row in cursor.fetchall():
         if anonymize:
             name,shortname = getRandomName(wordlist,is_org=True)
         else:
-            name,shortname = row[1],row[2]
+            name,shortname = row[0].strip(),row[1].strip()
         oid = row[0]
-        orglist.append({'id':oid,'name':name,'shortname':shortname})
+        orglist.append({'name':name,'shortname':shortname})
     return orglist
 
 def getGroups(cursor):
@@ -133,7 +133,7 @@ def getUsers(cursor,wordlist,orgs,anonymize=False,nusers=None):
             lastname,firstname = getRandomName(wordlist)
             for torg in orgs:
                 if torg['id'] == org_id:
-                    org = torg['shortname']
+                    org = torg['shortname'].strip()
                     break
         else:
             if org_id is not None:
@@ -171,7 +171,7 @@ def getUsers(cursor,wordlist,orgs,anonymize=False,nusers=None):
                     groupid = regionrow[1]
                     groupname = getGroupName(cursor,groupid)
                     regioncode = groupname.strip().replace(' ','_') + '-' + code
-                    regioncodes.append(regioncode)
+                    regioncodes.append({'name':regioncode})
                 #get the threshold(s) for this profile
                 threshquery = 'SELECT alertscheme_id,value FROM threshold WHERE profile_id=%i' % pid
                 cursor.execute(threshquery)
@@ -182,25 +182,25 @@ def getUsers(cursor,wordlist,orgs,anonymize=False,nusers=None):
                     schemequery = 'SELECT name FROM alertscheme WHERE id=%i' % aid
                     cursor.execute(schemequery)
                     scheme = cursor.fetchone()[0]
-                    thresholds.append({'scheme':scheme,'threshold':threshold})
+                    thresholds.append({'alertscheme':scheme,'value':threshold})
                 #get the format for this profile
                 formatquery = 'SELECT name FROM format WHERE id=%i' % formatid
                 cursor.execute(formatquery)
                 emailformat = cursor.fetchone()[0]
+                emailformat = emailformat.replace('expo','')
                 profiles.append({'thresholds':thresholds[:],
-                                 'regioncodes':regioncodes[:],
-                                 'format':emailformat})
+                                 'regions':regioncodes[:]})
             
             emails.append({'email':email,
-                           'id':eid,
                            'priority':priority,
-                           'isprimary':isprimary,
+                           'is_primary':isprimary,
+                           'format':emailformat,
                            'profiles':profiles[:]})
 
         
         users.append({'lastname':lastname,
                       'firstname':firstname,
-                      'emails':emails,
+                      'addresses':emails,
                       'createdon':createdon.strftime('%Y-%m-%d %H:%M:%S'),
                       'org':org})
     return users
@@ -262,20 +262,36 @@ def main(args):
     groups = getGroups(cursor)
     events = getEvents(cursor)
     bridge = getVersionAddress(cursor)
-    database = {'users':users,'regions':regions,'orgs':orgs,
-                'groups':groups,'version_address':bridge,
-                'events':events}
-    jstr = json.dumps(database)
-    f = open(args.jsonfile,'wt')
+
+    #write out a file containing user information
+    userfile = args.basefile + '_users.json'
+    f = open(userfile,'wt')
+    jstr = json.dumps(users,indent=2)
     f.write(jstr)
     f.close()
+
+    #write out a file containing organization information
+    orgfile = args.basefile + '_orgs.json'
+    f = open(orgfile,'wt')
+    jstr = json.dumps(orgs,indent=2)
+    f.write(jstr)
+    f.close()
+    
+    
+    # database = {'users':users,'regions':regions,'orgs':orgs,
+    #             'groups':groups,'version_address':bridge,
+    #             'events':events}
+    # jstr = json.dumps(database)
+    # f = open(args.jsonfile,'wt')
+    # f.write(jstr)
+    # f.close()
     cursor.close()
     db.close()
     
 if __name__ == '__main__':
-    desc = 'Export PAGER users, regions, events, etc. from MySQL database into JSON file.'
+    desc = 'Export PAGER users, regions, events, etc. from MySQL database into multiple JSON files.'
     parser = argparse.ArgumentParser(description=desc)
-    parser.add_argument('jsonfile', help='Specify output JSON file name')
+    parser.add_argument('basefile', help='Specify base output JSON file name')
     parser.add_argument('user', help='Specify PAGER user for MySQL DB')
     parser.add_argument('password', help='Specify PAGER password for MySQL DB')
     parser.add_argument('-a','--anonymize', action='store_true',default=False,

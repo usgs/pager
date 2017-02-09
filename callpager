@@ -7,6 +7,7 @@ import sys
 from urllib import request
 import json
 import io
+from datetime import datetime
 
 #third party imports
 from impactutils.io.cmd import get_command_output
@@ -19,6 +20,11 @@ WHITELIST = ['us','ci','nc','nn','hv','uw','nn','uu','ak']
 GEOSERVE_URL = 'http://earthquake.usgs.gov/ws/geoserve/regions.json?latitude=[LAT]&longitude=[LON]'
 MAG_THRESHOLD = 4.0
 ANSS_FLAG = 'A'
+
+#what's the oldest ShakeMap we're willing to process?
+THRESHOLD_YEAR = 2010
+
+TIMEFMT = '%Y-%m-%dT%H:%M:%S'
 
 DEBUG = True
 
@@ -240,6 +246,15 @@ def run_pager(gridfile,config):
         print(msg)
         sys.exit(1)
 
+    #If someone has submitted a shakemap from a long time ago (see THRESHOLD_YEAR for definition)
+    #skip running the event.
+    #time string looks like this: 1999-10-21T01:54:06.470Z
+    etime = datetime.strptime(args.time[0:19],TIMEFMT)
+    if etime.year < THRESHOLD_YEAR:
+        msg = 'Event times less than Jan 1, %i will not be processed.  Exiting.' % (THRESHOLD_YEAR)
+        print(msg)
+        sys.exit(1)
+        
     #check to see if gridfile exists
     if not os.path.isfile(gridfile):
         msg = 'Could not find input ShakeMap grid file at %s.  Exiting.' % gridfile

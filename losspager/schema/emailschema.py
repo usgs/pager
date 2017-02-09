@@ -6,7 +6,7 @@ import enum
 import sys
 import json
 import io
-import pickle
+import os
 
 #third-party imports
 import numpy as np
@@ -24,10 +24,14 @@ from sqlalchemy.orm import validates
 
 from sqlalchemy_utils import database_exists,create_database
 
+#local imports
+from losspager.utils.exception import PagerException
+
 #constants
 MAX_ELAPSED_SECONDS = 8*3600
 TIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 MAX_EIS_LEVELS = 2
+
 
 #We dynamically (not sure why?) create the base class for our objects
 Base = declarative_base()
@@ -46,11 +50,6 @@ class GeoThing(object):
 address_region_bridge = Table('address_region_bridge', Base.metadata,
                              Column('address_id', Integer, ForeignKey('address.id')),
                              Column('region_id', Integer, ForeignKey('region.id')))
-
-#link the user and notification_group tables 
-user_notification_bridge = Table('user_notification_bridge', Base.metadata,
-                                 Column('user_id', Integer, ForeignKey('user.id')),
-                                 Column('notification_id', Integer, ForeignKey('notificationgroup.id')))
 
 #link the version and address tables 
 #sendtime column keeps track of who got notified about what when
@@ -77,7 +76,6 @@ class User(Base):
     Relationship descriptions:
     - A User can have many Addresses.
     - A User can belong to one Organization.
-    - A User can belong to many NotificationGroups.
     
     """
     __tablename__ = 'user'
@@ -90,34 +88,64 @@ class User(Base):
     #A User can have many addresses
     addresses = relationship("Address", back_populates="user")
 
-    #A user can belong to many notification groups
-    notification_groups = relationship("NotificationGroup",
-                                       secondary=user_notification_bridge,
-                                       back_populates="users")
-
     #A user can belong to one organization
     organization = relationship("Organization", back_populates="users")
-    
-    def __init__(self,lastname,firstname,createdon=None):
-        """
-        :param lastname:
-          User's last name (string).
-        :param firstname:
-          User's first name (string).
-        :param createdon:
-          UTC datetime object when user was added to the system.
-        """
-        self.lastname = lastname
-        self.firstname = firstname
-        if createdon is None:
-            self.createdon = datetime.utcnow()
-        else:
-            self.createdon = createdon
+    ##This constructor is not being recognized by Python.  It used to be...???
+    # def __init__(self,createdon=None):
+    #     """
+    #     :param createdon:
+    #       UTC datetime object when user was added to the system.
+    #     """
+    #     if createdon is None:
+    #         self.createdon = datetime.utcnow()
+    #     else:
+    #         self.createdon = createdon
+    #     self.lastname = ''
+    #     self.firstname = ''
 
     def __repr__(self):
         fmt = "<User(id=%i,name='%s %s', created='%s')>"
         tpl = (self.id,self.firstname,self.lastname,str(self.createdon))
         return fmt % tpl
+
+    def fromDict(self,session,userdict):
+        reqfields = set(['lastname','firstname','createdon','org','addresses'])
+        if reqfields <= set(userdict.keys()):
+            pass
+        else:
+            missing = list(reqfields - set(userdict.keys()))
+            raise PagerException('Missing required fields for user: %s' % str(missing))
+        #set the user fields
+        self.lastname = userdict['lastname']
+        self.firstname = userdict['firstname']
+        self.createdon = datetime.strptime(userdict['createdon'],TIME_FORMAT) #will this be a string or a datetime?
+        org = session.query(Organization).filter(Organization.shortname == userdict['org']).first()
+        if org is None:
+            raise PagerException('No organization named %s exists in the database.' % userdict['org'])
+        self.organization = org
+        self.addresses = []
+
+        for addressdict in userdict['addresses']:
+            address = Address()
+            address.fromDict(session,addressdict)
+            self.addresses.append(address)
+        #first add this user to the session
+        session.add(self)
+        #then commit all the changes
+        session.commit()
+
+    def toDict(self):
+        userdict = {'lastname':self.lastname,
+                    'firstname':self.firstname,
+                    'createdon':self.createdon.strftime(TIME_FORMAT),
+                    'org':self.organization.shortname}
+
+        addresses = []
+        for address in self.addresses:
+            adict = address.toDict()
+            addresses.append(adict)
+        userdict['addresses'] = addresses
+        return userdict
 
 class Address(Base):
     """Class representing a PAGER address.
@@ -149,8 +177,6 @@ class Address(Base):
 
     #An address can have many thresholds
     profiles = relationship("Profile",back_populates="address")
-
-    
     
     def __repr__(self):
         return "<Address(email='%s')>" % self.email
@@ -195,7 +221,35 @@ class Address(Base):
                 break
 
         return should_alert
-        
+
+    def fromDict(self,session,addressdict):
+        reqfields = set(['email','is_primary','priority','profiles','format'])
+        if reqfields <= set(addressdict.keys()):
+            pass
+        else:
+            missing = list(reqfields - set(addressdict.keys()))
+            raise PagerException('Missing required fields for address: %s' % str(missing))
+        #set the fields for the address object
+        self.email = addressdict['email']
+        self.is_primary = addressdict['is_primary']
+        self.priority = addressdict['priority']
+        self.format = addressdict['format']
+        for profiledict in addressdict['profiles']:
+            profile = Profile()
+            profile.fromDict(session,profiledict)
+            self.profiles.append(profile)
+
+    def toDict(self):
+        addressdict = {'email':self.email,
+                       'is_primary':self.is_primary,
+                       'format':self.format,
+                       'priority':self.priority}
+        profiles = []
+        for profile in self.profiles:
+            pdict = profile.toDict()
+            profiles.append(pdict)
+        addressdict['profiles'] = profiles
+        return addressdict
 
 class Profile(Base):
     """Class representing a user's profile.
@@ -232,20 +286,60 @@ class Profile(Base):
             inside_region = True
         else:
             for region in self.regions:
-                inside_region = region.containsEpicenter(version.lat,version.lon)
+                inside_region = region.containsPoint(version.lat,version.lon)
                 if inside_region:
                     break
 
         #determine if this event crosses any thresholds
         meets_threshold = False
-        for threshold in self.thresholds:
-            if threshold.isMet(version,highest_level):
-                meets_threshold = True
-                break
+        if not len(self.thresholds):
+            meets_threshold = True
+        else:
+            for threshold in self.thresholds:
+                if threshold.isMet(version,highest_level):
+                    meets_threshold = True
+                    break
         if inside_region and meets_threshold:
             return True
 
         return False
+
+    def fromDict(self,session,profiledict):
+        reqfields = set(['regions','thresholds'])
+        if reqfields <= set(profiledict.keys()):
+            pass
+        else:
+            missing = list(reqfields - set(profiledict.keys()))
+            raise PagerException('Missing required fields for profile: %s' % str(missing))
+        
+        for regiondict in profiledict['regions']:
+            rgroup,rname = regiondict['name'].split('-')
+            region = session.query(Region).filter(Region.name == rname).first()
+            if region is None:
+                raise PagerException('No region named %s found in the database.' % regiondict['name'])
+            self.regions.append(region)
+
+        for thresholddict in profiledict['thresholds']:
+            threshold = Threshold()
+            threshold.fromDict(session,thresholddict)
+            self.thresholds.append(threshold)
+
+    def toDict(self):
+        profiledict = {}
+        regions = []
+        for region in self.regions:
+            #remember that we're not deflating a Region object, we just want the reference to 
+            #it (i.e., its name).
+            rgroup = region.regiongroup.groupname
+            regiondict = {'name':rgroup + '-' + region.name}
+            regions.append(regiondict)
+        thresholds = []
+        for threshold in self.thresholds:
+            thresholddict = threshold.toDict()
+            thresholds.append(thresholddict)
+        profiledict['regions'] = regions
+        profiledict['thresholds'] = thresholds
+        return profiledict
         
 class Organization(Base):
     """Class representing an organization (USGS, FEMA, etc.)
@@ -263,6 +357,18 @@ class Organization(Base):
     
     def __repr__(self):
         return "<Organization(name='%s', %i members)>" % (self.name,len(self.users))
+
+    def fromDict(self,session,orgdict):
+        reqfields = set(['name','shortname'])
+        if reqfields <= set(orgdict.keys()):
+            pass
+        else:
+            missing = list(reqfields - set(orgdict.keys()))
+            raise PagerException('Missing required fields for user: %s' % str(missing))
+        self.shortname = orgdict['shortname']
+        self.name = orgdict['name']
+        session.add(self)
+        session.commit()
 
 class Event(Base):
     """Class representing an earthquake event.
@@ -289,7 +395,7 @@ class Version(Base):
     """
     __tablename__ = 'version'
     id = Column(Integer, primary_key=True)
-    event_id = Column(Integer, ForeignKey('event.id'))
+    event_id = Column(Integer, ForeignKey('event.id',ondelete='CASCADE'),nullable=False)
     versioncode = Column(String, nullable=False)
     time = Column(DateTime, nullable=False)
     lat = Column(Float, nullable=False)
@@ -297,7 +403,7 @@ class Version(Base):
     depth = Column(Float, nullable=False)
     magnitude = Column(Float, nullable=False)
     number = Column(Integer, nullable=False)
-    summarylevel = Column(Enum(_AlertEnum), nullable=False)
+    summarylevel = Column(Integer, nullable=False)
     processtime = Column(DateTime, nullable=False)
     maxmmi = Column(Float, nullable=False)
 
@@ -329,10 +435,34 @@ class AlertScheme(Base):
     maxlevel = Column(Float,nullable=True)
 
     #An alertscheme can have many levels
-    levels = relationship("Level")
+    levels = relationship("Level",back_populates="alertscheme")
 
     def __repr__(self):
         return "<AlertScheme(name='%s')>" % (self.name)
+
+    def fromDict(self,session,schemedict):
+        reqfields = set(['name','adesc','valuetype','isdiscrete','minlevel','maxlevel'])
+        if reqfields <= set(schemedict.keys()):
+            pass
+        else:
+            missing = list(reqfields - set(schemedict.keys()))
+            raise PagerException('Missing required fields for alert scheme: %s' % str(missing))
+        tscheme = AlertScheme(name=schemedict['name'],
+                              adesc=schemedict['adesc'],
+                              valuetype=schemedict['valuetype'],
+                              isdiscrete=schemedict['isdiscrete'],
+                              minlevel=schemedict['minlevel'],
+                              maxlevel=schemedict['maxlevel'])
+        session.add(tscheme)
+
+    def toDict(self):
+        schemedict = {'name':self.name,
+                      'adesc':self.adesc,
+                      'valuetype':self.valuetype,
+                      'isdiscrete':self.isdiscrete,
+                      'minlevel':self.minlevel,
+                      'maxlevel':self.maxlevel}
+        return schemedict
     
 class Threshold(Base):
     """Class representing an alert threshold (magnitude value, EIS level, etc.)
@@ -386,6 +516,18 @@ class Threshold(Base):
                 return True
         return False
 
+    def fromDict(self,session,thresholddict):
+        self.value = thresholddict['value']
+        scheme = session.query(AlertScheme).filter(AlertScheme.name == thresholddict['alertscheme']).first()
+        if scheme is None:
+            raise PagerException('No alert scheme named %s exists in the database.' % thresholddict['alertscheme'])
+        self.alertscheme = scheme
+
+    def toDict(self):
+        thresholddict = {'value':self.value,
+                         'alertscheme':self.alertscheme.name}
+        return thresholddict
+
 class Level(Base):
     """Class representing an alert threshold (magnitude value, EIS level, etc.)
 
@@ -396,27 +538,10 @@ class Level(Base):
     ordernum = Column(Integer, nullable=False)
     name = Column(String, nullable=False)
 
+    alertscheme = relationship("AlertScheme", back_populates="levels")
+    
     def __repr__(self):
         return "<Level(%s)>" % (self.name)
-
-class NotificationGroup(Base):
-    """Class representing a notification group (Critical User, PAGER developer, etc.)
-
-    Relationship descriptions:
-     - A notification group is associated with many users.
-    """
-    __tablename__ = 'notificationgroup'
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
-    displaytext = Column(Integer, nullable=False)
-
-    #A NotificationGroup can have many users
-    users = relationship("User",
-                         secondary=user_notification_bridge,
-                         back_populates="notification_groups")
-
-    def __repr__(self):
-        return "<NotificationGroup(%s)>" % (self.name)
     
 class RegionGroup(Base):
     """Class representing a group of regions (FEMA, US military, OFDA, etc.)
@@ -429,11 +554,11 @@ class RegionGroup(Base):
     groupname = Column(String, nullable=False)
 
     #A regiongroup can have many regions
-    regions = relationship("Region")
+    regions = relationship("Region", back_populates="regiongroup")
 
     def __repr__(self):
         return "<RegionGroup(%s)>" % (self.groupname)
-    
+
 class Region(Base):
     """Class representing a region of interest (US military Northern Command, or NORTHCOM, for example.)
 
@@ -444,6 +569,7 @@ class Region(Base):
     id = Column(Integer, primary_key=True)
     regiongroup_id = Column(Integer, ForeignKey('regiongroup.id'))
     name = Column(String, nullable=False)
+    desc = Column(String, nullable=False)
     poly = Column(LargeBinary, nullable=False)
     xmin = Column(Float, nullable=False)
     xmax = Column(Float, nullable=False)
@@ -455,8 +581,10 @@ class Region(Base):
                              secondary=profile_region_bridge,
                              back_populates="regions")
 
+    regiongroup = relationship("RegionGroup",back_populates="regions")
+
     def __repr__(self):
-        return "<Region(name=%s)>" % self.name
+        return "<Region(name=%s, desc=%s)>" % (self.name,self.desc)
 
     def getPolygon(self):
         polystr = self.poly.decode('utf-8')
@@ -464,7 +592,7 @@ class Region(Base):
         m = shape(GeoThing(polydict))
         return m
     
-    def containsEpicenter(self,lat,lon):
+    def containsPoint(self,lat,lon):
         """Determine whether a given lat/lon is inside the region.
 
         :param lat:
@@ -478,30 +606,54 @@ class Region(Base):
         #project into an orthographic projection,  then turn into shapely object.
         polystr = self.poly.decode('utf-8')
         polydict = json.loads(polystr)
-        pcoords = []
-        for cblock in polydict['coordinates']:
-            plon,plat = zip(*cblock)
-            lonmin = min(plon)
-            lonmax = max(plon)
-            latmin = min(plat)
-            latmax = max(plat)
-            proj = get_orthographic_projection(lonmin,lonmax,latmax,latmin)
-            try:
-                x,y = proj(lon,lat)
-            except ValueError as ve:
-                continue
-            try:
-                px,py = proj(plon,plat)
-            except ValueError as ve:
-                x = 1
-            pxy = zip(px,py)
-            polygon = Polygon(pxy)
-            if polygon.contains(Point(x,y)):
-                return True
+        polygon = shape(polydict)
+        if polygon.contains(Point(lon,lat)):
+            return True
 
         return False
 
-    
+    def fromDict(self,session,regiondict):
+        reqfields = set(['type','geometry','properties'])
+        if reqfields <= set(regiondict.keys()):
+            pass
+        else:
+            missing = list(reqfields - set(regiondict.keys()))
+            raise PagerException('Missing required fields for region: %s' % str(missing))
+        regioninfo = regiondict['properties']['code']
+        rgroupname,regioncode = regioninfo.split('-')
+        regiondesc = regiondict['properties']['desc']
+
+        #try to find this region in the database
+        regiongroup = session.query(RegionGroup).filter(RegionGroup.groupname == rgroupname).first()
+        if regiongroup is None:
+            regiongroup = RegionGroup(groupname=rgroupname)
+        
+        poly = regiondict['geometry']
+        polybytes = bytes(json.dumps(poly),'utf-8')
+        tshape = shape(poly)
+        if not tshape.is_valid:
+            x = 1
+        xmin,ymin,xmax,ymax = tshape.bounds
+        self.name = regioncode
+        self.desc = regiondesc
+        self.poly = polybytes
+        self.xmin = xmin
+        self.xmax = xmax
+        self.ymin = ymin
+        self.ymax = ymax
+        self.regiongroup = regiongroup
+        session.add(self)
+        session.commit()
+
+    def toDict(self):
+        polydata = json.loads(self.poly.decode('utf-8'))
+        regioncode = self.regiongroup.groupname + '-' + self.name
+        regiondict = {'type':'Feature',
+                      'geometry':polydata,
+                      'properties':{'code':regioncode,
+                                    'desc':self.desc}}
+        return regiondict
+                      
     
 def get_session(url='sqlite:///:memory:',create_db=False):
     """Get a SQLAlchemy Session instance for input database URL.
@@ -530,78 +682,9 @@ def get_session(url='sqlite:///:memory:',create_db=False):
     session = Session()
 
     return session
-    
-def create_db(url,jsonfile,nusers=None,create_db=False):
-    """Create a PAGER email database from input JSON file.
 
-    :param url:
-      SQLAlchemy URL for database, described here:
-        http://docs.sqlalchemy.org/en/latest/core/engines.html#database-urls.
-    :param jsonfile:
-      JSON file containing information about users, addresses, thresholds, events, versions.
-      #TODO describe format in detail.
-    :param nusers:
-      Number of users to sample randomly from input JSON file.  
-        None means all users will be inserted into database.
-    :param create_db:
-      Boolean indicating whether to create database from scratch.  Use with caution.
-    :returns:
-      Sqlalchemy Session instance.
-    """
-    session = get_session(url,create_db=create_db)
-
-    #load the anonymized test data set from the repository
-    data = open(jsonfile,'rt').read()
-    jdict = json.loads(data)
-    sys.stderr.write('Loaded the JSON data.\n')
-    sys.stderr.flush()
-
-    #add the organizations first
-    orgdict = {}
-    for org in jdict['orgs']:
-        torg = Organization(name=org['name'],shortname=org['shortname'])
-        session.add(torg)
-        session.commit()
-        orgdict[torg.shortname] = torg.id
-    sys.stderr.write('Created the organizations.\n')
-    sys.stderr.flush()
-
-    #then add the notification groups
-    groupdict = {}
-    for group in jdict['groups']:
-        tgroup = NotificationGroup(name=group['name'],displaytext=group['displaytext'])
-        session.add(tgroup)
-        session.commit()
-        groupdict[tgroup.name] = tgroup.id
-    sys.stderr.write('Created the groups.\n')
-    sys.stderr.flush()
-
-    #Now add events and versions
-    vdict = {} #keys are pre-existing version ids, values are new version ids
-    for event in jdict['events']:
-        tevent = Event(eventcode=event['eventcode'])
-        session.add(tevent)
-        session.commit()
-        versions = []
-        for version in event['versions']:
-            tversion = Version(event_id=tevent.id,
-                               versioncode=version['versioncode'],
-                               time=datetime.strptime(version['time'],TIME_FORMAT),
-                               lat=version['lat'],
-                               lon=version['lon'],
-                               depth=version['depth'],
-                               magnitude=version['mag'],
-                               number = int(version['number']),
-                               maxmmi = version['maxmmi'],
-                               processtime = datetime.strptime(version['processtime'],TIME_FORMAT),
-                               summarylevel=version['summarylevel'])
-            session.add(tversion)
-            session.commit()
-            vdict[version['id']] = tversion.id
-            #tevent.versions.append(tversion)
-        session.commit()
-    sys.stderr.write('Created the events.\n')
-    sys.stderr.flush()
+def create_db(url,schemadir,users_jsonfile=None,orgs_jsonfile=None):
+    session = get_session(url,create_db=True)
 
     #Create the alertscheme and level tables, fill them in
     magscheme = {'name':'mag','adesc':'Magnitude',
@@ -624,129 +707,66 @@ def create_db(url,jsonfile,nusers=None,create_db=False):
                               maxlevel=scheme['maxlevel'])
         session.add(tscheme)
         session.commit()
-        if scheme['name'] == 'eis':
-            eis_id = tscheme.id
-
+        
+    eis = session.query(AlertScheme).filter(AlertScheme.name == 'eis').first()
     #Level table
-    levels = [{'alertscheme_id':eis_id,'ordernum':0,'name':'green'},
-              {'alertscheme_id':eis_id,'ordernum':1,'name':'yellow'},
-              {'alertscheme_id':eis_id,'ordernum':2,'name':'orange'},
-              {'alertscheme_id':eis_id,'ordernum':3,'name':'red'}]
+    levels = [{'ordernum':0,'name':'green'},
+              {'ordernum':1,'name':'yellow'},
+              {'ordernum':2,'name':'orange'},
+              {'ordernum':3,'name':'red'}]
     for level in levels:
         tlevel = Level(name=level['name'],
-                                   ordernum=level['ordernum'],
-                                   alertscheme_id=eis_id)
+                       ordernum=level['ordernum'])
+        tlevel.alertscheme = eis
         session.add(tlevel)
     session.commit()
-    sys.stderr.write('Created the alert schemes and levels.\n')
-    sys.stderr.flush()
 
-    #Create regions and regiongroups
-    region_group_dict = {}
-    for regioncode,region in jdict['regions'].items():
-        rgroupname,rcode = regioncode.split('-')
-        if rgroupname not in region_group_dict:
-            trgroup = RegionGroup(groupname=rgroupname)
-            session.add(trgroup)
-            region_group_dict[rgroupname] = trgroup
-        else:
-            trgroup = region_group_dict[rgroupname]
-        poly = region['geometry']
-        polybytes = bytes(json.dumps(poly),'utf-8')
-        xmin = 99999999
-        xmax = -99999999
-        ymin = xmin
-        ymax = xmax
-        for cblock in poly['coordinates']:
-            x,y = zip(*cblock)
-            if min(x) < xmin:
-                xmin = min(x)
-            if max(x) > xmax:
-                xmax = max(x)
-            if min(y) < ymin:
-                ymin = min(y)
-            if max(y) > ymax:
-                ymax = max(y)    
-        tregion = Region(name=rcode,poly=polybytes,xmin=xmin,xmax=xmax,ymin=ymin,ymax=ymax)
-        trgroup.regions.append(tregion)
-    session.commit()
-    sys.stderr.write('Created the regions and region groups.\n')
-    sys.stderr.flush()
+    #regions - these are pretty well set in stone, therefore in the repository
+    regions_jsonfile = os.path.join(schemadir,'regions.json')
+    #organizations - this is always changing, so should be user supplied
+    #default is just to have a testing set with just USGS
+    if orgs_jsonfile is None:
+        orgs_jsonfile = os.path.join(schemadir,'shortorgs.json')
 
-    #Get the data that links versions to addresses
-    if len(jdict['version_address']):
-        versionid,addressid = zip(*jdict['version_address'])
-        versionid = np.array(versionid)
-        addressid = np.array(addressid)
+    #Load regions - the input file is a dictionary, not a list of regions.
+    data = open(regions_jsonfile,'rt').read()
+    regions = json.loads(data)
+    for regioncode,regiondict in regions.items():
+        region = Region()
+        region.fromDict(session,regiondict) #this adds to session and commits()
+        
+
+    #load whatever organizations we have
+    orgs = json.loads(open(orgs_jsonfile,'rt').read())
+    for orgdict in orgs:
+        org = Organization()
+        try:
+            org.fromDict(session,orgdict) #this adds and commits
+        except Exception as e:
+            x = 1
+
+    #load the users, if they are specified
+    if users_jsonfile is not None:
+        users = json.loads(open(users_jsonfile,'rt').read())
+        for userdict in users:
+            user = User()
+            try:
+                user.fromDict(session,userdict)
+            except Exception as e:
+                x = 1
     
-    #Now start adding users, addresses, etc.
-    adict = {} #old address id => new address id
-    allidx = np.arange(0,len(jdict['users']))
-    if nusers is None:
-        usamples = allidx
-    else:
-        usamples = np.random.choice(allidx,size=nusers,replace=False)
-        
-    for isample in usamples:
-        user = jdict['users'][isample]
-        tcreated = datetime.strptime(user['createdon'],TIME_FORMAT)
-        tuser = User(user['lastname'],user['firstname'],createdon=tcreated)
-
-        orgshortname = user['org']
-        torg = session.query(Organization).filter(Organization.shortname==orgshortname).first()
-        tuser.organization = torg
-        
-        for address in user['emails']:
-            taddress = Address(email=address['email'],
-                               is_primary=address['isprimary'],
-                               priority=address['priority'],
-                               format='unknown')
-
-            #Get the list of versions that were associated with this address...
-            oldaddressid = address['id']
-            addressidx = np.where(addressid == oldaddressid)[0]
-            for idx in addressidx:
-                oldversionid = versionid[idx]
-                newversionid = vdict[oldversionid]
-                version = session.query(Version).filter(Version.id==newversionid).first()
-                taddress.versions.append(version)
-                
-            for profile in address['profiles']:
-                #We used to have a format table which theoretically allowed each address to have
-                #many email formats.  We never allowed this in practice, so we're just attaching the format
-                #string to the address table
-                #three formats: short, long, pdf
-                if profile['format'].find('pdf') > 0:
-                    taddress.format = 'pdf'
-                elif profile['format'].find('short') > 0:
-                    taddress.format = 'short'
-                else:
-                    taddress.format = 'long'
-
-                tprofile = Profile()
-
-                for regioncode in profile['regioncodes']:
-                    rgroup,rcode = regioncode.split('-')
-                    tregion = session.query(Region).filter(Region.name==rcode).first()
-                    tprofile.regions.append(tregion)
-
-                for threshold in profile['thresholds']:
-                    thing = session.query(AlertScheme).filter(AlertScheme.name == threshold['scheme']).first()
-                    scheme_id = thing.id
-                    value = threshold['threshold']
-                    t_threshold = Threshold(alertscheme_id=scheme_id,
-                                            value=value)
-                    tprofile.thresholds.append(t_threshold)
-                taddress.profiles.append(tprofile)
-
-            tuser.addresses.append(taddress)
-        session.add(tuser)
-    session.commit()
-    sys.stderr.write('Created the users, addresses, and profiles.\n')
-    sys.stderr.flush()
-
-    session.commit()
     return session
+
+def serialize_users(session,jsonfile):
+    #Back up the list of users to a JSON file
+    users = session.query(User).all()
+    userlist = []
+    for user in users:
+        userdict = user.toDict()
+        userlist.append(userdict)
+    f = open(jsonfile,'wt')
+    json.dump(userlist,f,indent=2)
+    f.close()
 
 def get_file_url(dbfile):
     fileurl = 'sqlite:///%s' % dbfile
