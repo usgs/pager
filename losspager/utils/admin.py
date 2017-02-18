@@ -10,7 +10,7 @@ import getpass
 
 #local imports
 from losspager.utils.exception import PagerException
-from losspager.utils.config import read_config,write_config
+from losspager.utils.config import read_config,write_config,get_config_file
 from losspager.io.pagerdata import PagerData
 
 #third-party imports

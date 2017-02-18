@@ -17,7 +17,7 @@ from impactutils.comcat.query import ComCatInfo
 
 #local imports
 from losspager.schema import emailschema as es
-from losspager.mail.formatter import format_msg
+from losspager.mail.formatter import format_msg,generate_subject_line
 from losspager.utils.config import read_mail_config
 from losspager.io.pagerdata import PagerData
 
@@ -48,24 +48,37 @@ def get_version(session,pdata):
     if event is None:
         #we need to create a new event
         event = es.Event(eventcode=authid)
+
+    prow = pdata.toSeries()
+    country = prow['Impacted Country ($)']
     #Now create a new version
+    pending = pdata.summary_alert_pending
+    level = pdata.summary_alert
+    if pending == 'pending':
+        alert = 'pending/%s' % (ALERT_DICT[pdata.summary_alert])
+    else:
+        alert = ALERT_DICT[pdata.summary_alert]
     version = es.Version(versioncode = eventid,
                          time = pdata.time,
+                         country = country,
                          lat = pdata.latitude,
                          lon = pdata.longitude,
                          depth = pdata.depth,
                          magnitude = pdata.magnitude,
                          number = len(event.versions) + 1,
-                         summarylevel = ALERT_DICT[pdata.summary_alert],
+                         fatlevel = ALERT_DICT[pdata.fatality_alert],
+                         ecolevel = ALERT_DICT[pdata.fatality_alert],
+                         summarylevel = alert,
                          processtime = pdata.processing_time,
                          maxmmi = pdata.maxmmi)
     event.versions.append(version)
-    #commit this event and version to the database
-    session.add(event)
-    session.commit()
-    return (version,ccinfo)
+    return (version,event,ccinfo)
 
 def main(args):
+    DEBUG = False
+    if args.debug:
+        DEBUG = True
+    
     #get all of the information from the mail config file
     config = read_mail_config()
     
@@ -88,7 +101,7 @@ def main(args):
 
     jsondir = os.path.join(args.directory,'json')
     if not os.path.isdir(jsondir):
-        print('JSON directory containing PAGER output not found. Exiting.')
+        print('JSON directory "%s" containing PAGER output not found. Exiting.' % args.directory)
         sys.exit(1)
 
     #Everything is cool...
@@ -100,73 +113,110 @@ def main(args):
     session = es.get_session(url=dburl,create_db=False)
     
     #Find event in database, or create it if not found.  Return a new version for that event
-    version,ccinfo = get_version(session,pdata)
+    version,event,ccinfo = get_version(session,pdata)
 
-    #loop over all adddresses, check to see if they should get notified
-    all_addresses = session.query(es.Address).all()
-    short_addresses = []
-    long_addresses = []
-    pdf_addresses = []
-    for address in all_addresses:
-        if address.shouldAlert(version):
-            if address.format == 'short':
-                short_addresses.append(address)
-            elif address.format == 'long':
-                long_addresses.append(address)
+    #add/commit the event for now, but we may have to delete it if we crash for any reason
+    session.add(event)
+    session.commit()
+
+    try:
+        #loop over all adddresses, check to see if they should get notified
+        all_addresses = session.query(es.Address).all()
+        short_addresses = []
+        long_addresses = []
+        pdf_addresses = []
+        for address in all_addresses:
+            if address.shouldAlert(version):
+                if address.format == 'short':
+                    short_addresses.append(address)
+                elif address.format == 'long':
+                    long_addresses.append(address)
+                else:
+                    pdf_addresses.append(address)
+
+
+        #try to find the event url
+        if ccinfo is not None:
+            event_url = ccinfo.getURL()+'#pager'
+        else:
+            event_url = DEFAULT_PAGER_URL
+
+        #create the short and long message texts
+        short_msg = format_msg(version,pdata,'short',event_url)
+        long_msg = format_msg(version,pdata,'long',event_url)
+
+        #create the long and short subjects
+        subject = generate_subject_line(version,pdata)
+
+        all_props = {}
+        all_props['smtp_servers'] = config['email']['smtp_servers']
+        all_props['sender'] = config['email']['sender']
+        all_props['subject'] = subject
+
+        #set up mail transfer object for short messages
+        if len(short_addresses):
+            props = all_props.copy()
+            props['recipients'] = [address.email for address in short_addresses]
+            props['message'] = short_msg
+            if not DEBUG:
+                print('Sending short message to %i recipients...' % len(short_addresses))
+                sender = EmailSender(properties=props)
+                sender.send()
             else:
-                pdf_addresses.append(address)
+                print('DEBUG on: would send short message to %i recipients...' % len(short_addresses))
+                for addr in short_addresses:
+                    print('\t%s' % addr.email)
+            version.addresses += short_addresses
 
+        if len(long_addresses):
+            props = all_props.copy()
+            props['recipients'] = [address.email for address in long_addresses]
+            props['message'] = long_msg
+            if not DEBUG:
+                print('Sending long message to %i recipients...' % len(long_addresses))
+                #sender = EmailSender(properties=props)
+                #sender.send()
+            else:
+                print('DEBUG on: would send long message to %i recipients...' % len(long_addresses))
+                for addr in long_addresses:
+                    print('\t%s' % addr.email)
+            version.addresses += long_addresses
 
-    #try to find the event url
-    if ccinfo is not None:
-        event_url = ccinfo.getURL()+'#pager'
-    else:
-        event_url = DEFAULT_PAGER_URL
-                
-    #create the short and long message texts
-    short_msg = format_msg(version,pdata,'short',event_url)
-    long_msg = format_msg(version,pdata,'long',event_url)
+        if len(pdf_addresses):
+            onepager_file = os.path.join(args.directory,'onepager.pdf')
+            props = all_props.copy()
+            props['recipients'] = [address.email for address in pdf_addresses]
+            props['message'] = long_msg
+            if not DEBUG:
+                print('Sending long message, with PDF attachment to %i recipients...' % len(pdf_addresses))
+                #sender = EmailSender(properties=props,local_files=[onepager_file])
+                #sender.send()
+            else:
+                print('DEBUG on: would send long message (w/ attachment) to %i recipients...' % len(pdf_addresses))
+                for addr in pdf_addresses:
+                    print('\t%s' % addr.email)
+            version.addresses += pdf_addresses
 
-    #create the long and short subjects
-    subject = generate_subject_line(version,pdata)
-
-    all_props['smtp_servers'] = config['email']['smtp_servers']
-    all_props['sender'] = config['email']['sender']
-    all_props['subject'] = subject
-    
-    #set up mail transfer object for short messages
-    if len(short_addresses):
-        props = all_props.copy()
-        props['recipients'] = [address.email for address in short_addresses]
-        props['message'] = short_msg
-        sender = EmailSender(properties=props)
-        print('Sending short message to %i recipients...' % len(short_addresses))
-        sender.send()
-        
-    if len(long_addresses):
-        props = all_props.copy()
-        props['recipients'] = [address.email for address in long_addresses]
-        props['message'] = long_msg
-        sender = EmailSender(properties=props)
-        print('Sending long message to %i recipients...' % len(long_addresses))
-        sender.send()
-
-    if len(pdf_addresses):
-        onepager_file = os.path.join(args.directory,'onepager.pdf')
-        props = all_props.copy()
-        props['recipients'] = [address.email for address in pdf_addresses]
-        props['message'] = long_msg
-        sender = EmailSender(properties=props,local_files=[onepager_file])
-        print('Sending long message, with PDF attachment to %i recipients...' % len(long_addresses))
-        sender.send()
-    
-        
+    except Exception as e:
+        #if we have any errors, we want to back out the event and version we added above.
+        #todo - the event might not be new, we can't just delete it, only if its empty
+        print('Exception "%s" on input %s Backing out any new events/versions.' % (str(e),args.directory))
+        session.delete(version)
+        if len(event.versions) == 0:
+            session.delete(event)
+        session.commit()
+    session.commit()
+    session.close()
+    sys.exit(0)
     
     
 if __name__ == '__main__':
     desc='Send emails to PAGER users.'
     argparser = argparse.ArgumentParser(description=desc,
                                         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    argparser.add_argument("--debug", action='store_true',default=False,
+                           help='Turn off emailing, print out who *would* be notified.')
     argparser.add_argument("--directory",
                            help="Directory where PAGER data can be found",metavar='DIRECTORY')
     argparser.add_argument("--type", 
@@ -175,6 +225,7 @@ if __name__ == '__main__':
                            help="Product code",metavar='CODE')
     argparser.add_argument("--source", 
                            help="Product source",metavar='SOURCE')
+    
     argparser.add_argument("--status", 
                            help="Product status",metavar='STATUS')
     argparser.add_argument("--action", 

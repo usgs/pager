@@ -193,12 +193,13 @@ def do_stats(stats,admin,config):
         last_quarter = this_quarter - 1
         if last_quarter == -1:
             query_year = tnow.year - 1
+            last_quarter = 3
         quarters = {0:(1,3),
                     1:(4,6),
                     2:(7,9),
                     3:(10,12)}
 
-        end_month_days = monthrange(query_year,quarters[last_quarter][1])
+        end_month_days,tmp = monthrange(query_year,quarters[last_quarter][1])
         start_date = datetime.datetime(query_year,quarters[last_quarter][0],1)
         end_date = datetime.datetime(query_year,quarters[last_quarter][1],end_month_days,23,59,59)
         fname = 'quarterly_%i_Q%i.xlsx' % (query_year,(last_quarter+1))
@@ -215,6 +216,9 @@ def do_stats(stats,admin,config):
                              mag_threshold=0.0,
                              alert_threshold='green',
                              version='all')
+    pdataframe['tmp'] = pdataframe.index
+    pdataframe = pdataframe.sort_values(['tmp','Version'])
+    pdataframe = pdataframe.drop('tmp',1)
     statsfile = os.path.join(config['stats_folder'],fname)
     pdataframe.to_excel(statsfile)
     msg = 'All event statistics saved to %s.' % statsfile
@@ -373,7 +377,12 @@ def main(args):
         pd.set_option('display.width', 1000)
         pd.set_option('display.max_rows', 1000)
         pdataframe = admin.query(eventid=args.history)
-        print(pdataframe)
+        pdataframe = pdataframe.sort_values('Version')
+        if args.output == 'screen':
+            print(pdataframe)
+        else:
+            pdataframe.to_excel(args.output)
+            print('Saved %i versions to %s' % (len(pdataframe),args.output))
         sys.exit(0)
 
     if args.tsunami:
@@ -403,7 +412,7 @@ def main(args):
 if __name__ == '__main__':
     desc='Administer the PAGER system with a series of subcommands.'
     usage = '''
-    To query the system status: "adminpager --status"
+    To query the system status: "adminpager --status check"
     To switch the system from being primary to secondary: "adminpager --status secondary"
     To switch the system from being secondary to primary: "adminpager --status primary"
     To prevent an event from being automatically updated: "adminpager --stop EVENTID"
@@ -442,7 +451,7 @@ if __name__ == '__main__':
     argparser.add_argument("--unstop", nargs=1,
                            help="Allow stopped event(s) to be re-run automatically.",
                            metavar='EVENT')
-    argparser.add_argument("--status", nargs=1,choices=('check','primary','secondary'),
+    argparser.add_argument("--status", choices=('check','primary','secondary'),
                            help="Print or change PAGER primary/secondary status.",
                            metavar='STATUS')
     argparser.add_argument("--tsunami", nargs=2,
@@ -453,7 +462,7 @@ if __name__ == '__main__':
     argparser.add_argument("--history", 
                            help="Print history of input event.",
                            metavar='EVENT')
-    argparser.add_argument("--output", nargs='*', 
+    argparser.add_argument("--output",  
                            help="Select output format for queries ('screen' or excel filename.",
                            default='screen',metavar='FORMAT')
     argparser.add_argument("--stats", nargs=1, 
