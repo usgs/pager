@@ -196,6 +196,7 @@ class Address(Base):
              interest (defaults to True if user has no regions defined).
            - Event meets or exceeds one of the address thresholds (MMI, magnitude, or EIS).
         """
+        levels = ['green','yellow','orange','red']
         #check the version time against the current time, reject if older than 8 hours
         if datetime.utcnow() > version.time + timedelta(seconds=MAX_ELAPSED_SECONDS):
             return False
@@ -212,7 +213,7 @@ class Address(Base):
             if sversion.event_id != eid:
                 continue
             notified_before = True
-            highest_level = alertdict[sversion.summarylevel]
+            highest_level = sversion.summarylevel
             
         should_alert = False
         for profile in self.profiles:
@@ -234,9 +235,16 @@ class Address(Base):
         self.is_primary = addressdict['is_primary']
         self.priority = addressdict['priority']
         self.format = addressdict['format']
+        if not len(addressdict['profiles']):
+            print('Warning: Address %s has NO profiles in the JSON file. Continuing.' % self.email)
         for profiledict in addressdict['profiles']:
             profile = Profile()
-            profile.fromDict(session,profiledict)
+            try:
+                profile.fromDict(session,profiledict)
+            except PagerException as pe:
+                raise PagerException('Error: "%s" when loading profile for address %s.' % (str(pe),self.email))
+            if not len(profile.thresholds):
+                print('Warning: Address %s has NO thresholds in one of the profiles. Continuing.' % self.email)
             self.profiles.append(profile)
 
     def toDict(self):
@@ -279,6 +287,8 @@ class Profile(Base):
         return "<Profile(%i thresholds,%i regions)>" % (len(self.thresholds),len(self.regions))
 
     def shouldAlert(self,version,highest_level):
+        if not len(self.regions) and not len(self.thresholds):
+            return False
         #figure out if this point is in a given region
         inside_region = False
         #No regions implies the whole globe
@@ -318,7 +328,7 @@ class Profile(Base):
             if region is None:
                 raise PagerException('No region named %s found in the database.' % regiondict['name'])
             self.regions.append(region)
-
+        
         for thresholddict in profiledict['thresholds']:
             threshold = Threshold()
             threshold.fromDict(session,thresholddict)
@@ -403,6 +413,9 @@ class Version(Base):
     depth = Column(Float, nullable=False)
     magnitude = Column(Float, nullable=False)
     number = Column(Integer, nullable=False)
+    country = Column(String, nullable=False) #most impacted country
+    fatlevel = Column(Integer, nullable=False)
+    ecolevel = Column(Integer, nullable=False)
     summarylevel = Column(Integer, nullable=False)
     processtime = Column(DateTime, nullable=False)
     maxmmi = Column(Float, nullable=False)
@@ -493,6 +506,9 @@ class Threshold(Base):
           Version object, containing magnitude, MMI, and alert level information.
         :param highest_level:
           Highest level of this event for which this Address was previously notified.
+        :param alerted_before:
+          Boolean indicating whether the profile to which this threshold belongs
+          has been notified about this event previously.
         :returns:
           Boolean indicating whether threshold has been met or exceeeded.
         """
@@ -500,28 +516,49 @@ class Threshold(Base):
                      'yellow':1,
                      'orange':2,
                      'red':3}
+        levels = ['green','yellow','orange','red']
+        #This is complicated.  If the user has not been notified about
+        #this event before and the current level exceeds the threshold, then they should
+        #be notified.  If they haven't been notified and current level is below threshold, then no notification.
+        #If the user HAS been notified about this event, then if the current alert level is two or more
+        #levels *different* from the 
         if self.alertscheme.name == 'eis':
-            thislevel = alertdict[version.summarylevel]
-            is_higher = np.abs(thislevel - highest_level) > MAX_EIS_LEVELS
             threshlevel = alertdict[self.value]
-            if thislevel >= threshlevel and is_higher:
-                return True
+            if highest_level < 0:
+                if version.summarylevel >= threshlevel:
+                    return True
+                else:
+                    return False
+            else:
+                two_levels_different = np.abs(version.summarylevel - highest_level) >= MAX_EIS_LEVELS
+                if two_levels_different:
+                    return True
+                else:
+                    return False
         elif self.alertscheme.name == 'mmi':
             thislevel = float(self.value)
-            if version.maxmmi >= thislevel:
+            if version.maxmmi >= thislevel and highest_level < 0:
                 return True
         else: #self.alertscheme.name == 'mag':
             thislevel = float(self.value)
-            if version.magnitude >= thislevel:
+            if version.magnitude >= thislevel and highest_level < 0:
                 return True
         return False
 
     def fromDict(self,session,thresholddict):
-        self.value = thresholddict['value']
+        tvalue = thresholddict['value']
         scheme = session.query(AlertScheme).filter(AlertScheme.name == thresholddict['alertscheme']).first()
         if scheme is None:
             raise PagerException('No alert scheme named %s exists in the database.' % thresholddict['alertscheme'])
+        if not scheme.isdiscrete:
+            if scheme.valuetype == 'Float':
+                tvalue = float(tvalue)
+            else:
+                tvalue = int(tvalue)
+            if tvalue < scheme.minlevel or tvalue > scheme.maxlevel:
+                raise PagerException('Threshold for %s is outside range.' % scheme.name)
         self.alertscheme = scheme
+        self.value = thresholddict['value']
 
     def toDict(self):
         thresholddict = {'value':self.value,
@@ -689,10 +726,10 @@ def create_db(url,schemadir,users_jsonfile=None,orgs_jsonfile=None):
     #Create the alertscheme and level tables, fill them in
     magscheme = {'name':'mag','adesc':'Magnitude',
                  'valuetype':'Float','isdiscrete':False,
-                 'minlevel':0,'maxlevel':11}
+                 'minlevel':0,'maxlevel':10}
     mmischeme = {'name':'mmi','adesc':'Modified Mercalli Intensity',
                  'valuetype':'Float','isdiscrete':False,
-                 'minlevel':0,'maxlevel':11}
+                 'minlevel':0,'maxlevel':10}
     eisscheme = {'name':'eis','adesc':'Earthquake Impact Scale',
                  'valuetype':'String','isdiscrete':True,
                  'minlevel':None,'maxlevel':None}
@@ -740,20 +777,14 @@ def create_db(url,schemadir,users_jsonfile=None,orgs_jsonfile=None):
     orgs = json.loads(open(orgs_jsonfile,'rt').read())
     for orgdict in orgs:
         org = Organization()
-        try:
-            org.fromDict(session,orgdict) #this adds and commits
-        except Exception as e:
-            x = 1
+        org.fromDict(session,orgdict) #this adds and commits
 
     #load the users, if they are specified
     if users_jsonfile is not None:
         users = json.loads(open(users_jsonfile,'rt').read())
         for userdict in users:
             user = User()
-            try:
-                user.fromDict(session,userdict)
-            except Exception as e:
-                x = 1
+            user.fromDict(session,userdict)
     
     return session
 

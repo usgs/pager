@@ -91,6 +91,8 @@ class Country(object):
         if isinstance(value,(int,float)):
             row = self._dataframe[self._dataframe['ISON'] == value]
         elif isinstance(value,str):
+            if len(value) == 0:
+                return None
             if len(value) == 2:
                 row = self._dataframe[self._dataframe['ISO2'] == value]
             elif len(value) == 3:

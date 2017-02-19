@@ -84,6 +84,7 @@ class GDP(object):
             row = self._dataframe[self._dataframe['Country Code'] == ccode].iloc[0]
         except:
             return (GLOBAL_GDP,None)
+        
         if yearstr in row:
             gdp = row[yearstr]
         else:
@@ -94,7 +95,9 @@ class GDP(object):
                 res = re.search('[0-9]{4}',c)
                 if res is not None:
                     years.append(res.group())
-            
+
+            if not len(years):
+                return (GLOBAL_GDP,None)
             if yearstr < min(years):
                 #assume that the years in the dataframe are sequential and increasing to the right
                 #get the first non-null GDP value

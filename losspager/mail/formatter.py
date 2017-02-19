@@ -4,17 +4,12 @@ from textwrap import dedent
 
 #third party imports
 from impactutils.textformat.text import pop_round,dec_to_roman,pop_round_short
+import numpy as np
 
 DATEFMT = '%Y/%m/%d-%H:%M'
 MIN_POP = 1000
 
 def generate_subject_line(version,pdata):
-    # if update:
-    #         subject = 'UPDATE: %s Alert, PAGER V%i %s' % (alertlevel,vnum,pagerversion.location)
-    #     elif review:
-    #         subject = 'Pending Alert, PAGER V%i %s' % (vnum,pagerversion.location)
-    #     else:
-    #         subject = '%s Alert, PAGER V%i %s' % (alertlevel,vnum,pagerversion.location)
     is_update = False
     if version.number > 1:
         event = version.event
@@ -23,7 +18,7 @@ def generate_subject_line(version,pdata):
                 is_update = True
                 break
 
-    alertlevel = pdata.summary_alert_pending
+    alertlevel = pdata.summary_alert_pending.capitalize()
     vnum = version.number
     location = pdata.location
     
@@ -121,6 +116,9 @@ def format_city_table(cities):
 
 def format_earthquakes(histquakes):
     #distance,date,magnitude,maxmmi,maxmmiexp,deaths
+    default = 'There were no earthquakes with significant population exposure to shaking within a 400 km radius of this event.'
+    if histquakes[0] is None:
+        return default
     tablestr = ''
     hdr = '{date:16s} {dist:10s} {mag:4s} {mmi:10s} {deaths:14s}\n'
     hdr = hdr.format(date='Date (UTC)',
@@ -135,17 +133,23 @@ def format_earthquakes(histquakes):
         datestr = eqtime.strftime(DATEFMT)
         mmistr = '{}({})'.format(dec_to_roman(histquake['MaxMMI']),
                                  pop_round_short(histquake['NumMaxMMI']))
+        if np.isnan(histquake['TotalDeaths']):
+            death_str = '-'
+        else:
+            death_str = pop_round_short(histquake['TotalDeaths'])
         line = fmt.format(date=datestr,
                           dist=int(histquake['Distance']),
                           mag=histquake['Magnitude'],
                           mmi=mmistr,
-                          deaths=pop_round_short(histquake['TotalDeaths']))
+                          deaths=death_str)
         tablestr += line
 
     return tablestr
 
 def format_short(version,expstr):
     #using python string .format() method with brackets
+    alerts = ['green','yellow','orange','red']
+    alert_level = alerts[version.summarylevel]
     msg = '''
     M{magnitude:.1f}
     D{depth:d}
@@ -157,12 +161,14 @@ def format_short(version,expstr):
                time=version.time.strftime(DATEFMT),
                lat=version.lat,
                lon=version.lon,
-               summarylevel=version.summarylevel.capitalize())
+               summarylevel=alert_level.capitalize())
     msg = dedent(msg)
     msg += expstr
     return msg
 
 def format_long(version,pdata,expstr,event_url):
+    alerts = ['green','yellow','orange','red']
+    alert_level = alerts[version.summarylevel]
     tsunami_comment = ''
     eventinfo = pdata.getEventInfo()
     if eventinfo['tsunami']:
@@ -209,7 +215,7 @@ def format_long(version,pdata,expstr,event_url):
                lon=version.lon,
                depth=int(version.depth),
                eventid=version.versioncode,
-               summary_level=version.summarylevel.capitalize(),
+               summary_level=alert_level.capitalize(),
                impact_comment=impact_comment,
                tsunami_comment=tsunami_comment,
                expstr=expstr,

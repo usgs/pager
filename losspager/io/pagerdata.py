@@ -390,7 +390,11 @@ class PagerData(object):
         if max_ccode == 'UK':
             cname = 'Unspecified'
         else:
-            cname = country.getCountry(max_ccode)['Name']
+            cdict = country.getCountry(max_ccode)
+            if cdict is not None:
+                cname = cdict['Name']
+            else:
+                cname = 'Unknown'
         d = {'EventID':self.id,
              'Impacted Country ($)':cname,
              'Version':self.version,
@@ -689,6 +693,7 @@ class PagerData(object):
         event = json.load(f)
         f.close()
         self._pagerdict['event_info'] = event['event'].copy()
+        self._location = self._pagerdict['event_info']['location']
         self._pagerdict['pager'] = event['pager'].copy()
         self._is_released = True
         if self._pagerdict['pager']['alert_level'] == 'pending':
@@ -769,7 +774,7 @@ class PagerData(object):
         rlevels = {0:'green',1:'yellow',2:'orange',3:'red'}
         max_level = rlevels[max(levels[fatlevel],levels[ecolevel])]
         alert_level = max_level
-        if max_level == 'orange' or max_level == 'red' and not self._is_released:
+        if (max_level == 'orange' or max_level == 'red') and not self._is_released:
             alert_level = 'pending'
         pager['alert_level'] = alert_level
         pager['true_alert_level'] = max_level

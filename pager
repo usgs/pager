@@ -138,7 +138,25 @@ def _get_release_status(pargs,config,
 
     return is_released
 
-def _transfer(config,pagerdata,authid,authsource,version_folder):
+def message_pager(config,onepager_pdf,doc):
+    if 'transfer' in config:
+        if 'status' in config and config['status'] == 'primary':
+            users = config['pager_team']
+            sender = config['mail_from']
+            host = config['mail_host']
+            subject = '%s INTERNAL alert: %s' % (doc.summary_alert,doc.location)
+            msg = '''This is an INTERNAL message notifying you of this %s alert.  You will receive 
+            a second message with the pending alert.
+            '''
+            props = {'recipients':users,
+                     'subject':subject,
+                     'sender':sender,
+                     'message':msg,
+                     'smtp_servers':[host]}
+            sender = EmailSender(props,local_files=[onepager_pdf])
+            sender.send()
+            
+def transfer(config,pagerdata,authid,authsource,version_folder):
     #If system status is primary and transfer options are configured, transfer the output
     #directories using those options
     if 'status' in config and config['status'] == 'primary':
@@ -505,9 +523,12 @@ def main(pargs,config):
         if contentsfile is None:
             raise PagerException('Could not find contents.xml file.')
         shutil.copy(contentsfile,version_folder)
+
+        #send pdf as attachment to internal team of PAGER users
+        message_pager(config,onepager_pdf,doc)
         
         #run transfer, as appropriate and as specified by config
-        _transfer(config,doc,authid,authsource,version_folder)
+        transfer(config,doc,authid,authsource,version_folder)
 
         if plog is not None:
             plog.stopLogging()
