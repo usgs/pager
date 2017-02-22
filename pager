@@ -427,6 +427,15 @@ def main(pargs,config):
         exposure = None
         exposure = expomodel.calcExposure(gridfile)
 
+        #incidentally grab the country code of the epicenter
+        numcode = expomodel._isogrid.getValue(elat,elon)
+        cdict = Country().getCountry(int(numcode))
+        if cdict is None:
+            ccode = 'UK'
+        else:
+            ccode = cdict['ISO2']
+        print('Country code at epicenter is %s' % ccode)
+
         #get fatality results, if requested
         print('Calculating empirical fatalities.')
         fatmodel = EmpiricalLoss.fromDefaultFatality()
@@ -453,7 +462,7 @@ def main(pargs,config):
         #get all of the other components of PAGER
         print('Getting all comments.')
         #get the fatality and economic comments
-        impact1,impact2 = get_impact_comments(fatdict,ecodict,econexposure,event_year)
+        impact1,impact2 = get_impact_comments(fatdict,ecodict,econexposure,event_year,ccode)
         #get comment describing vulnerable structures in the region.
         struct_comment = get_structure_comment(resfat,nonresfat,semi)
         #get the comment describing historic secondary hazards
@@ -540,9 +549,13 @@ def main(pargs,config):
         #and as it happens after the code completes, I'm not terribly concerned about it other than
         #confusion for users.  Hence the try block around sys.exit().
         try:
-            sys.exit(0)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                sys.exit(0)
         except:
-            sys.exit(0)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                sys.exit(0)
     except Exception as e:
         if plog is not None:
             f = io.StringIO()

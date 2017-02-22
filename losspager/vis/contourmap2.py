@@ -65,7 +65,8 @@ CITIES_ZORDER = 12
 WATERMARK_ZORDER = 60
 
 #default font for cities
-DEFAULT_FONT = 'DejaVu Sans'
+#DEFAULT_FONT = 'DejaVu Sans'
+DEFAULT_FONT = 'Bitstream Vera Sans'
 
 #define dictionary of MMI integer values to Roman numeral equivalents
 MMI_LABELS = {'1':'I',

@@ -64,7 +64,7 @@ RED_ECON_EQUAL = '[GDPCOMMENT]'
 EPS = 1e-12 #if expected value is zero, take the log of this instead
 SEARCH_RADIUS = 400 #kilometer radius to search for historical earthquakes
 
-def get_gdp_comment(ecodict,ecomodel,econexposure,event_year):
+def get_gdp_comment(ecodict,ecomodel,econexposure,event_year,epicode):
     """Create a comment on the GDP impact of a given event in the most impacted country.
 
     :param ecodict:
@@ -77,6 +77,8 @@ def get_gdp_comment(ecodict,ecomodel,econexposure,event_year):
       Dictionary will contain an additional key 'Total', with value of exposure across all countries.
     :param event_year:
       Year in which event occurred.
+    :param epicode:
+      Two letter country code of epicenter or 'UK' if not a country (usu. ocean).
     :returns:
       A string which indicates what fraction of the country's GDP the losses represent.
     """
@@ -98,14 +100,20 @@ def get_gdp_comment(ecodict,ecomodel,econexposure,event_year):
         #how do I compare economic exposure between countries?
         #do I want to compare that, or just grab the country of epicenter?
         for ccode,value in ecodict.items():
+            if ccode == 'TotalDollars':
+                continue
             rates = ecomodel.getLossRates(ccode,np.arange(1,10))
             emploss = np.nansum(rates * value)
             if emploss > dmax:
                 dmax = emploss
                 dccode = ccode
+
+    if dccode == '':
+        dccode = epicode
     gdp_obj = GDP.fromDefault()
     gdp,outccode = gdp_obj.getGDP(dccode,event_year)
     country = Country()
+    print('ccode: %s, dccode: %s, outccode: %s' % (ccode,dccode,outccode))
     cinfo = country.getCountry(outccode)
     if cinfo is not None:
         pop = cinfo['Population']
@@ -147,7 +155,7 @@ def get_gdp_comment(ecodict,ecomodel,econexposure,event_year):
     return strtxt
     
 
-def get_impact_comments(fatdict,ecodict,econexposure,event_year):
+def get_impact_comments(fatdict,ecodict,econexposure,event_year,ccode):
     """Create comments for a given event, describing economic and human (fatality) impacts.
 
     :param fatdict:
@@ -160,6 +168,8 @@ def get_impact_comments(fatdict,ecodict,econexposure,event_year):
       Dictionary will contain an additional key 'Total', with value of exposure across all countries.
     :param event_year:
       Year in which event occurred.
+    :param ccode:
+      Two letter country code of epicenter or 'UK' if not a country (usu. ocean).
     :returns:
       A tuple of two strings which describe the economic and human impacts.  The most impactful
       of these will be the first string.  Under certain situations, the second comment could be blank.
@@ -174,7 +184,7 @@ def get_impact_comments(fatdict,ecodict,econexposure,event_year):
     rlevels = {0:'green',1:'yellow',2:'orange',3:'red'}
     fat_higher = levels[fatlevel] > levels[ecolevel]
     eco_higher = levels[ecolevel] > levels[fatlevel]
-    gdpcomment = get_gdp_comment(ecodict,ecomodel,econexposure,event_year)
+    gdpcomment = get_gdp_comment(ecodict,ecomodel,econexposure,event_year,ccode)
 
     if fat_higher:
         if fatlevel == 'green':
