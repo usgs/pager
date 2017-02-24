@@ -32,7 +32,7 @@ import numpy as np
 from mapio.shake import getHeaderData
 from impactutils.comcat.query import ComCatInfo
 from impactutils.transfer.factory import get_sender_class
-from impactitils.transfer.emailsender import EmailSender
+from impactutils.transfer.emailsender import EmailSender
 
 #local imports
 from losspager.models.exposure import Exposure
@@ -338,7 +338,7 @@ def main(pargs,config):
         mail_host = config['mail_host']
         mail_from = config['mail_from']
         logfile = os.path.join(pager_folder,'pager.log')
-        print('Writing content to %s' % logfile)
+        #print('Writing content to %s' % logfile)
         plog = PagerLogger(logfile,redirect=True,
                            from_address=mail_from,
                            mail_host=mail_host)
