@@ -73,7 +73,7 @@ def create_onepager(pdata,version_dir, debug = False):
     #---------------------------------------------------------------------------
 
     json_dir = os.path.join(version_dir, 'json')
-    pdict = copy.deepcopy(pdata._pagerdict)
+    pdict = pdata._pagerdict
     edict = pdata.getEventInfo()
     
     with open(template_file, 'r') as f:

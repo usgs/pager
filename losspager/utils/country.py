@@ -99,8 +99,10 @@ class Country(object):
                 row = self._dataframe[self._dataframe['ISO3'] == value]
             else:
                 row = self._dataframe[self._dataframe.Name.str.lower().str.contains(value.lower())]
+        if row is None:
+            return 'UK'
         if len(row):
             return row.iloc[0].to_dict()
         else:
-            return None
+            return 'UK'
                 

@@ -728,16 +728,17 @@ class SemiEmpiricalFatality(object):
                     resfat = rescollapse * resfatal
                     nonresfat = nonrescollapse * nonresfatal
 
-                    #zero out the cells where fatalities are less than 1
-                    if mmi == 9.0 and dclass == 2:
-                        foo = 1
+                    #zero out the cells where fatalities are less than 1 or nan
                     try:
                         if len(resfat) and len(resfat[0]):
                             resfat[np.ma.masked_less(resfat,1).mask] = 0.0
                     except:
-                        x = 1
-                    if len(nonresfat) and len(nonresfat[0]):
-                        nonresfat[np.ma.masked_less(nonresfat,1).mask] = 0.0
+                        resfat[np.isnan(resfat)] = 0.0
+                    try:
+                        if len(nonresfat) and len(nonresfat[0]):
+                            nonresfat[np.ma.masked_less(nonresfat,1).mask] = 0.0
+                    except:
+                        nonresfat[np.isnan(nonresfat)] = 0.0
 
                     #sum the fatalities per building through all cells
                     resfatbybuilding = np.nansum(resfat,axis=1)

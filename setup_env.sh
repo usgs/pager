@@ -1,7 +1,7 @@
 #!/bin/bash
 
 VENV=pager
-PYVER=3.5
+PYVER=3.6
 
 DEPARRAY=(numpy scipy matplotlib jupyter rasterio fiona xlrd xlwt pandas shapely h5py gdal descartes sphinx configobj pyproj pytest pytest-cov pytables pytest-mpl cartopy pyyaml rtree openpyxl pycrypto paramiko beautifulsoup4 docutils decorator nose mock cython)
 
