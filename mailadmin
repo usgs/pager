@@ -1078,12 +1078,16 @@ def main(args):
     if args.list_regions:
         groupname = args.list_regions
         regiongroup = session.query(emailschema.RegionGroup).filter(emailschema.RegionGroup.groupname == groupname).first()
-        gid = regiongroup.id
-        regions = session.query(emailschema.Region).filter(emailschema.Region.regiongroup_id == gid).all()
-        for region in regions:
-            print('%-40s %-40s' % (region.name,region.desc))
-        res = True
-        msg = ''
+        if regiongroup is None:
+            msg = 'No region group called %s found in database. Exiting.' % groupname
+            res = False
+        else:
+            gid = regiongroup.id
+            regions = session.query(emailschema.Region).filter(emailschema.Region.regiongroup_id == gid).all()
+            for region in regions:
+                print('%-40s %-40s' % (region.name,region.desc))
+            res = True
+            msg = ''
 
     if args.show_user:
         email = args.show_user
