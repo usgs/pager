@@ -32,6 +32,7 @@ import numpy as np
 from mapio.shake import getHeaderData
 from impactutils.comcat.query import ComCatInfo
 from impactutils.transfer.factory import get_sender_class
+from impactitils.transfer.emailsender import EmailSender
 
 #local imports
 from losspager.models.exposure import Exposure
