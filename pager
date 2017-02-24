@@ -19,6 +19,7 @@ import textwrap
 from urllib import request
 import tempfile
 import warnings
+import socket
 
 #third party imports
 import matplotlib
@@ -336,13 +337,15 @@ def main(pargs,config):
         mail_host = config['mail_host']
         mail_from = config['mail_from']
         logfile = os.path.join(pager_folder,'pager.log')
+        print('Writing content to %s' % logfile)
         plog = PagerLogger(logfile,redirect=True,
                            from_address=mail_from,
                            mail_host=mail_host)
-        
         plog.addEmailHandler(config['developers']) #failover email alert system
 
     try:
+        eid = None
+        pager_version = None
         #get all the basic event information and print it, if requested
         shake_tuple = getHeaderData(gridfile)
         eid = shake_tuple[1]['event_id']
@@ -397,7 +400,7 @@ def main(pargs,config):
 
         #Copy the grid.xml file to the version folder
         shutil.copy(gridfile,version_folder)
-            
+
         #Check to see if the tsunami flag has been previously set
         tsunami_toggle = {'on':1,'off':0}
         tsunami_file = os.path.join(event_folder,'tsunami')
@@ -560,24 +563,26 @@ def main(pargs,config):
         if plog is not None:
             f = io.StringIO()
             traceback.print_exc(file=f)
-            msg = errobj
+            msg = e
             msg = '%s\n %s' % (str(msg),f.getvalue())
             hostname = socket.gethostname()
             msg = msg + '\n' + 'Error occurred on %s\n' % (hostname)
             if gridfile is not None:
                 msg = msg + '\n' + 'Error on file: %s\n' % (gridfile)
-            if eventcode is not None:
-                msg = msg + '\n' + 'Error on event: %s\n' % (eventcode)
-            if vnum is not None:
-                msg = msg + '\n' + 'Error on version: %i\n' % (vnum)
+            if eid is not None:
+                msg = msg + '\n' + 'Error on event: %s\n' % (eid)
+            if pager_version is not None:
+                msg = msg + '\n' + 'Error on version: %i\n' % (pager_version)
+            f.close()
             if plog is not None:
                 plog.scream(msg)
                 plog.stopLogging()
             print('Sent error to email')
-            f.close()
+            
         else:
             sys.stderr.write(str(e)+'\n')
             traceback.print_exc()
+        print('Something bad happened!')
         sys.exit(1)
 if __name__ == '__main__':
     desc = '''Run PAGER loss models and create all PAGER products.

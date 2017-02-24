@@ -6,6 +6,7 @@ from logging.handlers import SMTPHandler
 import sys
 import os
 import socket
+from datetime import datetime
 
 class NullHandler(logging.Handler):
     def emit(self, record):
@@ -205,7 +206,8 @@ class PagerLogger:
         self.MailHandler = None
         print('Creating SMTP handler with %s,%s,%s,%s' % (self.MailHost,self.FromAddress,emails,self.Subject))
         try:
-            self.MailHandler = SMTPHandler(self.MailHost,self.FromAddress,emails,self.Subject)
+            subject = self.Subject + ': %s' % datetime.utcnow().strftime('%b %d %Y %H:%M:%S')
+            self.MailHandler = SMTPHandler(self.MailHost,self.FromAddress,emails,subject)
             self.MailHandler.setLevel(self.EmailLogLevel)
             self.MailHandler.setFormatter(self.Formatter)
             self.Logger.addHandler(self.MailHandler)

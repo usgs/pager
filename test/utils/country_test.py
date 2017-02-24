@@ -50,7 +50,7 @@ def test():
 
     print('Test to make sure failure is an option...')
     row5 = country.getCountry('happyland')
-    assert row5 is None
+    assert row5 is 'UK'
     print('Test failed as expected...')
 
 

@@ -115,7 +115,7 @@ def get_gdp_comment(ecodict,ecomodel,econexposure,event_year,epicode):
     country = Country()
     print('ccode: %s, dccode: %s, outccode: %s' % (ccode,dccode,outccode))
     cinfo = country.getCountry(outccode)
-    if cinfo is not None:
+    if cinfo != 'UK':
         pop = cinfo['Population']
     else:
         pop = 0
