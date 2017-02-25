@@ -23,7 +23,7 @@ from losspager.models.exposure import Exposure
 from losspager.models.econexposure import EconExposure
 from losspager.models.growth import PopulationGrowth
 from losspager.models.semimodel import SemiEmpiricalFatality
-from losspager.vis.contourmap2 import draw_contour
+from losspager.vis.contourmap import draw_contour
 from mapio.city import Cities
 
 DATETIMEFMT = '%Y-%m-%d %H:%M:%S'
