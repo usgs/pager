@@ -20,7 +20,7 @@ from mapio.shake import ShakeGrid
 from mapio.gdal import GDALGrid
 
 #local imports
-from losspager.vis.contourmap2 import draw_contour
+from losspager.vis.contourmap import draw_contour
 
 def test(outfolder=None):
     topdata = os.path.abspath(os.path.join(homedir,'..','data'))

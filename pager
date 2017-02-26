@@ -53,7 +53,7 @@ from losspager.onepager.comment import get_historical_comment
 from losspager.onepager.onepager import create_onepager
 from losspager.io.pagerdata import PagerData
 from losspager.vis.impactscale import drawImpactScale
-from losspager.vis.contourmap2 import draw_contour
+from losspager.vis.contourmap import draw_contour
 from losspager.utils.config import read_config
 
 COUNTRY = Country()
@@ -538,7 +538,8 @@ def main(pargs,config):
         shutil.copy(contentsfile,version_folder)
 
         #send pdf as attachment to internal team of PAGER users
-        message_pager(config,onepager_pdf,doc)
+        if not is_released:
+            message_pager(config,onepager_pdf,doc)
         
         #run transfer, as appropriate and as specified by config
         transfer(config,doc,authid,authsource,version_folder)

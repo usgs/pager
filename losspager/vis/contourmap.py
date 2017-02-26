@@ -1,436 +1,521 @@
-#!/usr/bin/env python
-
-#stdlib
+#stdlib imports
 import os.path
-import time
-from functools import partial
-from collections import OrderedDict
+from datetime import datetime
+import warnings
 
-#third party
-from mapio.basemapcity import BasemapCities
-from mapio.gmt import GMTGrid
-import fiona
-from matplotlib.patches import Polygon
-from matplotlib.colors import LightSource,LinearSegmentedColormap,BoundaryNorm
-import matplotlib.pyplot as plt
-from shapely.ops import transform
-from shapely.geometry import MultiPolygon
-from shapely.geometry import MultiLineString
-from shapely.geometry import GeometryCollection
-from shapely.geometry import Polygon as sPolygon
-from shapely.geometry import LineString
-from shapely.geometry.multilinestring import MultiLineString
-from shapely.geometry.collection import GeometryCollection
-from shapely.geometry import shape as sShape
-from shapely.geometry import mapping
-from mpl_toolkits.basemap import Basemap
+#third party imports
+import matplotlib
+
+#this allows us to have a non-interactive backend - essential on systems without a display
+matplotlib.use('Agg')
+
 import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
+import matplotlib.patheffects as path_effects
+
+
+import cartopy
+import cartopy.crs as ccrs  # projections
+import cartopy.feature as cfeature   # features such as coast 
+from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
+from cartopy.io.img_tiles import StamenTerrain  # baselayer map
+from cartopy.feature import ShapelyFeature
+
+from mapio.shake import ShakeGrid
+from mapio.gdal import GDALGrid
+from mapio.grid2d import Grid2D
+
+from shapely.geometry import shape as sShape
+from shapely.geometry import Polygon as sPolygon
+from shapely.geometry import MultiPolygon as mPolygon
+from shapely.geometry import GeometryCollection
+
+import pyproj
+
+import fiona
+
 from descartes import PolygonPatch
 from scipy.ndimage import gaussian_filter
-import pyproj
-from matplotlib import _cntr as cntr
 
-#local imports
-from impactutils.textformat.text import dec_to_roman
+from impactutils.mapping.mercatormap import MercatorMap
+from impactutils.mapping.city import Cities
+from impactutils.colors.cpalette import ColorPalette
+from impactutils.textformat.text import round_to_nearest
+from impactutils.mapping.scalebar import draw_scale
 
 
-CITY_COLS = 2
-CITY_ROWS = 2
-CITIES_PER_GRID = 10
-FIG_WIDTH = 8
-FIG_HEIGHT = 8
-BASEMAP_RESOLUTION = 'c'
+
+#define some constants
 WATERCOLOR = '#7AA1DA'
-NCONTOURS = 6
-VERT_EXAG = 0.1
+FIGWIDTH = 7.0
+FILTER_SMOOTH = 5.0
+XOFFSET = 4 #how many pixels between the city dot and the city text
 
-#all of the zorder values for different plotted parameters
-IMG_ZORDER = 1
-STATIONS_ZORDER = 250
-CITIES_ZORDER = 100
-FAULT_ZORDER = 500
-EPICENTER_ZORDER = 500
-CONTOUR_ZORDER = 800
-ROAD_ZORDER = 5
-SCALE_ZORDER = 1500
-GRATICULE_ZORDER = 1200
-OCEAN_ZORDER = 1000
-BORDER_ZORDER = 1001
-CONTOUR_ZORDER = 2000
+#define the zorder values for various map components
+POP_ZORDER = 8
+COAST_ZORDER = 11
+LANDC_ZORDER = 10
+OCEANC_ZORDER = 11
+CLABEL_ZORDER = 50
+OCEAN_ORDER = 10
+GRID_ZORDER = 20
+EPICENTER_ZORDER = 30
+CITIES_ZORDER = 12
+WATERMARK_ZORDER = 60
 
-def cosd(angle):
-    return np.cos(np.radians(angle))
+#default font for cities
+#DEFAULT_FONT = 'DejaVu Sans'
+DEFAULT_FONT = 'Bitstream Vera Sans'
 
-def sind(angle):
-    return np.sin(np.radians(angle))
+#define dictionary of MMI integer values to Roman numeral equivalents
+MMI_LABELS = {'1':'I',
+              '2':'II',
+              '3':'III',
+              '4':'IV',
+              '5':'V',
+              '6':'VI',
+              '7':'VII',
+              '8':'VIII',
+              '9':'IX',
+              '10':'X'}
 
-def gethexcolor(color):
-    nlist = [int(c*255) for c in color]
-    h1 = hex(nlist[0])[2:4]
-    h2 = hex(nlist[1])[2:4]
-    h3 = hex(nlist[2])[2:4]
-    return '#%s%s%s' % (h1,h2,h3)
+def _clip_bounds(bbox,filename):
+    """Clip input fiona-compatible vector file to input bounding box.
 
-#http://www.mail-archive.com/matplotlib-users@lists.sourceforge.net/msg04050.html
-class FormatFaker(object):
-    def __init__(self, str): self.str = str
-    def __mod__(self, stuff): return self.str
+    :param bbox:
+      Tuple of (xmin,ymin,xmax,ymax) desired clipping bounds.
+    :param filename:
+      Input name of file containing vector data in a format compatible with fiona.
+    :returns:
+      Shapely Geometry object (Polygon or MultiPolygon).
+    """
+    f = fiona.open(filename,'r')
+    shapes = list(f.items(bbox=bbox))
+    xmin,ymin,xmax,ymax = bbox
+    newshapes = []
+    bboxpoly = sPolygon([(xmin,ymax),(xmax,ymax),(xmax,ymin),(xmin,ymin),(xmin,ymax)])
+    for tshape in shapes:
+        myshape = sShape(tshape[1]['geometry'])
+        intshape = myshape.intersection(bboxpoly)
+        newshapes.append(intshape)
+        newshapes.append(myshape)
+    gc = GeometryCollection(newshapes)
+    f.close()
+    return gc
 
-def getPopColorMap():
-    zvalues = [0,0,5,50,100,500,1000,5000,10000,10000]
-    greys = [255,255,203,175,145,114,80,41,0,0]
-    cmap = {'red':[],
-            'green':[],
-            'blue':[]}
-
-    for i in range(0,len(zvalues)-1):
-        x = zvalues[i]/max(zvalues)
-        y0 = greys[i]/255
-        y1 = greys[i+1]/255
-        cmap['red'].append((x,y0,y1))
-        cmap['green'].append((x,y0,y1))
-        cmap['blue'].append((x,y0,y1))
-        
-    cmap =  LinearSegmentedColormap('popmap',cmap)
-    return cmap
-
-def plotContourLabel(map,label):
-    fontsize = 14
-    fontdict1 = {'fontweight':'light',
-                 'color': 'w',
-                 'fontsize':fontsize}
-    fontdict2 = {'fontweight':'light',
-                 'color': 'k',
-                 'fontsize':fontsize}
-    xd = (map.urcrnrx - map.llcrnrx)/500
-    yd = (map.urcrnry - map.llcrnry)/500
-    ltext = label.get_text()
-    lrot = label.get_rotation()
-    lx,ly = label.get_position()
-    va, ha = label.get_va(), label.get_ha()
-    protmat = np.array([[cosd(lrot),sind(lrot)],
-                        [-1*sind(lrot),cosd(lrot)]])
-    nrotmat = np.linalg.pinv(protmat)
-    xlist = [-1*xd,0,xd,xd,xd,0,-1*xd,-1*xd]
-    ylist = [yd,yd,yd,0,-1*yd,-1*yd,-1*yd,0]
-    for dx,dy in zip(xlist,ylist):
-        xrot,yrot = np.dot(protmat,np.array([[lx],[ly]]))
-        xrot = xrot + dx
-        yrot = yrot + dy
-        newx,newy = np.dot(nrotmat,np.array([[xrot[0]],[yrot[0]]]))
-        plt.text(newx[0],newy[0],ltext,fontdict1,rotation=lrot,va=va,ha=ha)
-    plt.text(lx,ly,ltext,fontdict2,rotation=lrot,va=va,ha=ha)
-
-def getProjectedPolygon(polygon,m):
-    extlon,extlat = zip(*polygon.exterior.coords[:])
-    extx,exty = m(extlon,extlat)
-    extpts = list(zip(extx,exty))
-    ints = []
-    for interior in polygon.interiors:
-        try:
-            intlon,intlat = zip(*interior.coords[:])
-        except:
-            x = 1
-        intx,inty = m(intlon,intlat)
-        ints.append(list(zip(intx,inty)))
-    ppolygon = sPolygon(extpts,ints)
-    return ppolygon
-
-def getProjectedPolygons(polygon,m):
-    polygons = []
-    if isinstance(polygon,MultiPolygon):
-        for p in polygon:
-            ppolygon = getProjectedPolygon(p,m)
-            polygons.append(ppolygon)
-    else:
-        ppolygon = getProjectedPolygon(polygon,m)
-        polygons.append(ppolygon)
-
-    return polygons
-
-def getProjectedPatches(polygon,m,edgecolor=WATERCOLOR):
-    patches = []
-    if isinstance(polygon,MultiPolygon):
-        for p in polygon:
-            ppolygon = getProjectedPolygon(p,m)
-            patch = PolygonPatch(ppolygon,facecolor=WATERCOLOR,edgecolor=edgecolor,
-                             zorder=OCEAN_ZORDER,linewidth=1,fill=True,visible=True)
-            patches.append(patch)
-    else:
-        ppolygon = getProjectedPolygon(polygon,m)
-        patch = PolygonPatch(ppolygon,facecolor=WATERCOLOR,edgecolor=edgecolor,
-                             zorder=OCEAN_ZORDER,linewidth=1,fill=True,visible=True)
-        patches.append(patch)
-
-    return patches
-
-class PAGERMap(object):
-    def __init__(self,shakegrid,popgrid,cities,layerdict,outfolder):
-        """Draw PAGER population/MMI contour map with cities and inset map.
-
-        :param shakegrid:
-          ShakeGrid object.
-        :param popgrid:
-          Grid2D object containing population data.
-        :param cities:
-          BasemapCities object.
-        :param layerdict:
-          A dictionary containing file names for:
-            - 'coast': Coastline vector data file.
-            - 'ocean': Ocean vector data file.
-            - 'lake': Ocean vector data file.
-            - 'country': Country boundaries vector data file.
-            - 'state': State boundaries vector data file.
-        :param outfolder:
-          Directory where map PNG and PDF files will be written.
-        """
-        self._shakemap = shakegrid
-        self._popgrid = popgrid
-        self._cities = cities
-        self._layerdict = layerdict
-        self._outfolder = outfolder
-        self._clipBounds()
-        self.fig_width = FIG_WIDTH
-        self.fig_height = FIG_HEIGHT
-        self.city_cols = CITY_COLS
-        self.city_rows = CITY_ROWS
-        self.cities_per_grid = CITIES_PER_GRID
-        
-    def _clipBounds(self):
-        #returns a list of GeoJSON-like mapping objects
-        xmin,xmax,ymin,ymax = self._shakemap.getBounds()
-        bbox = (xmin,ymin,xmax,ymax)
-        bboxpoly = sPolygon([(xmin,ymax),(xmax,ymax),(xmax,ymin),(xmin,ymin),(xmin,ymax)])
-        self.vectors = {}
-        for key,value in self._layerdict.items():
-            vshapes = []
-            f = fiona.open(value,'r')
-            shapes = f.items(bbox=bbox)
-            for shapeidx,shape in shapes:
-                tshape = sShape(shape['geometry'])
-                intshape = tshape.intersection(bboxpoly)
-                vshapes.append(intshape)
-            f.close()
-            self.vectors[key] = vshapes
-
-    def _setMap(self,gd):
-        clon = gd.xmin + (gd.xmax-gd.xmin)/2.0
-        clat = gd.ymin + (gd.ymax-gd.ymin)/2.0
-        f = plt.figure(figsize=(self.fig_width,self.fig_height))
-        ax = f.add_axes([0.1,0.1,0.8,0.8])
-
-        m = Basemap(llcrnrlon=gd.xmin,llcrnrlat=gd.ymin,urcrnrlon=gd.xmax,urcrnrlat=gd.ymax,
-                    rsphere=(6378137.00,6356752.3142),
-                    resolution=BASEMAP_RESOLUTION,projection='merc',
-                    lat_0=clat,lon_0=clon,lat_ts=clat,ax=ax,suppress_ticks=True)
-        return m
-
-    def _projectGrid(self,data,m,gd):
-        #set up meshgrid to project topo and mmi data
-        xmin = gd.xmin
-        if gd.xmax < gd.xmin:
-            xmin -= 360
-        lons = np.linspace(xmin, gd.xmax, gd.nx)
-        lats = np.linspace(gd.ymax, gd.ymin, gd.ny)  # backwards so it plots right side up
-        llons1, llats1 = np.meshgrid(lons, lats)
-        pdata = m.transform_scalar(np.flipud(data), lons, lats[::-1], gd.nx, gd.ny, returnxy=False, 
-                                   checkbounds=False, order=1, masked=False)
-        return pdata
-
-    def _drawBoundaries(self,m):
-        allshapes = self.vectors['country'] + self.vectors['state']
-        for shape in allshapes:
-            #shape is a geojson-like mapping thing
-            blon,blat = zip(*shape.coords[:])
-            bx,by = m(blon,blat)
-            m.plot(bx,by,'k',zorder=BORDER_ZORDER)
-
-    def _drawLakes(self,m,gd):
-        lakes = self.vectors['lake']
-        for lake in lakes:
-            ppatches = getProjectedPatches(lake,m,edgecolor='k')
-            for ppatch in ppatches:
-                m.ax.add_patch(ppatch)
-
-    def _drawOceans(self,m,gd):
-        ocean = self.vectors['ocean'][0] #this is one shapely polygon
-        ppatches = getProjectedPatches(ocean,m)
-        for ppatch in ppatches:
-            m.ax.add_patch(ppatch)
-
-    def _drawCoastlines(self,m,gd):
-        coasts = self.vectors['coast']
-        for coast in coasts: #these are polygons?
-            clon,clat = zip(*coast.exterior.coords[:])
-            cx,cy = m(clon,clat)
-            m.plot(cx,cy,'k',zorder=BORDER_ZORDER)
-
-    def _drawGraticules(self,m,gd):
-        par = np.arange(np.ceil(gd.ymin),np.floor(gd.ymax)+1,1.0)
-        mer = np.arange(np.ceil(gd.xmin),np.floor(gd.xmax)+1,1.0)
-
-        xmap_range = m.xmax-m.xmin
-        ymap_range = m.ymax-m.ymin
-        xoff = -0.09*(xmap_range)
-        yoff = -0.04*(ymap_range)
-        
-        merdict = m.drawmeridians(mer,labels=[0,0,0,1],fontsize=10,xoffset=xoff,yoffset=yoff,
-                                  linewidth=0.5,color='gray',zorder=GRATICULE_ZORDER)
-        pardict = m.drawparallels(par,labels=[1,0,0,0],fontsize=10,xoffset=xoff,yoffset=yoff,
-                                  linewidth=0.5,color='gray',zorder=GRATICULE_ZORDER)
-
-        #loop over meridian and parallel dicts, change/increase font, draw ticks
-        xticks = []
-        for merkey,mervalue in merdict.items():
-            merline,merlablist = mervalue
-            merlabel = merlablist[0]
-            merlabel.set_family('sans-serif')
-            merlabel.set_fontsize(12.0)
-            merlabel.set_zorder(GRATICULE_ZORDER)
-            xticks.append(merline[0].get_xdata()[0])
-
-        yticks = []
-        for parkey,parvalue in pardict.items():
-            parline,parlablist = parvalue
-            parlabel = parlablist[0]
-            parlabel.set_family('sans-serif')
-            parlabel.set_fontsize(12.0)
-            parlabel.set_zorder(GRATICULE_ZORDER)
-            yticks.append(parline[0].get_ydata()[0])
-
-        #plt.tick_params(axis='both',color='k',direction='in')
-        plt.xticks(xticks,())
-        plt.yticks(yticks,())
-        m.ax.tick_params(direction='in')
-
-    def _render_contour_line(self,m,segline,color,linestyle,linewidth):
-        if isinstance(segline,(MultiLineString,GeometryCollection)):
-            for segment in segline:
-                if isinstance(segment,sPolygon):
-                    x,y = zip(*segment.exterior.coords)
-                else:
-                    x,y = zip(*segment.coords)
-                    m.plot(x,y,color=color,linestyle=linestyle,linewidth=linewidth,zorder=CONTOUR_ZORDER)
+def _renderRow(row,ax,fontname=DEFAULT_FONT,fontsize=10,zorder=10,shadow=False):
+    """Internal method to consistently render city names.
+    :param row:
+      pandas dataframe row.
+    :param ax:
+      Matplotlib Axes instance.
+    :param fontname:
+      String name of desired font.
+    :param fontsize:
+      Font size in points.
+    :param zorder:
+      Matplotlib plotting order - higher zorder is on top. 
+    :param shadow:
+      Boolean indicating whether "drop-shadow" effect should be used.
+    :returns:
+      Matplotlib Text instance.
+    """
+    ha = 'left'
+    va = 'center'
+    if 'placement' in row.index:
+        if row['placement'].find('E') > -1:
+            ha = 'left'
+        if row['placement'].find('W') > -1:
+            ha = 'right'
         else:
-            if isinstance(segline,sPolygon):
-                x,y = zip(*segline.exterior.coords)
-            else:
-                x,y = zip(*segline.coords)
-                m.plot(x,y,color=color,linestyle=linestyle,linewidth=linewidth,zorder=CONTOUR_ZORDER)
+            ha = 'center'
+        if row['placement'].find('N') > -1:
+            ha = 'top'
+        if row['placement'].find('S') > -1:
+            ha = 'bottom'
+        else:
+            ha = 'center'
+
+    #data_x_offset = data2[0] - data1[0]
+    data_x_offset = 0
+    tx = row['lon'] + data_x_offset
+    ty = row['lat']
+    if shadow:  
+        th = ax.text(tx,ty,row['name'],fontname=fontname,color='black',
+                     fontsize=fontsize,ha=ha,va=va,zorder=zorder,
+                     transform=ccrs.Geodetic())
+        th.set_path_effects([path_effects.Stroke(linewidth=2.0, foreground='white'),
+                             path_effects.Normal()])
+    else:     
+        th = ax.text(tx,ty,row['name'],fontname=fontname,
+                     fontsize=fontsize,ha=ha,va=va,zorder=zorder,
+                    transform=ccrs.Geodetic())
+
+    return th
+
+def _get_open_corner(popgrid,ax,filled_corner=None,need_bottom=True):
+    """Get the map corner (not already filled) with the lowest population.
+
+    :param popgrid:
+      Grid2D object containing population data.
+    :param ax:
+      Axes object filled by input population grid.
+    :param filled_corner:
+      String indicating which, if any, corners are already occupied. One of ('ll','lr','ul','ur').
+    :param need_bottom:
+      Boolean indicating that one of the two lower corners should be preferred.
+    :returns:
+      Tuple of:
+         - Tuple of corner values in figure coordinates, used to place new axes in a figure. 
+        (left,bottom,width,height)
+         - String indicating which corner was selected.
+    """
+    #define all edges in AXES coordinates, then convert to figure coordinates.
+    ax_width = 0.14
+    ax_height = 0.14
+    ax_gap = 0.01
+    ax_leftleft = ax_gap
+    ax_rightleft = 1.0 - (ax_gap + ax_width)
+    ax_bottombottom = ax_gap
+    ax_topbottom = 1.0 - (ax_gap + ax_width)
+    
+
+    axes2disp = ax.transAxes
+    disp2fig = ax.figure.transFigure.inverted()
+    #ll
+    leftleft,bottombottom = disp2fig.transform(axes2disp.transform((ax_leftleft,ax_bottombottom)))
+    #lr
+    rightleft,bottombottom = disp2fig.transform(axes2disp.transform((ax_rightleft,ax_bottombottom)))
+    #ur
+    rightleft,topbottom = disp2fig.transform(axes2disp.transform((ax_rightleft,ax_topbottom)))
+    #right edge of the left bottom corner rectangle
+    leftright,bottombottom = disp2fig.transform(axes2disp.transform((ax_leftleft+ax_width,ax_bottombottom)))
+    leftleft,bottomtop = disp2fig.transform(axes2disp.transform((ax_leftleft,ax_bottombottom+ax_height)))
+    width = leftright - leftleft
+    height = bottomtop - bottombottom
+
+    #get info about population grid
+    popdata = popgrid.getData().copy()
+    i = np.where(np.isnan(popdata))
+    popdata[i] = 0
+    nrows,ncols = popdata.shape
+
+    ulpopsum = popdata[0:int(nrows/4),0:int(ncols/4)].sum()
+    ulbounds = (leftleft,topbottom,width,height)
         
-    def _drawContours(self,m,shakemap):
-        #get the projected ocean polygons
-        ocean = self.vectors['ocean'][0] #this is one shapely polygon
-        ocean_polygons = getProjectedPolygons(ocean,m)
+    urpopsum = popdata[0:int(nrows/4),ncols - int(ncols/4):ncols-1].sum()
+    urbounds = (rightleft,topbottom,width,height)
+
+    llpopsum = popdata[nrows - int(nrows/4):nrows-1,0:int(ncols/4)].sum()
+    llbounds = (leftleft,bottombottom,width,height)
+
+    lrpopsum = popdata[nrows - int(nrows/4):nrows-1,ncols - int(ncols/4):ncols-1].sum()
+    lrbounds = (rightleft,bottombottom,width,height)
+    
+    if filled_corner == 'll' and need_bottom:
+        return lrbounds,'lr'
+
+    if filled_corner == 'lr' and need_bottom:
+        return llbounds,'ll'
+
+    #get the index of the already filled corner
+    if filled_corner is not None:
+        corners = ['ll','lr','ul','ur']
+        cidx = corners.index(filled_corner)
+    else:
+        cidx = None
+
+    #get the population sums in each of the four corners
+    allsums = np.array([llpopsum,lrpopsum,ulpopsum,urpopsum])
+    isort = allsums.argsort()
+    
+    if need_bottom:
+        i = np.where(isort <= 1)[0]
+        isort = isort[i]
+    if cidx is not None:
+        i = np.where(isort != cidx)[0]
+        isort = isort[i]
+
+    imin = isort[0]
+
+    if imin == 0:
+        return llbounds,'ll'
+    if imin == 1:
+        return lrbounds,'lr'
+    if imin == 2:
+        return ulbounds,'ul'
+    if imin == 3:
+        return urbounds,'ur'
+
+def draw_contour(shakefile,popfile,oceanfile,oceangridfile,cityfile,basename,is_scenario=False):
+    """Create a contour map showing population (greyscale) underneath contoured MMI.
+
+    :param shakefile:
+      String path to ShakeMap grid.xml file.
+    :param popfile:
+      String path to GDALGrid-compliant file containing population data.
+    :param oceanfile:
+      String path to file containing ocean vector data in a format compatible with fiona.
+    :param oceangridfile:
+      String path to file containing ocean grid data .
+    :param cityfile:
+      String path to file containing GeoNames cities data.
+    :param basename:
+      String path containing desired output PDF base name, i.e., /home/pager/exposure.  ".pdf" and ".png" files will
+      be made.
+    :param make_png:
+      Boolean indicating whether a PNG version of the file should also be created in the
+      same output folder as the PDF.
+    :returns:
+      Tuple containing: 
+        - Name of PNG file created, or None if PNG output not specified.
+        - Cities object containing the cities that were rendered on the contour map.
+    """
+    #load the shakemap - for the time being, we're interpolating the 
+    #population data to the shakemap, which would be important
+    #if we were doing math with the pop values.  We're not, so I think it's ok.
+    shakegrid = ShakeGrid.load(shakefile,adjust='res')
+    gd = shakegrid.getGeoDict()
+
+    #Retrieve the epicenter - this will get used on the map
+    clat = shakegrid.getEventDict()['lat']
+    clon = shakegrid.getEventDict()['lon']
+
+    #Load the population data, sample to shakemap
+    popgrid = GDALGrid.load(popfile,samplegeodict=gd,resample=True)
+
+    #load the ocean grid file (has 1s in ocean, 0s over land)
+    #having this file saves us almost 30 seconds!
+    oceangrid = GDALGrid.load(oceangridfile,samplegeodict=gd,resample=True)
+
+    #load the cities data, limit to cities within shakemap bounds
+    allcities = Cities.fromDefault()
+    cities = allcities.limitByBounds((gd.xmin,gd.xmax,gd.ymin,gd.ymax))
+
+    #define the map
+    #first cope with stupid 180 meridian 
+    height = (gd.ymax-gd.ymin)*111.191
+    if gd.xmin < gd.xmax:
+        width = (gd.xmax-gd.xmin)*np.cos(np.radians(clat))*111.191
+        xmin,xmax,ymin,ymax = (gd.xmin,gd.xmax,gd.ymin,gd.ymax)
+    else:
+        xmin,xmax,ymin,ymax = (gd.xmin,gd.xmax,gd.ymin,gd.ymax)
+        xmax += 360
+        width = ((gd.xmax+360) - gd.xmin)*np.cos(np.radians(clat))*111.191
+
+    aspect = width/height
+
+    #if the aspect is not 1, then trim bounds in x or y direction as appropriate
+    if width > height:
+        dw = (width - height)/2.0 #this is width in km
+        xmin = xmin + dw/(np.cos(np.radians(clat))*111.191)
+        xmax = xmax - dw/(np.cos(np.radians(clat))*111.191)
+        width = (xmax-xmin)*np.cos(np.radians(clat))*111.191
+    if height > width:
+        dh = (height - width)/2.0 #this is width in km
+        ymin = ymin + dh/111.191
+        ymax = ymax - dh/111.191
+        height = (ymax-ymin)*111.191
         
-        smdata = shakemap.getLayer('mmi').getData().copy()
-        smdata = gaussian_filter(smdata,5.0)
-        ny,nx = smdata.shape
-        lons,lats = m.makegrid(nx,ny)
-        x,y = m(lons,lats)
-        clevels = np.arange(1.5,11.5,1.0)
+    aspect = width/height
+    figheight = FIGWIDTH/aspect
+    bbox = (xmin,ymin,xmax,ymax)
+    bounds = (xmin,xmax,ymin,ymax)
+    figsize = (FIGWIDTH,figheight)
 
-        #set up the colors
-        #these are the colors for MMI 1-10
-        red = np.array([255, 191, 160, 128, 122, 255, 255, 255, 255, 200])
-        green = np.array([255, 204, 230, 255, 255, 255, 200, 145,   0,   0])
-        blue = np.array([255, 255, 255, 255, 147,   0,   0,   0,   0,   0])
+    #Create the MercatorMap object, which holds a separate but identical
+    #axes object used to determine collisions between city labels.
+    mmap = MercatorMap(bounds,figsize,cities,padding=0.5)
+    fig = mmap.figure
+    ax = mmap.axes
+    #this needs to be done here so that city label collision detection will work
+    fig.canvas.draw() 
+    
+    clon = xmin + (xmax-xmin)/2
+    clat = ymin + (ymax-ymin)/2
+    geoproj = mmap.geoproj
+    proj = mmap.proj
 
-        #we want the colors for MMI 1.5 - 9.5 as well, 
-        #so here's some numpy trickery to get those values, and then shuffle them with original arrays
-        redhalf = np.concatenate((np.diff(red)/2 + red[0:-1],[0]))
-        bluehalf = np.concatenate((np.diff(blue)/2 + blue[0:-1],[0]))
-        greenhalf = np.concatenate((np.diff(green)/2 + green[0:-1],[0]))
-        red2 = np.ravel(np.array(list(zip(red,redhalf))))[0:-1]/255.0
-        green2 = np.ravel(np.array(list(zip(green,greenhalf))))[0:-1]/255.0
-        blue2 = np.ravel(np.array(list(zip(blue,bluehalf))))[0:-1]/255.0
+    #project our population grid to the map projection
+    projstr = proj.proj4_init
+    popgrid_proj = popgrid.project(projstr)
+    popdata = popgrid_proj.getData()
+    newgd = popgrid_proj.getGeoDict()
 
-        #there is an undocumented C++? class called Cntr() that we can use to
-        #generate the contour lines without drawing them first.
-        #we want to do this because PAGER contouring requirements are the following:
-        #1) Draw the contour lines at half intervals (1.5,2.5, etc.)
-        #2) Any part of a contour line that is over water, draw as a dashed line
-        #3) Any part of a contour line that is over land, draw as a solid line
-        #So, we need to generate the contour lines, figure out which pieces are over water/land,
-        #and render them appropriately
-        contourobj = cntr.Cntr(x, y, smdata) #here's the undocumented object
-        for i in range(0,len(clevels)):
-            clevel = clevels[i]
-            color = (red2[i],green2[i],blue2[i])
-            #you call the trace() method to generate lists of 2D arrays
-            #for the contour level of interest
-            contour_segments = contourobj.trace(clevel)
-            #the last half of the list of contour segments are not sets of coordinates, 
-            #so skip them.  Not sure what they are...
-            contour_segments = contour_segments[0:len(contour_segments)//2]
-            for segment in contour_segments:
-                segline = LineString(segment)
-                for opoly in ocean_polygons:
-                    oceanline = segline.intersection(opoly)
-                    landline = segline.symmetric_difference(opoly)
-                    self._render_contour_line(m,oceanline,color,'dashed',1)
-                    self._render_contour_line(m,landline,color,'solid',2)
-                    
-    def drawContourMap(self):
-        #set up the basemap
-        gd = self._popgrid.getGeoDict()
-        m = self._setMap(gd)
+    # Use our GMT-inspired palette class to create population and MMI colormaps 
+    popmap = ColorPalette.fromPreset('pop')
+    mmimap = ColorPalette.fromPreset('mmi')
 
-        #project population grid
-        popdata = self._popgrid.getData().copy()
-        ptopo = self._projectGrid(popdata,m,gd)
+    #set the image extent to that of the data
+    img_extent = (newgd.xmin,newgd.xmax,newgd.ymin,newgd.ymax)
+    plt.imshow(popdata,origin='upper',extent=img_extent,cmap=popmap.cmap,
+               vmin=popmap.vmin,vmax=popmap.vmax,zorder=POP_ZORDER,interpolation='nearest')
 
-        #draw the population data
-        popcmap = getPopColorMap()
-        am = m.imshow(ptopo,cmap=popcmap,interpolation='nearest')
-        
-        #I think I don't need to project the MMI data...
-        #draw country/state boundaries
-        self._drawBoundaries(m)
+    #draw 10m res coastlines
+    ax.coastlines(resolution="10m",zorder=COAST_ZORDER);
 
-        #draw lakes
-        self._drawLakes(m,gd)
+    #clip the ocean data to the shakemap
+    bbox = (gd.xmin,gd.ymin,gd.xmax,gd.ymax)
+    oceanshapes = _clip_bounds(bbox,oceanfile)
 
-        #draw oceans
-        self._drawOceans(m,gd)
+    ax.add_feature(ShapelyFeature(oceanshapes,crs=geoproj),facecolor=WATERCOLOR,zorder=OCEAN_ORDER)
 
-        #draw coastlines
-        self._drawCoastlines(m,gd)
 
-        #draw meridians, parallels, labels, ticks
-        self._drawGraticules(m,gd)
+    #It turns out that when presented with a map that crosses the 180 meridian,
+    #the matplotlib/cartopy contouring routine thinks that the 180 meridian is a map boundary
+    #and only plots one side of the contour.  Contouring the geographic MMI data and then
+    #projecting the resulting contour vectors does the trick.  Sigh. 
 
-        #draw map scale
-        scalex = gd.xmin + (gd.xmax-gd.xmin)/5.0
-        scaley = gd.ymin + (gd.ymax-gd.ymin)/10.0
-        yoff = (0.007*(m.ymax-m.ymin))
-        clon = (gd.xmin + gd.xmax)/2.0
-        clat = (gd.ymin + gd.ymax)/2.0
-        m.drawmapscale(scalex,scaley,clon,clat,length=100,barstyle='fancy',yoffset=yoff,zorder=SCALE_ZORDER)
+    #define contour grid spacing
+    contoury = np.linspace(ymin,ymax,gd.ny)
+    contourx = np.linspace(xmin,xmax,gd.nx)
 
-        #draw epicenter
-        hlon = self._shakemap.getEventDict()['lon']
-        hlat = self._shakemap.getEventDict()['lat']
-        m.plot(hlon,hlat,'k*',latlon=True,fillstyle='none',markersize=22,mew=1.2,zorder=EPICENTER_ZORDER)
+    #smooth the MMI data for contouring
+    mmi = shakegrid.getLayer('mmi').getData()
+    smoothed_mmi = gaussian_filter(mmi,FILTER_SMOOTH)
 
-        #draw cities
-        #reduce the number of cities to those whose labels don't collide
-        #set up cities
-        self._cities = self._cities.limitByBounds((gd.xmin,gd.xmax,gd.ymin,gd.ymax))
-        self._cities = self._cities.limitByGrid(nx=self.city_cols,ny=self.city_rows,
-                                                cities_per_grid=self.cities_per_grid)
-        self._cities = self._cities.limitByMapCollision(m)
-        self._cities.renderToMap(m.ax,zorder=CITIES_ZORDER,shadow=True)
+    #create masked arrays of the ocean grid
+    landmask = np.ma.masked_where(oceangrid._data == 0.0,smoothed_mmi)
+    oceanmask = np.ma.masked_where(oceangrid._data == 1.0,smoothed_mmi)
 
-        #draw contours of intensity
-        self._drawContours(m,self._shakemap)
+    #contour the data
+    land_contour = plt.contour(contourx,contoury,np.flipud(oceanmask),linewidths=3.0,linestyles='solid',
+                               zorder=LANDC_ZORDER,cmap=mmimap.cmap,
+                               vmin=mmimap.vmin,vmax=mmimap.vmax,
+                               levels=np.arange(0.5,10.5,1.0),
+                               transform=geoproj)
+    
+    ocean_contour = plt.contour(contourx,contoury,np.flipud(landmask),linewidths=2.0,linestyles='dashed',
+                                zorder=OCEANC_ZORDER,cmap=mmimap.cmap,
+                                vmin=mmimap.vmin,vmax=mmimap.vmax,
+                                levels=np.arange(0.5,10.5,1.0),transform=geoproj)
+    
+    #the idea here is to plot invisible MMI contours at integer levels and then label them.
+    #clabel method won't allow text to appear, which is this case is kind of ok, because
+    #it allows us an easy way to draw MMI labels as roman numerals.
+    cs_land = plt.contour(contourx,contoury,np.flipud(oceanmask),
+                          linewidths=0.0,levels=np.arange(0,11),
+                          zorder=CLABEL_ZORDER,transform=geoproj)
+    
+    clabel_text = ax.clabel(cs_land,np.arange(0,11),colors='k',zorder=CLABEL_ZORDER,fmt='%.0f',fontsize=40)
+    for clabel in clabel_text:
+        x,y = clabel.get_position()
+        label_str = clabel.get_text()
+        roman_label = MMI_LABELS[label_str]
+        th=plt.text(x,y,roman_label,zorder=CLABEL_ZORDER,ha='center',va='center',color='black')
+        th.set_path_effects([path_effects.Stroke(linewidth=2.0, foreground='white'),
+                             path_effects.Normal()])
 
-        #save to a file
-        plt.draw()
-        outfile = os.path.join(self._outfolder,'pager_contour.pdf')
-        print(outfile)
-        plt.savefig(outfile)
-        
-        
+    cs_ocean = plt.contour(contourx,contoury,np.flipud(landmask),
+                          linewidths=0.0,levels=np.arange(0,11),
+                          zorder=CLABEL_ZORDER,transform=geoproj)
+    
+    clabel_text = ax.clabel(cs_ocean,np.arange(0,11),colors='k',zorder=CLABEL_ZORDER,fmt='%.0f',fontsize=40)
+    for clabel in clabel_text:
+        x,y = clabel.get_position()
+        label_str = clabel.get_text()
+        roman_label = MMI_LABELS[label_str]
+        th=plt.text(x,y,roman_label,zorder=CLABEL_ZORDER,ha='center',va='center',color='black')
+        th.set_path_effects([path_effects.Stroke(linewidth=2.0, foreground='white'),
+                             path_effects.Normal()])
 
-        
+    #draw meridians and parallels using Cartopy's functions for that
+    gl = ax.gridlines(draw_labels=True,
+                      linewidth=2, color=(0.9,0.9,0.9), alpha=0.5, linestyle='-',
+                      zorder=GRID_ZORDER)
+    gl.xlabels_top = False
+    gl.xlabels_bottom = False
+    gl.ylabels_left = False
+    gl.ylabels_right = False
+    gl.xlines = True
+    step = 1
+    xlocs = np.arange(np.floor(xmin-1),np.ceil(xmax+1),step)
+    ylocs = np.arange(np.floor(ymin-1),np.ceil(ymax+1),step)
+    while len(xlocs) > 5:
+        step += 1
+        xlocs = np.arange(np.floor(xmin-1),np.ceil(xmax+1),step)
+        ylocs = np.arange(np.floor(ymin-1),np.ceil(ymax+1),step)
+    gl.xlocator = mticker.FixedLocator(xlocs)
+    gl.ylocator = mticker.FixedLocator(ylocs)
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.yformatter = LATITUDE_FORMATTER
+    gl.xlabel_style = {'size': 15, 'color': 'black'}
+    gl.ylabel_style = {'size': 15, 'color': 'black'}
+
+    #drawing our own tick labels INSIDE the plot, as Cartopy doesn't seem to support this.
+    yrange = ymax - ymin
+    xrange = xmax - xmin
+    for xloc in gl.xlocator.locs:
+        outside = xloc < xmin or xloc > xmax
+        #don't draw labels when we're too close to either edge
+        near_edge = (xloc-xmin) < (xrange*0.1) or (xmax-xloc) < (xrange*0.1)
+        if outside or near_edge:
+            continue
+        xtext = r'$%s^\circ$W' % str(abs(int(xloc)))
+        ax.text(xloc,gd.ymax-(yrange/35),xtext,
+                fontsize=14,zorder=GRID_ZORDER,ha='center',
+                fontname=DEFAULT_FONT,
+                transform=ccrs.Geodetic())
+
+    for yloc in gl.ylocator.locs:
+        outside = yloc < gd.ymin or yloc > gd.ymax
+        #don't draw labels when we're too close to either edge
+        near_edge = (yloc-gd.ymin) < (yrange*0.1) or (gd.ymax-yloc) < (yrange*0.1)
+        if outside or near_edge:
+            continue
+        if yloc < 0:
+            ytext = r'$%s^\circ$S' % str(abs(int(yloc)))
+        else:
+            ytext = r'$%s^\circ$N' % str(int(yloc))
+        thing = ax.text(gd.xmin+(xrange/100),yloc,ytext,
+                        fontsize=14,zorder=GRID_ZORDER,va='center',
+                        fontname=DEFAULT_FONT,
+                        transform=ccrs.Geodetic())
+
+
+    #draw cities
+    mapcities = mmap.drawCities(shadow=True,zorder=CITIES_ZORDER)
+
+    #Get the corner of the map with the lowest population
+    corner_rect,filled_corner = _get_open_corner(popgrid,ax)
+    clat2 = round_to_nearest(clat,1.0)
+    clon2 = round_to_nearest(clon,1.0)
+
+    #draw a little globe in the corner showing in small-scale where the earthquake is located.
+    proj = ccrs.Orthographic(central_latitude=clat2,
+                             central_longitude=clon2)
+    ax2 = fig.add_axes(corner_rect,projection=proj)
+    ax2.add_feature(cartopy.feature.OCEAN, zorder=0,facecolor=WATERCOLOR,edgecolor=WATERCOLOR)
+    ax2.add_feature(cartopy.feature.LAND, zorder=0, edgecolor='black')
+    ax2.plot([clon2],[clat2],'w*',linewidth=1,markersize=16,markeredgecolor='k',markerfacecolor='r')
+    gh=ax2.gridlines();
+    ax2.set_global();
+    ax2.outline_patch.set_edgecolor('black')
+    ax2.outline_patch.set_linewidth(2);
+
+    #Draw the map scale in the unoccupied lower corner.
+    corner = 'lr'
+    if filled_corner == 'lr':
+        corner = 'll'
+    draw_scale(ax,corner,pady=0.05,padx=0.05)
+
+    #Draw the epicenter as a black star
+    plt.sca(ax)
+    plt.plot(clon,clat,'k*',markersize=16,zorder=EPICENTER_ZORDER,transform=geoproj)
+
+    if is_scenario:
+        plt.text(clon,clat,'SCENARIO',fontsize=64,
+                 zorder=WATERMARK_ZORDER,transform=geoproj,
+                 alpha=0.2,color='red',horizontalalignment='center')
+    
+    #create pdf and png output file names
+    pdf_file = basename+'.pdf'
+    png_file = basename+'.png'
+    
+    #save to pdf
+    plt.savefig(pdf_file)
+    plt.savefig(png_file)
+    
+    return (pdf_file,png_file,mapcities)
+
