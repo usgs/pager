@@ -55,6 +55,7 @@ from losspager.io.pagerdata import PagerData
 from losspager.vis.impactscale import drawImpactScale
 from losspager.vis.contourmap import draw_contour
 from losspager.utils.config import read_config
+from losspager.mail.formatter import format_exposure
 
 COUNTRY = Country()
 TIMEFMT = '%Y-%m-%d %H:%M:%S'
@@ -145,16 +146,25 @@ def message_pager(config,onepager_pdf,doc):
         if 'status' in config and config['status'] == 'primary':
             users = config['pager_team']
             sender = config['mail_from']
-            host = config['mail_host']
-            subject = '%s INTERNAL alert: %s' % (doc.summary_alert,doc.location)
-            msg = '''This is an INTERNAL message notifying you of this %s alert.  You will receive 
-            a second message with the pending alert.
-            '''
+            hosts = config['mail_hosts']
+            subject = '%s INTERNAL alert: %s' % (doc.summary_alert.capitalize(),doc.location)
+            msg = '''This is an INTERNAL message notifying you of this %s alert.  You will receive a second message with the pending alert.''' % doc.summary_alert
+
+            #create a string with exposure information
+            exparray = doc.getTotalExposure()
+            max_border_mmi = doc._pagerdict['population_exposure']['maximum_border_mmi']
+            expstr = format_exposure(exparray,'long',max_border_mmi)
+
+            msg += '\n' + expstr
+
+            #remove unnecessary whitespace
+            msg = textwrap.dedent(msg)
+            
             props = {'recipients':users,
                      'subject':subject,
                      'sender':sender,
                      'message':msg,
-                     'smtp_servers':[host]}
+                     'smtp_servers':hosts}
             sender = EmailSender(props,local_files=[onepager_pdf])
             sender.send()
             
@@ -335,7 +345,7 @@ def main(pargs,config):
     plog = None
     if not pargs.debug:
         #stdout will now be logged as INFO, stderr will be logged as WARNING
-        mail_host = config['mail_host']
+        mail_host = config['mail_hosts']
         mail_from = config['mail_from']
         logfile = os.path.join(pager_folder,'pager.log')
         #print('Writing content to %s' % logfile)
