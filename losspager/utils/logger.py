@@ -7,6 +7,7 @@ import sys
 import os
 import socket
 from datetime import datetime
+import smtplib
 
 class NullHandler(logging.Handler):
     def emit(self, record):
@@ -95,7 +96,7 @@ class PagerLogger:
     EventLogHandler = None
     MailHandler = None
     PagerLogHandler = None
-    def __init__(self,pagerlogfile,from_address=None,mail_host=None,redirect=True):
+    def __init__(self,pagerlogfile,from_address=None,mail_hosts=None,redirect=True):
         """
         Create a PagerLogger instance, and begin logging to the PAGER (not event) log file.
 
@@ -107,7 +108,7 @@ class PagerLogger:
           Name of local file where logging information should be written.
         :param from_address:
           Email address where error messages will come from.
-        :param mail_host:
+        :param mail_hosts:
           String indicating the hostname or IP address of a valid SMTP server.
         :param redirect:
           Boolean indicating whether or not stdout and stderr should be redirected to
@@ -135,7 +136,7 @@ class PagerLogger:
             self.isOnline = False
             
         self.FromAddress = from_address
-        self.MailHost = mail_host
+        self.MailHosts = mail_hosts
 
     def scream(self,msg):
         """
@@ -190,7 +191,7 @@ class PagerLogger:
 
         Important notes: The email handler uses the following class variables:
           - FromAddress - Emails show up as being from this address.
-          - MailHost - Mails are processed through this mail server.
+          - MailHosts - Mails are processed through one of these mail servers.
           - Subject - Emails have this subject line.
           - LogLevel - (IMPORTANT!) Only log messages with this log level and above 
             will be sent by email.
@@ -204,10 +205,26 @@ class PagerLogger:
             print('Could not add mail handler as this system is not networked.')
             return
         self.MailHandler = None
-        print('Creating SMTP handler with %s,%s,%s,%s' % (self.MailHost,self.FromAddress,emails,self.Subject))
+        print('Creating SMTP handler with %s,%s,%s,%s' % (self.MailHosts,self.FromAddress,emails,self.Subject))
+        #we supply a list of smtp hosts, just in case some of them are off-line... here we find the first 
+        #one that seems to be responsive.
         try:
             subject = self.Subject + ': %s' % datetime.utcnow().strftime('%b %d %Y %H:%M:%S')
-            self.MailHandler = SMTPHandler(self.MailHost,self.FromAddress,emails,subject)
+            smtphost = None
+            for host in self.MailHosts:
+                with smtplib.SMTP(host) as smtp:
+                    #if I can connect, and send this noop message, then this server
+                    #should be good to go.  Various sources indicate that calling noop() too many
+                    #times can be interpreted as a form of DOS attack, so use with caution.
+                    res = smtp.noop() 
+                    smtp.close()
+                    if res[0] == 250:
+                        smtphost = host
+                        break
+            if smtphost is None:
+                raise PagerException('Could not connect to any mail hosts: %s' % str(self.MailHosts))
+
+            self.MailHandler = SMTPHandler(smtphost,self.FromAddress,emails,subject)
             self.MailHandler.setLevel(self.EmailLogLevel)
             self.MailHandler.setFormatter(self.Formatter)
             self.Logger.addHandler(self.MailHandler)
