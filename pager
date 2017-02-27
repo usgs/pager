@@ -345,13 +345,13 @@ def main(pargs,config):
     plog = None
     if not pargs.debug:
         #stdout will now be logged as INFO, stderr will be logged as WARNING
-        mail_host = config['mail_hosts']
+        mail_hosts = config['mail_hosts']
         mail_from = config['mail_from']
         logfile = os.path.join(pager_folder,'pager.log')
         #print('Writing content to %s' % logfile)
         plog = PagerLogger(logfile,redirect=True,
                            from_address=mail_from,
-                           mail_host=mail_host)
+                           mail_hosts=mail_hosts)
         plog.addEmailHandler(config['developers']) #failover email alert system
 
     try:
@@ -586,9 +586,8 @@ def main(pargs,config):
             if pager_version is not None:
                 msg = msg + '\n' + 'Error on version: %i\n' % (pager_version)
             f.close()
-            if plog is not None:
-                plog.scream(msg)
-                plog.stopLogging()
+            plog.scream(msg)
+            plog.stopLogging()
             print('Sent error to email')
             
         else:
