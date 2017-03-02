@@ -49,8 +49,14 @@ def test():
     print('Passed retrieving dictionary from numeric code...')
 
     print('Test to make sure failure is an option...')
+    faildict = {'Name':'Unknown',
+                'LongName':'Unknown',
+                'ISO2':'UK',
+                'ISO3':'UKN',
+                'ISON':0,
+                'Population':0}
     row5 = country.getCountry('happyland')
-    assert row5 is 'UK'
+    assert row5 == faildict
     print('Test failed as expected...')
 
 
