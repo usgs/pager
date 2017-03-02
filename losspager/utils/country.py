@@ -87,28 +87,31 @@ class Country(object):
           or None if the input value does not match any known country data.
         
         """
-        row = {'Name':'Unknown',
+        emptyrow = {'Name':'Unknown',
                'LongName':'Unknown',
                'ISO2':'UK',
                'ISO3':'UKN',
                'ISON':0,
                'Population':0}
+        row = None
         if isinstance(value,(int,float)):
             row = self._dataframe[self._dataframe['ISON'] == value]
         elif isinstance(value,str):
             if len(value) == 0:
-                return None
+                return emptyrow
             if len(value) == 2:
                 row = self._dataframe[self._dataframe['ISO2'] == value]
             elif len(value) == 3:
                 row = self._dataframe[self._dataframe['ISO3'] == value]
             else:
                 row = self._dataframe[self._dataframe.Name.str.lower().str.contains(value.lower())]
-        if row['ISO2'] is 'UK':
-            return row
+        if row is None:
+            return emptyrow
         else:
-            if len(row):
+            if len(row) > 0:
                 return row.iloc[0].to_dict()
+            elif not len(row):
+                return emptyrow
             else:
                 return row.to_dict()
                 
