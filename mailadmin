@@ -50,7 +50,7 @@ VERSION_COLUMNS = ['EventID',
                    'FatalityAlert',
                    'EconomicAlert',
                    'SummaryAlert',
-                   'Elapsed',
+                   'Elapsed (min)',
                    'Alerted']
 
 def version_to_series(version):
@@ -62,6 +62,8 @@ def version_to_series(version):
       Pandas Series object.
     """
     levels = ['green','yellow','orange','red']
+    dt = version.processtime - version.time
+    dt_minutes = (dt.days * 24*60) + dt.seconds/60
     vdict = {'EventID':version.event.eventcode,
              'Impacted Country ($)':version.country,
              'Version':version.number,
@@ -73,7 +75,7 @@ def version_to_series(version):
              'FatalityAlert':levels[version.fatlevel],
              'EconomicAlert':levels[version.ecolevel],
              'SummaryAlert':levels[version.summarylevel],
-             'Elapsed':version.processtime - version.time,
+             'Elapsed (min)':dt_minutes,
              'Alerted':(len(version.addresses) > 0)}
     series = pd.Series(vdict)
     return series
@@ -250,7 +252,7 @@ def pandify_user(user,session):
                 else:
                     row[address.email] = False
             rows.append(row)
-    df = pd.DataFrame(rows)
+    df = pd.DataFrame(rows,columns=columns)
     return df
 
 def sync_db(session,config):
