@@ -118,11 +118,12 @@ def process_shakemap(args,config):
         sys.exit(1)
 
     #We've passed all the filters, so call PAGER
-    logfile.write('Checking path...\n\n')
     homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
-    pagerpath = os.path.join(homedir,'pager')
+    if args.debug:
+        pagerpath = os.path.join(homedir,'pager -d')
+    else:
+        pagerpath = os.path.join(homedir,'pager')
     cmd = '%s %s' % (pagerpath,gridfile)
-    logfile.write('Calling command %s\n\n' % cmd)
     res,stdout,stderr = get_command_output(cmd)
     if res:
         msg = 'Successful run.  Output returned: "%s".' % stdout
@@ -224,58 +225,6 @@ def read_shakemap(gridfile):
     magnitude = edict['magnitude']
     time = edict['event_timestamp']
     return (source,time,magnitude,lat,lon)
-        
-def run_pager(gridfile,config):
-    #this function is used when calling callpager from the command line with a file,
-    #and we want the filtering that callpager does and pager doesn't.
-    #check to see if gridfile exists
-    if not os.path.isfile(gridfile):
-        msg = 'Could not find input ShakeMap grid file at %s.  Exiting.' % gridfile
-        print(msg)
-        sys.exit(1)
-
-    #Get some basic info from the grid file
-    source,time,magnitude,lat,lon = read_shakemap(gridfile)
-    if source not in WHITELIST:
-        msg = 'Input ShakeMaps must be from an approved list of sources: %s.  Exiting.' % str(WHITELIST)
-        print(msg)
-        sys.exit(1)
-
-    #make sure magnitude is within spec
-    if magnitude < MAG_THRESHOLD:
-        msg = 'Input ShakeMaps must be larger than M%.1f.  Exiting.' % MAG_THRESHOLD
-        print(msg)
-        sys.exit(1)
-
-    #Use lat,lon and source to exclude ShakeMap providers who are playing outside their sandbox
-    is_authoritative,auth_source = get_authoritative(source,lat,lon)
-    if not is_authoritative:
-        msg = 'Source %s is not authoritative for this region (%s is).  Exiting.' % (source,auth_source)
-        print(msg)
-        sys.exit(1)
-
-    #If someone has submitted a shakemap from a long time ago (see THRESHOLD_YEAR for definition)
-    #skip running the event.
-    if time.year < THRESHOLD_YEAR:
-        msg = 'Event times less than Jan 1, %i will not be processed.  Exiting.' % (THRESHOLD_YEAR)
-        print(msg)
-        sys.exit(1)
-
-    #We've passed all the filters, so call PAGER
-    homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
-    pagerpath = os.path.join(homedir,'pager -d')
-    cmd = '%s %s' % (pagerpath,gridfile)
-    res,stdout,stderr = get_command_output(cmd)
-    if res:
-        msg = 'Successful run.  Output returned: "%s".' % stdout
-        print(msg)
-        sys.exit(0)
-    else:
-        msg = 'Unsuccessful run.  Output returned: "%s", "%s".' % (stdout,stderr)
-        print(msg)
-        sys.exit(1)
-    
-    sys.exit(0)
 
 def main(args):
     logfile = os.path.join(os.path.expanduser('~'),'callpagerlog.log')
@@ -283,15 +232,13 @@ def main(args):
     f.write('Arguments: "%s"' % str(args))
     f.close()
     config = read_config()
-    if args.file:
-        run_pager(args.file,config)
-    elif args.directory:
-        gridfile = os.path.join(args.directory,'download','grid.xml')
-        run_pager(gridfile,config)
-    elif args.type == 'shakemap':
+    if args.type == 'shakemap':
         process_shakemap(args,config)
     elif args.type == 'pager-admin':
         process_admin(args,config)
+    else:
+        print('No type specified, exiting.')
+    sys.exit(0)
 
 if __name__ == '__main__':
     desc='Call the PAGER main program with arguments from PDL.'
@@ -307,6 +254,8 @@ if __name__ == '__main__':
                            help="Product source",metavar='SOURCE')
     argparser.add_argument("--status", 
                            help="Product status",metavar='STATUS')
+    argparser.add_argument('-d','--debug', action='store_true',
+                           default=False, help='Run PAGER in debug mode')
     argparser.add_argument("--action", 
                            help="Product action",metavar='ACTION')
     argparser.add_argument("--preferred-latitude", type=float,
@@ -319,8 +268,5 @@ if __name__ == '__main__':
                            help="Event magnitude",metavar='MAG',dest='magnitude')
     argparser.add_argument("--preferred-eventtime", 
                            help="Event time",metavar='TIME',dest='time')
-    argparser.add_argument("--file",
-                           help="ShakeMap grid.xml file.  Overrides --directory, all other arguments.",
-                           metavar='DIRECTORY')
     pargs, unknown = argparser.parse_known_args()
     main(pargs)
