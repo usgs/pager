@@ -263,7 +263,7 @@ def run_pager(gridfile,config):
 
     #We've passed all the filters, so call PAGER
     homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
-    pagerpath = os.path.join(homedir,'pager')
+    pagerpath = os.path.join(homedir,'pager -d')
     cmd = '%s %s' % (pagerpath,gridfile)
     res,stdout,stderr = get_command_output(cmd)
     if res:
