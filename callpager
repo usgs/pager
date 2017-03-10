@@ -222,12 +222,20 @@ def read_shakemap(gridfile):
     lat = edict['lat']
     lon = edict['lon']
     magnitude = edict['magnitude']
-    return (source,magnitude,lat,lon)
+    time = edict['event_timestamp']
+    return (source,time,magnitude,lat,lon)
         
 def run_pager(gridfile,config):
     #this function is used when calling callpager from the command line with a file,
     #and we want the filtering that callpager does and pager doesn't.
-    source,magnitude,lat,lon = read_shakemap(gridfile)
+    #check to see if gridfile exists
+    if not os.path.isfile(gridfile):
+        msg = 'Could not find input ShakeMap grid file at %s.  Exiting.' % gridfile
+        print(msg)
+        sys.exit(1)
+
+    #Get some basic info from the grid file
+    source,time,magnitude,lat,lon = read_shakemap(gridfile)
     if source not in WHITELIST:
         msg = 'Input ShakeMaps must be from an approved list of sources: %s.  Exiting.' % str(WHITELIST)
         print(msg)
@@ -248,16 +256,8 @@ def run_pager(gridfile,config):
 
     #If someone has submitted a shakemap from a long time ago (see THRESHOLD_YEAR for definition)
     #skip running the event.
-    #time string looks like this: 1999-10-21T01:54:06.470Z
-    etime = datetime.strptime(args.time[0:19],TIMEFMT)
-    if etime.year < THRESHOLD_YEAR:
+    if time.year < THRESHOLD_YEAR:
         msg = 'Event times less than Jan 1, %i will not be processed.  Exiting.' % (THRESHOLD_YEAR)
-        print(msg)
-        sys.exit(1)
-        
-    #check to see if gridfile exists
-    if not os.path.isfile(gridfile):
-        msg = 'Could not find input ShakeMap grid file at %s.  Exiting.' % gridfile
         print(msg)
         sys.exit(1)
 
@@ -285,6 +285,9 @@ def main(args):
     config = read_config()
     if args.file:
         run_pager(args.file,config)
+    elif args.directory:
+        gridfile = os.path.join(args.directory,'download','grid.xml')
+        run_pager(gridfile,config)
     elif args.type == 'shakemap':
         process_shakemap(args,config)
     elif args.type == 'pager-admin':
