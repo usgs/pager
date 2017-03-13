@@ -357,12 +357,25 @@ class PagerAdmin(object):
             else:
                 raise PagerException('version option "%s" not supported.' % version)
 
+        broken = []
         for jsonfolder in jsonfolders:
             pdata = PagerData()
-            try:
-                pdata.loadFromJSON(jsonfolder)
-            except:
-                continue
+            vnum = 1000
+            while vnum > 1:
+                try:
+                    pdata.loadFromJSON(jsonfolder)
+                    vnum = 0
+                except:
+                    #handle the case where the most recent version of the event has some 
+                    #sort of error causing it to miss
+                    root,jsonfolder = os.path.split(jsonfolder)
+                    root2,vfolder = os.path.split(root)
+                    vt,vnums = vfolder.split('.')
+                    vnum = int(vnums) - 1
+                    jsonfolder = os.path.join(root2,'%s.%03d' % (vt,vnum),'json')
+                
+            if not pdata._is_validated:
+                broken.append(jsonfolder)
             meetsLevel = levels[pdata.summary_alert] >= levels[alert_threshold]
             meetsMag = pdata.magnitude >= mag_threshold
             if pdata.time >= start_time and pdata.time <= end_time and meetsLevel and meetsMag:
@@ -371,7 +384,7 @@ class PagerAdmin(object):
         df.Version = df.Version.astype(int)
         df = df.sort_values('EventTime')
         df = df.set_index('EventID')
-        return df
+        return (df,broken)
         
     
 
