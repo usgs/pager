@@ -105,14 +105,22 @@ def get_event_data(eventfolder):
     return data_blobs
 
 def get_date(datestr):
+    """datestr can be a datetime date or date/time string, OR 'all' or 'recent'.
+    'recent' returns last two weeks of events, 'all' gets all events.
+    """
     archdate = None
-    try:
-        archdate = datetime.datetime.strptime(datestr,DATETIMEFMT)
-    except:
+    if datestr == 'all':
+        archdate = datetime.datetime(1800,1,1)
+    elif datestr == 'recent':
+        archdate = datetime.datetime.utcnow() - datetime.timedelta(days=14)
+    else:
         try:
-            archdate = datetime.datetime.strptime(datestr,DATEFMT)
+            archdate = datetime.datetime.strptime(datestr,DATETIMEFMT)
         except:
-            pass
+            try:
+                archdate = datetime.datetime.strptime(datestr,DATEFMT)
+            except:
+                pass
     return archdate
 
 def do_archive(archive_info,archive_threshold,admin):
@@ -236,38 +244,44 @@ def do_query(query,output,admin):
     version = 'last'
     qsyntax = 'query syntax: [START/all [MAG [ALERT [END [VERSION]]]]]. '
     if start_date is None:
-        start_date = datetime.datetime(1800,1,1)
-    else:
-        if len(query) >= 2:
-            try:
-                mag_threshold = float(query[1])
-                assert mag_threshold >= 0 and mag_threshold <= 10.0
-            except:
-                msg = qsyntax+'Second argument must be a magnitude [0-10].'
-                res = False
-        if len(query) >= 3:
-            alert_threshold = query[2]
-            if alert_threshold not in ['green','yellow','orange','red']:
-                msg = qsyntax+'Fourth argument must be one of (green,yellow,orange,red).'
-                res = False
-        if len(query) >= 4:
-            end_date = get_date(query[3])
-            if end_date is None:
-                msg = qsyntax+'Third argument must be a date/time string.'
-                res = False
-        if len(query) >= 5:
-            version = query[4]
-            if version not in ['first','last','eight','all']:
-                msg = qsyntax+'Fifth argument must be one of (first,last,eight,all).'
-                res = False
+        msg = 'Invalid start date %s. Returning.'
+        res = False
+        return (res,msg)
 
-    pdataframe = admin.query(start_time=start_date,end_time=end_date,
+    if len(query) >= 2:
+        try:
+            mag_threshold = float(query[1])
+            assert mag_threshold >= 0 and mag_threshold <= 10.0
+        except:
+            msg = qsyntax+'Second argument must be a magnitude [0-10].'
+            res = False
+    if len(query) >= 3:
+        alert_threshold = query[2]
+        if alert_threshold not in ['green','yellow','orange','red']:
+            msg = qsyntax+'Fourth argument must be one of (green,yellow,orange,red).'
+            res = False
+    if len(query) >= 4:
+        end_date = get_date(query[3])
+        if end_date is None:
+            msg = qsyntax+'Third argument must be a date/time string.'
+            res = False
+    if len(query) >= 5:
+        version = query[4]
+        if version not in ['first','last','eight','all']:
+            msg = qsyntax+'Fifth argument must be one of (first,last,eight,all).'
+            res = False
+
+    pdataframe,broken_events = admin.query(start_time=start_date,end_time=end_date,
                              mag_threshold=mag_threshold,
                              alert_threshold=alert_threshold,
                              version=version)
     if output == 'screen':
         if len(pdataframe):
             print(pdataframe)
+            if len(broken_events):
+                print('Events with no valid versions:')
+                for broken in broken_events:
+                    print(broken)
         else:
             print('No events on filesystem.')
         res = True
@@ -458,7 +472,7 @@ if __name__ == '__main__':
                            help="Toggle tsunami warning on PAGER alert",
                            metavar=('EVENT','on/off'))
     argparser.add_argument('--query',nargs='*',metavar='PARAM',
-                           help="List events that match the query. Params are [START/all [MAG [ALERT [END [VERSION]]]]].")
+                           help="List events that match the query. Params are [START/all/recent [MAG [ALERT [END [VERSION]]]]].")
     argparser.add_argument("--history", 
                            help="Print history of input event.",
                            metavar='EVENT')
