@@ -211,6 +211,92 @@ def test_get_polygon():
 
     session.close()
 
+def test_delete_cascade():
+    memurl = 'sqlite://'
+    schemadir = get_data_path('schema')
+    session = emailschema.create_db(memurl,schemadir)
+
+    #create a user in a dictionary
+    threshold = {'alertscheme':'eis',
+                 'value':'red'}
+    region = {'name':'UN_Regions-UNSOUEU'}
+    profile = {'regions':[region],
+               'thresholds':[threshold]}
+    address = {'email':'lex@luthorcorp.com',
+               'is_primary':True,
+               'priority':1,
+               'format':'long',
+               'profiles':[profile]}
+    userdict = {'lastname':'Luthor',
+                'firstname':'Alexander',
+                'createdon':datetime.utcnow().strftime(emailschema.TIME_FORMAT),
+                'org':'USGS',
+                'addresses':[address]}
+
+    users_before_add = session.query(emailschema.User).count()
+    addresses_before_add = session.query(emailschema.Address).count()
+    print('Testing deleting users...')
+    assert users_before_add == 0
+    assert addresses_before_add == 0
+    print('No users before insert.')
+    user = emailschema.User()
+    #inflate the user from the dictionary
+    user.fromDict(session,userdict)
+    session.add(user)
+    users_after_add = session.query(emailschema.User).count()
+    addresses_after_add = session.query(emailschema.Address).count()
+    assert users_after_add == 1
+    assert addresses_after_add == 1
+    print('One user, one address after insert.')
+    session.delete(user)
+    session.commit()
+    users_after_delete = session.query(emailschema.User).count()
+    addresses_after_delete = session.query(emailschema.Address).count()
+    assert users_after_delete == 0
+    assert addresses_after_delete == 0
+    print('No users, no addresses after deleting user.')
+
+
+    #test deleting cascades with events
+    event = emailschema.Event(eventcode='us2017abcd')
+    version = emailschema.Version(versioncode='us2017abcd',
+                                  time=datetime.utcnow(),
+                                  country='US',
+                                  lat=34.15,
+                                  lon=-118.13,
+                                  depth=10.0,
+                                  magnitude=6.5,
+                                  number=1,
+                                  fatlevel=1,
+                                  ecolevel=2,
+                                  summarylevel=2,
+                                  processtime=datetime.utcnow(),
+                                  maxmmi=7.1)
+
+    print('Test cascade deletes with events and versions...')
+    events_before_add = session.query(emailschema.Event).count()
+    versions_before_add = session.query(emailschema.Version).count()
+    assert events_before_add == 0
+    assert versions_before_add == 0
+    
+    event.versions.append(version)
+    session.add(event)
+
+    events_after_add = session.query(emailschema.Event).count()
+    versions_after_add = session.query(emailschema.Version).count()
+
+    assert events_after_add == 1
+    assert versions_after_add == 1
+
+    session.delete(event)
+    
+    events_after_delete = session.query(emailschema.Event).count()
+    versions_after_delete = session.query(emailschema.Version).count()
+
+    assert events_after_delete == 0
+    assert versions_after_delete == 0
+    
+    session.close()
    
 # def test_get_email():
 #     dbfile = os.path.abspath(os.path.join(homedir,'..','data','losspager_test.db'))
@@ -249,6 +335,7 @@ if __name__ == '__main__':
     test_region_serialization()
     test_user_serialization()
     test_get_polygon()
+    test_delete_cascade()
     # test_get_email()
 
     

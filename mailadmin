@@ -850,7 +850,7 @@ def delete_user(session,userinfo,config):
     else:
         reason = 'No reason supplied'
         
-    address = session.query(emailschema.Address).filter(func.lower(emailschema.Address.email)==email).first()
+    address = session.query(emailschema.Address).filter(func.lower(emailschema.Address.email)==email.lower()).first()
     if address is None:
         msg = 'No email address "%s" in the database.  Returning.' % email
         return (False,msg)

@@ -57,6 +57,7 @@ def send_message(address,subject,text,sender,smtp_servers,attachment=None,bcc=No
         #print 'Trying server %s' % (server)
         try:
             session = smtplib.SMTP(server)
+            code,servername = session.helo()
             session.sendmail(sender,address, msgtxt)
             messageSent = True
             session.quit()
@@ -82,7 +83,7 @@ def send_message(address,subject,text,sender,smtp_servers,attachment=None,bcc=No
             errstr = errstr + str(errdict)
         raise PagerException(str(errstr))
 
-    print 'Message sent to "%s"' % (address)
+    print 'Message sent to "%s" via smtp server %s' % (address,servername)
     if bcc is not None:
         print 'Bcc: %s' % ','.join(bcc)
 
