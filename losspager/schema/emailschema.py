@@ -86,7 +86,7 @@ class User(Base):
     organization_id = Column(Integer, ForeignKey('organization.id'))
 
     #A User can have many addresses
-    addresses = relationship("Address", back_populates="user")
+    addresses = relationship("Address", back_populates="user",cascade="all, delete, delete-orphan")
 
     #A user can belong to one organization
     organization = relationship("Organization", back_populates="users")
@@ -160,7 +160,7 @@ class Address(Base):
     __tablename__ = 'address'
     id = Column(Integer, primary_key=True)
     email = Column(String, nullable=False)
-    user_id = Column(Integer, ForeignKey('user.id'))
+    user_id = Column(Integer, ForeignKey('user.id'),nullable=False)
     is_primary = Column(Boolean,nullable=False)
     #a low priority (i.e., 1) means this address should be emailed before addresses with higher numbers.
     priority = Column(Integer, nullable=False)
@@ -391,7 +391,7 @@ class Event(Base):
     eventcode = Column(String, nullable=False)
 
     #An event can have many versions
-    versions = relationship("Version", back_populates="event")
+    versions = relationship("Version", back_populates="event",cascade="all, delete, delete-orphan")
 
     def __repr__(self):
         return "<Event(eventcode='%s', %i versions)>" % (self.eventcode,len(self.versions))
