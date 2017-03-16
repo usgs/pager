@@ -174,8 +174,8 @@ def main(args):
             props['message'] = long_msg
             if not DEBUG:
                 print('Sending long message to %i recipients...' % len(long_addresses))
-                #sender = EmailSender(properties=props)
-                #sender.send()
+                sender = EmailSender(properties=props)
+                sender.send()
             else:
                 print('DEBUG on: would send long message to %i recipients...' % len(long_addresses))
                 for addr in long_addresses:
@@ -189,8 +189,8 @@ def main(args):
             props['message'] = long_msg
             if not DEBUG:
                 print('Sending long message, with PDF attachment to %i recipients...' % len(pdf_addresses))
-                #sender = EmailSender(properties=props,local_files=[onepager_file])
-                #sender.send()
+                sender = EmailSender(properties=props,local_files=[onepager_file])
+                sender.send()
             else:
                 print('DEBUG on: would send long message (w/ attachment) to %i recipients...' % len(pdf_addresses))
                 for addr in pdf_addresses:

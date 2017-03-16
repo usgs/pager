@@ -16,6 +16,9 @@ sys.path.insert(0,pagerdir) #put this at the front of the system path, ignoring 
 import numpy as np
 from mapio.shake import getHeaderData
 
+import matplotlib
+matplotlib.use('Agg')
+
 #local imports
 from losspager.io.pagerdata import PagerData
 from losspager.models.emploss import EmpiricalLoss
