@@ -16,9 +16,12 @@ sys.path.insert(0,pagerdir) #put this at the front of the system path, ignoring 
 #third party imports 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
 
 #local imports
 from losspager.vis.impactscale import drawImpactScale
+
+matplotlib.use('Agg')
 
 def img_test():
     #NOTE:  This isn't a great test, so I am turning it off for now, 

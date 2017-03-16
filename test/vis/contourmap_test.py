@@ -15,12 +15,19 @@ sys.path.insert(0,pagerdir) #put this at the front of the system path, ignoring 
 
 #third party imports 
 import numpy as np
+
+#non-interactive backend
+import matplotlib
+matplotlib.use('Agg')
+
 import matplotlib.pyplot as plt
 from mapio.shake import ShakeGrid
 from mapio.gdal import GDALGrid
 
 #local imports
 from losspager.vis.contourmap import draw_contour
+
+
 
 def test(outfolder=None):
     topdata = os.path.abspath(os.path.join(homedir,'..','data'))
