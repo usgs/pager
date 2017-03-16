@@ -86,7 +86,8 @@ def format_exposure(exposures,format,max_border_mmi):
     if expstr == expstr_hold:
         expstr = 'No population exposure.'
     else:
-        expstr += '* - MMI level extends beyond map boundary, actual population exposure may be larger.\n'
+        if format == 'long':
+            expstr += '* - MMI level extends beyond map boundary, actual population exposure may be larger.\n'
     return expstr
 
 def format_city_table(cities):

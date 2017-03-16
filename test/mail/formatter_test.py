@@ -8,6 +8,7 @@ import json
 from datetime import datetime
 import shutil
 from textwrap import dedent
+import re
 
 #hack the path so that I can debug these functions if I need to
 homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
@@ -50,7 +51,7 @@ def test_format_exposure():
     print(shortstr)
     longstr = format_exposure(exposures,'long',5)
     print(longstr)
-    str2 = '''
+    str2 = '''Estimated\tPopulation\tExposure
     MMI9\t56,000
     MMI8\t948,000
     MMI7\t869,000
@@ -58,6 +59,7 @@ def test_format_exposure():
     MMI5\t8,041,000
     MMI4\t7,735,000*
     MMI3\t5,999,000*
+    *\t-\tMMI\tlevel\textends\tbeyond\tmap\tboundary,\tactual\tpopulation\texposure\tmay\tbe\tlarger.
     '''
     str2 = dedent(str2).strip()
     newlongstr = ''
@@ -65,7 +67,10 @@ def test_format_exposure():
         parts = line.split()
         newline = '\t'.join(parts)+'\n'
         newlongstr += newline
-    assert newlongstr.rstrip() == str2
+
+    str2_stripped = re.sub('\s+','',str2)
+    newlongstr_stripped = re.sub('\s+','',newlongstr)
+    assert newlongstr_stripped == str2_stripped
 
 def test_format_city_table():
     cities = [{'pop':27978, 'name':"Aso", 'mmi':8.41},
