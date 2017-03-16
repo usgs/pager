@@ -343,6 +343,12 @@ def main(pargs,config):
     admin = PagerAdmin(pager_folder,pager_archive)
     
     plog = None
+
+    #TODO: something is wrong with logging, so we need to
+    #just disable logging here until the issue gets sorted.
+    #This means that event.log files will not be created.
+    pargs.debug = True #force prints to go to stdout
+    
     if not pargs.debug:
         #stdout will now be logged as INFO, stderr will be logged as WARNING
         mail_hosts = config['mail_hosts']
@@ -595,6 +601,7 @@ def main(pargs,config):
             traceback.print_exc()
         print('Something bad happened!')
         sys.exit(1)
+
 if __name__ == '__main__':
     desc = '''Run PAGER loss models and create all PAGER products.
 
