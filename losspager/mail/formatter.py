@@ -38,6 +38,7 @@ def strip_leading_spaces(string):
     return newstring
 
 def format_exposure(exposures,format,max_border_mmi):
+    expstr_hold = 'Estimated Population Exposure\n'
     if format == 'short':
         #get the three highest exposures with 1,000 people or greater
         #format them as:
@@ -64,9 +65,8 @@ def format_exposure(exposures,format,max_border_mmi):
         #format them as:
         #MMI6 19,000
         #MMI5 1,034,000
-        expstr = 'No population exposure'
+        expstr = expstr_hold
         if len(exposures):
-            expstr = ''
             expohold = 0
             for mmi in range(10,0,-1):
                 pop = 0
@@ -83,6 +83,11 @@ def format_exposure(exposures,format,max_border_mmi):
                     if mmi < max_border_mmi:
                         flag = '*'
                     expstr += 'MMI%i %-8s%s\n' % (mmi,popstr,flag)
+    if expstr == expstr_hold:
+        expstr = 'No population exposure.'
+    else:
+        if format == 'long':
+            expstr += '* - MMI level extends beyond map boundary, actual population exposure may be larger.\n'
     return expstr
 
 def format_city_table(cities):
@@ -104,12 +109,13 @@ def format_city_table(cities):
     #name, mmi,pop
     fmt = '{mmi:5s} {city:30s} {pop:<10s}\n'
     city_table = ''
-    city_table += fmt.format(mmi='MMI',city='City',pop='Population')
-    for idx,city in cities.iterrows():
-        mmiroman = dec_to_roman(city['mmi'])
-        city_table += fmt.format(mmi=mmiroman,
-                                 city=city['name'],
-                                 pop=pop_round(city['pop']))
+    if len(cities):
+        city_table += fmt.format(mmi='MMI',city='City',pop='Population')
+        for idx,city in cities.iterrows():
+            mmiroman = dec_to_roman(city['mmi'])
+            city_table += fmt.format(mmi=mmiroman,
+                                     city=city['name'],
+                                     pop=pop_round(city['pop']))
     #city_table = dedent(city_table)
     
     return city_table
@@ -190,16 +196,9 @@ def format_long(version,pdata,expstr,event_url):
 
     Alert Level: {summary_level}
     {impact_comment}
-
     {tsunami_comment}
-
-    Estimated Population Exposure
     {expstr}
-
-    * - MMI level extends beyond map boundary, actual population exposure may be larger.
-
     {city_table}
-
     Structures:
     {structure_comment}
 
@@ -220,9 +219,9 @@ def format_long(version,pdata,expstr,event_url):
                tsunami_comment=tsunami_comment,
                expstr=expstr,
                city_table=city_table,
-               structure_comment=pdata.getStructureComment,
+               structure_comment=pdata.getStructureComment(),
                historical_earthquakes=historical_earthquakes,
-               secondary_comment=pdata.getSecondaryComment,
+               secondary_comment=pdata.getSecondaryComment(),
                url=event_url)
     msg = strip_leading_spaces(msg)
     return msg
