@@ -270,6 +270,7 @@ def test_delete_cascade():
                                   fatlevel=1,
                                   ecolevel=2,
                                   summarylevel=2,
+                                  released=True,
                                   processtime=datetime.utcnow(),
                                   maxmmi=7.1)
 

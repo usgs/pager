@@ -418,6 +418,7 @@ class Version(Base):
     ecolevel = Column(Integer, nullable=False)
     summarylevel = Column(Integer, nullable=False)
     processtime = Column(DateTime, nullable=False)
+    released = Column(Boolean,nullable=False)
     maxmmi = Column(Float, nullable=False)
 
     #A user can have many addresses
