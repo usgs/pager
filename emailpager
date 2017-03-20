@@ -54,10 +54,11 @@ def get_version(session,pdata):
     #Now create a new version
     pending = pdata.summary_alert_pending
     level = pdata.summary_alert
+    released = True
     if pending == 'pending':
-        alert = 'pending/%s' % (ALERT_DICT[pdata.summary_alert])
-    else:
-        alert = ALERT_DICT[pdata.summary_alert]
+        released = False
+    
+    alert = ALERT_DICT[pdata.summary_alert]
     version = es.Version(versioncode = eventid,
                          time = pdata.time,
                          country = country,
@@ -69,6 +70,7 @@ def get_version(session,pdata):
                          fatlevel = ALERT_DICT[pdata.fatality_alert],
                          ecolevel = ALERT_DICT[pdata.fatality_alert],
                          summarylevel = alert,
+                         released = released,
                          processtime = pdata.processing_time,
                          maxmmi = pdata.maxmmi)
     event.versions.append(version)
@@ -152,6 +154,8 @@ def main(args):
         all_props['smtp_servers'] = config['email']['smtp_servers']
         all_props['sender'] = config['email']['sender']
         all_props['subject'] = subject
+        if 'max_bcc' in config['email']:
+            all_props['max_bcc'] = config['email']['max_bcc']
 
         #set up mail transfer object for short messages
         if len(short_addresses):

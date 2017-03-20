@@ -156,6 +156,8 @@ def format_short(version,expstr):
     #using python string .format() method with brackets
     alerts = ['green','yellow','orange','red']
     alert_level = alerts[version.summarylevel]
+    if not version.released:
+        alert_level = 'pending'
     msg = '''
     M{magnitude:.1f}
     D{depth:d}
@@ -175,6 +177,8 @@ def format_short(version,expstr):
 def format_long(version,pdata,expstr,event_url):
     alerts = ['green','yellow','orange','red']
     alert_level = alerts[version.summarylevel]
+    if not version.released:
+        alert_level = 'pending'
     tsunami_comment = ''
     eventinfo = pdata.getEventInfo()
     if eventinfo['tsunami']:
@@ -182,8 +186,11 @@ def format_long(version,pdata,expstr,event_url):
     cityinfo = pdata._pagerdict['city_table']
     city_table = format_city_table(cityinfo)
     historical_earthquakes = format_earthquakes(pdata.getHistoricalTable())
-    first,second = pdata.getImpactComments()
-    impact_comment = first + ' ' + second
+    if version.released:
+        first,second = pdata.getImpactComments()
+        impact_comment = first + ' ' + second
+    else:
+        impact_comment = ''
     msg = '''
     PAGER Version: {version:d}
     {location}
