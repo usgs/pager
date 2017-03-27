@@ -271,6 +271,7 @@ def test_delete_cascade():
                                   ecolevel=2,
                                   summarylevel=2,
                                   released=True,
+                                  was_pending=False,
                                   processtime=datetime.utcnow(),
                                   maxmmi=7.1)
 
@@ -282,6 +283,7 @@ def test_delete_cascade():
     
     event.versions.append(version)
     session.add(event)
+    session.commit()
 
     events_after_add = session.query(emailschema.Event).count()
     versions_after_add = session.query(emailschema.Version).count()
@@ -290,6 +292,7 @@ def test_delete_cascade():
     assert versions_after_add == 1
 
     session.delete(event)
+    session.commit()
     
     events_after_delete = session.query(emailschema.Event).count()
     versions_after_delete = session.query(emailschema.Version).count()

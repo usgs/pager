@@ -28,7 +28,7 @@ ALERT_DICT = {'green':0,
               'orange':2,
               'red':3}
 
-def get_version(session,pdata):
+def get_version(session,pdata,release=False,renotify=False):
     eventid = pdata.id
     event = session.query(es.Event).filter(es.Event.eventcode == eventid).first()
     ccinfo = None
@@ -49,14 +49,34 @@ def get_version(session,pdata):
         #we need to create a new event
         event = es.Event(eventcode=authid)
 
+    #check the most recent version of this event
+    #if it was pending and we got a release message,
+    #don't create a new version, just update this one
+    #to indicate that its been released.
+    #The reason is that we don't want the release action to
+    #increment the PAGER version number in the database.
+    sversions = sorted(event.versions,key=lambda v: v.number)
+    if len(sversions) and (not sversions[-1].released and release):
+        version = sversions[-1]
+        version.released = True
+        return (version,event,ccinfo)
+
+    #if we got a renotify message and we've seen the event before
+    #just grab the most recent version and make that the current one
+    if len(sversions) and renotify:
+        version = sversions[-1]
+        return (version,event,ccinfo)
+    
     prow = pdata.toSeries()
     country = prow['Impacted Country ($)']
     #Now create a new version
     pending = pdata.summary_alert_pending
     level = pdata.summary_alert
     released = True
+    was_pending = False
     if pending == 'pending':
         released = False
+        was_pending = True
     
     alert = ALERT_DICT[pdata.summary_alert]
     version = es.Version(versioncode = eventid,
@@ -71,10 +91,27 @@ def get_version(session,pdata):
                          ecolevel = ALERT_DICT[pdata.fatality_alert],
                          summarylevel = alert,
                          released = released,
+                         was_pending = was_pending,
                          processtime = pdata.processing_time,
                          maxmmi = pdata.maxmmi)
     event.versions.append(version)
     return (version,event,ccinfo)
+
+def send_emails(version,addresses,properties,msg,subject,DEBUG,attachments=[]):
+    props = properties.copy()
+    props['recipients'] = [address.email for address in addresses]
+    props['message'] = msg
+    props['subject'] = subject
+    if not DEBUG:
+        print('Sending message to %i recipients...' % len(addresses))
+        sender = EmailSender(properties=props,local_files=attachments)
+        sender.send()
+    else:
+        print('DEBUG on: would send message to %i recipients...' % len(addresses))
+        for addr in addresses:
+            print('\t%s' % addr.email)
+    version.addresses += addresses
+    return version
 
 def main(args):
     DEBUG = False
@@ -106,6 +143,16 @@ def main(args):
         print('JSON directory "%s" containing PAGER output not found. Exiting.' % args.directory)
         sys.exit(1)
 
+    #check to see if a --property-renotify option has been set
+    renotify = False
+    if args.renotify and args.renotify == 'true':
+        renotify = True
+
+    #check to see if a --property-release option has been set
+    release = False
+    if args.release and args.release == 'true':
+        release = True
+
     #Everything is cool...
     pdata = PagerData()
     pdata.loadFromJSON(jsondir)
@@ -114,8 +161,10 @@ def main(args):
     dburl = config['email']['database']['url']
     session = es.get_session(url=dburl,create_db=False)
     
-    #Find event in database, or create it if not found.  Return a new version for that event
-    version,event,ccinfo = get_version(session,pdata)
+    #Find event in database, or create it if not found.  Return a new version for that event,
+    #or (if event has just been released and previous version was not released, return most recent
+    #version with released column set to True.
+    version,event,ccinfo = get_version(session,pdata,release=release,renotify=renotify)
 
     #add/commit the event for now, but we may have to delete it if we crash for any reason
     session.add(event)
@@ -123,18 +172,36 @@ def main(args):
 
     try:
         #loop over all adddresses, check to see if they should get notified
+        #some of these users may have been notified about previous versions
+        #of this event, so they will have to be put in separate bins
+        #because their subject line will start with "UPDATE:".
         all_addresses = session.query(es.Address).all()
-        short_addresses = []
-        long_addresses = []
-        pdf_addresses = []
+        short_addresses_update = []
+        short_addresses_nonupdate = []
+        long_addresses_update = []
+        long_addresses_nonupdate = []
+        pdf_addresses_update = []
+        pdf_addresses_nonupdate = []
         for address in all_addresses:
-            if address.shouldAlert(version):
+            should_alert,notified_before = address.shouldAlert(version,
+                                                               renotify=renotify,
+                                                               release=release)
+            if should_alert:
                 if address.format == 'short':
-                    short_addresses.append(address)
+                    if notified_before:
+                        short_addresses_update.append(address)
+                    else:
+                        short_addresses_nonupdate.append(address)
                 elif address.format == 'long':
-                    long_addresses.append(address)
+                    if notified_before:
+                        long_addresses_update.append(address)
+                    else:
+                        long_addresses_nonupdate.append(address)
                 else:
-                    pdf_addresses.append(address)
+                    if notified_before:
+                        pdf_addresses_update.append(address)
+                    else:
+                        pdf_addresses_nonupdate.append(address)
 
 
         #try to find the event url
@@ -148,58 +215,38 @@ def main(args):
         long_msg = format_msg(version,pdata,'long',event_url)
 
         #create the long and short subjects
-        subject = generate_subject_line(version,pdata)
+        subject,subject_update = generate_subject_line(version,pdata)
 
         all_props = {}
         all_props['smtp_servers'] = config['email']['smtp_servers']
         all_props['sender'] = config['email']['sender']
-        all_props['subject'] = subject
         if 'max_bcc' in config['email']:
             all_props['max_bcc'] = config['email']['max_bcc']
 
-        #set up mail transfer object for short messages
-        if len(short_addresses):
-            props = all_props.copy()
-            props['recipients'] = [address.email for address in short_addresses]
-            props['message'] = short_msg
-            if not DEBUG:
-                print('Sending short message to %i recipients...' % len(short_addresses))
-                sender = EmailSender(properties=props)
-                sender.send()
-            else:
-                print('DEBUG on: would send short message to %i recipients...' % len(short_addresses))
-                for addr in short_addresses:
-                    print('\t%s' % addr.email)
-            version.addresses += short_addresses
+        #send emails to all short format addresses
+        if len(short_addresses_update):
+            version = send_emails(version,short_addresses_update,all_props,short_msg,subject_update,DEBUG)
+        if len(short_addresses_nonupdate):
+            version = send_emails(version,short_addresses_nonupdate,all_props,short_msg,subject,DEBUG)
 
-        if len(long_addresses):
-            props = all_props.copy()
-            props['recipients'] = [address.email for address in long_addresses]
-            props['message'] = long_msg
-            if not DEBUG:
-                print('Sending long message to %i recipients...' % len(long_addresses))
-                sender = EmailSender(properties=props)
-                sender.send()
-            else:
-                print('DEBUG on: would send long message to %i recipients...' % len(long_addresses))
-                for addr in long_addresses:
-                    print('\t%s' % addr.email)
-            version.addresses += long_addresses
+        #send emails to all long format addresses
+        if len(long_addresses_update):
+            version = send_emails(version,long_addresses_update,all_props,long_msg,subject_update,DEBUG)
+        if len(long_addresses_nonupdate):
+            version = send_emails(version,long_addresses_nonupdate,all_props,long_msg,subject,DEBUG)
 
-        if len(pdf_addresses):
+        #send emails to all long format addresses
+        if len(pdf_addresses_update):
             onepager_file = os.path.join(args.directory,'onepager.pdf')
-            props = all_props.copy()
-            props['recipients'] = [address.email for address in pdf_addresses]
-            props['message'] = long_msg
-            if not DEBUG:
-                print('Sending long message, with PDF attachment to %i recipients...' % len(pdf_addresses))
-                sender = EmailSender(properties=props,local_files=[onepager_file])
-                sender.send()
-            else:
-                print('DEBUG on: would send long message (w/ attachment) to %i recipients...' % len(pdf_addresses))
-                for addr in pdf_addresses:
-                    print('\t%s' % addr.email)
-            version.addresses += pdf_addresses
+            version = send_emails(version,long_addresses_update,
+                                  all_props,long_msg,subject_update,DEBUG,
+                                  attachments=[onepager_file])
+        if len(pdf_addresses_nonupdate):
+            onepager_file = os.path.join(args.directory,'onepager.pdf')
+            version = send_emails(version,long_addresses_update,
+                                  all_props,long_msg,subject,DEBUG,
+                                  attachments=[onepager_file])
+
 
     except Exception as e:
         #if we have any errors, we want to back out the event and version we added above.
@@ -244,5 +291,10 @@ if __name__ == '__main__':
                            help="Event magnitude",metavar='MAG',dest='magnitude')
     argparser.add_argument("--preferred-eventtime", 
                            help="Event time",metavar='TIME',dest='time')
+
+    argparser.add_argument("--property-renotify", dest='renotify',
+                           help='If flag is set, any users previously notified of an event will be renotified.')
+    argparser.add_argument("--property-release", dest='release',
+                           help='If flag is set, send non-pending email notifications if previous version status was pending.')
     pargs, unknown = argparser.parse_known_args()
     main(pargs)

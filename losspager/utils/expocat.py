@@ -107,16 +107,16 @@ class ExpoCat(object):
         df = df[cols]
         
         mmicols = ['MMI1','MMI2','MMI3','MMI4','MMI5','MMI6','MMI7','MMI8','MMI9+']
-        mmicols.reverse()
-        maxmmi = np.ones(len(df))
-        nmaxmmi = np.zeros(len(df))
-        for mmicol in mmicols:
-            mmival = int(re.search('[0-9]',mmicol).group())
-            i_unfilled = maxmmi == 0
-            i_meets_min = (df[mmicol] > MIN_MMI).as_matrix()
-            intersected = (i_meets_min & i_unfilled)
-            maxmmi[intersected] = mmival
-            nmaxmmi[intersected] = (df[mmicol].as_matrix())[intersected]
+
+        #find the highest MMI column in each row with at least 1000 people exposed.
+        mmidata = df.ix[:,mmicols].as_matrix()
+        tf = mmidata > 1000
+        nrows,ncols = mmidata.shape
+        colmat = np.tile(np.arange(0,ncols),(nrows,1))
+        imax = np.argmax(colmat * tf,axis=1)
+        nmaxmmi = np.diagonal(mmidata[:,imax])
+        maxmmi = imax + 1
+        
         df['MaxMMI'] = pd.Series(maxmmi)
         df['NumMaxMMI'] = pd.Series(nmaxmmi)
         

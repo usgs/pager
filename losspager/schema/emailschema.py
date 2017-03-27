@@ -181,25 +181,25 @@ class Address(Base):
     def __repr__(self):
         return "<Address(email='%s')>" % self.email
 
-    def shouldAlert(self,version):
+    def shouldAlert(self,version,renotify=False,release=False):
         """Determine whether an alert should be sent to this address for given Version.
 
         :param version:
           Version object.
         :returns:
-          Boolean indicating whether this Address should get an alert.
-          True if (conditions below are combined with AND):
-           - Elapsed time since event is less than 8 hours
-           - Address has not previously been alerted about this event OR previous 
-             alert level was 2 levels different from current.
-           - Event occurred inside at least one of the address' regions of 
-             interest (defaults to True if user has no regions defined).
-           - Event meets or exceeds one of the address thresholds (MMI, magnitude, or EIS).
+          Tuple of:
+              Boolean indicating whether this Address should get an alert.
+              True if (conditions below are combined with AND):
+               - Elapsed time since event is less than 8 hours
+               - Address has not previously been alerted about this event OR previous 
+                 alert level was 2 levels different from current.
+               - Event occurred inside at least one of the address' regions of 
+                 interest (defaults to True if user has no regions defined).
+               - Event meets or exceeds one of the address thresholds (MMI, magnitude, or EIS).
+              Boolean indicating whether this address has been notified for the event before.
         """
         levels = ['green','yellow','orange','red']
-        #check the version time against the current time, reject if older than 8 hours
-        if datetime.utcnow() > version.time + timedelta(seconds=MAX_ELAPSED_SECONDS):
-            return False
+        
 
         #get the alert level for the most recently alerted version this user received
         #first get the event id for this version of an event
@@ -207,13 +207,41 @@ class Address(Base):
         #next find all the versions for this address that also have that event_id
         notified_before = False
         highest_level = -1
-        #newlist = sorted(ut, key=lambda x: x.count, reverse=True)
-        sversions = sorted(self.versions,key=lambda v: v.processtime)
-        for sversion in sversions:
+
+        #just get the versions for this event id
+        sversions = []
+        for sversion in self.versions:
             if sversion.event_id != eid:
                 continue
+            sversions.append(sversion)
+            if sversion.summarylevel > highest_level:
+                highest_level = sversion.summarylevel
             notified_before = True
-            highest_level = sversion.summarylevel
+        sversions = sorted(self.versions,key=lambda v: v.number)
+
+        #shortcut to True here if notified_before is true and renotify is true
+        last_version_pending = False
+        if notified_before:
+            if sversions[-1].was_pending:
+                last_version_pending = True
+
+        #anybody who's been previously notified should be re-notified if that flag is set
+        if notified_before and renotify:
+            return (True,True)
+
+        #anybody who's been most recently notified of a pending event, should
+        #be re-notified if the release flag is set
+        if notified_before and last_version_pending and release:
+            return (True,True)
+
+        #check the version time against the current time, reject if older than 8 hours
+        if datetime.utcnow() > version.time + timedelta(seconds=MAX_ELAPSED_SECONDS):
+            return (False,notified_before)
+        
+        #shortcut to True here if the most recent version for this event
+        #was NOT released (i.e., pending), but only if this version has been released.
+        if (len(sversions) and not sversions[-1].released) and version.released:
+            return (True,True)
             
         should_alert = False
         for profile in self.profiles:
@@ -221,7 +249,7 @@ class Address(Base):
                 should_alert = True
                 break
 
-        return should_alert
+        return (should_alert,notified_before)
 
     def fromDict(self,session,addressdict):
         reqfields = set(['email','is_primary','priority','profiles','format'])
@@ -419,6 +447,7 @@ class Version(Base):
     summarylevel = Column(Integer, nullable=False)
     processtime = Column(DateTime, nullable=False)
     released = Column(Boolean,nullable=False)
+    was_pending = Column(Boolean,nullable=False)
     maxmmi = Column(Float, nullable=False)
 
     #A user can have many addresses
@@ -716,7 +745,7 @@ def get_session(url='sqlite:///:memory:',create_db=False):
 
     #create a session object that we can use to insert and 
     #extract information from the database
-    Session = sessionmaker(bind=engine)
+    Session = sessionmaker(bind=engine,autoflush=False)
     session = Session()
 
     return session

@@ -10,6 +10,15 @@ DATEFMT = '%Y/%m/%d-%H:%M'
 MIN_POP = 1000
 
 def generate_subject_line(version,pdata):
+    """Generate two subject lines, one for previously notified users, and one for not.
+
+    :param version:
+      PAGER schema Version object.
+    :param pdata:
+      PagerData object.
+    :returns:
+      Tuple of (non-update,update) subject lines.
+    """
     is_update = False
     if version.number > 1:
         event = version.event
@@ -21,12 +30,13 @@ def generate_subject_line(version,pdata):
     alertlevel = pdata.summary_alert_pending.capitalize()
     vnum = version.number
     location = pdata.location
-    
+
+    subject = '%s Alert, PAGER V%i %s' % (alertlevel,vnum,location)
+    subject_update = subject
     if is_update:
-        subject = 'UPDATE: %s Alert, PAGER V%i %s' % (alertlevel,vnum,location)
-    else:
-        subject = '%s Alert, PAGER V%i %s' % (alertlevel,vnum,location)
-    return subject
+        subject_update = 'UPDATE: %s Alert, PAGER V%i %s' % (alertlevel,vnum,location)
+        
+    return (subject,subject_update)
         
 
 def strip_leading_spaces(string):
@@ -190,7 +200,7 @@ def format_long(version,pdata,expstr,event_url):
         first,second = pdata.getImpactComments()
         impact_comment = first + ' ' + second
     else:
-        impact_comment = ''
+        impact_comment = 'The following event is currently being reviewed by seismologists. You will receive a second notification once the potential impact of this earthquake has been determined.'
     msg = '''
     PAGER Version: {version:d}
     {location}
