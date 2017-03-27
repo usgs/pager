@@ -17,12 +17,14 @@ from calendar import monthrange
 #local imports
 from losspager.utils.config import read_config,write_config
 from losspager.io.pagerdata import PagerData
-from losspager.utils.admin import PagerAdmin,RemoteAdmin
+from losspager.utils.admin import PagerAdmin,RemoteAdmin,transfer,unset_pending,get_id_and_source
 from losspager.utils.exception import PagerException
+
 
 #third party imports
 from impactutils.io.cmd import get_command_output
 from impactutils.textformat.text import pop_round_short,dollar_round,round_to_nearest,commify
+from impactutils.comcat.query import ComCatInfo
 import pandas as pd
 
 DATEFMT = '%Y-%m-%d'
@@ -135,27 +137,58 @@ def do_archive(archive_info,archive_threshold,admin):
         narchived,nerrors = admin.archive(events=archive_info)
     return (narchived,nerrors)
 
+def do_release(eventid,admin,config):
+    #find the most recent version of PAGER for this event
+    event_folder = admin.getEventFolder(eventid)
+    release_file = os.path.join(event_folder,'release')
+    f = open(release_file,'wt')
+    f.write('released\n')
+    f.close()
+    if event_folder is None:
+        print('No event %s found.  Exiting.' % eventid)
+        sys.exit(1)
+    version_folder = admin.getLastVersion(event_folder)
+    res = unset_pending(version_folder)
+    if not res:
+        return (res,'This event has already been released.')
+    try:
+        ccinfo = ComCatInfo(eventid)
+        authid,allids = ccinfo.getAssociatedIds()
+        authsource,allsources = ccinfo.getAssociatedSources()
+    except:
+        authid,authsource = get_id_and_source(version_folder)
 
-def do_release(eventid,admin):
+    jsonfolder = os.path.join(version_folder,'json')
+    pdata = PagerData()
+    pdata.loadFromJSON(jsonfolder)
+    try:
+        msg = transfer(config,pdata,authid,authsource,version_folder,release=True)
+    except Exception as e:
+        msg = str(e)
+    return (True,msg)
+
+def do_renotify(eventid,admin,config):
     #find the most recent version of PAGER for this event
     event_folder = admin.getEventFolder(eventid)
     if event_folder is None:
         print('No event %s found.  Exiting.' % eventid)
         sys.exit(1)
-    version = admin.getLastVersion(event_folder)
-    xmlfile = os.path.join(version,'grid.xml')
-    if not os.path.isfile(xmlfile):
-        print('No grid.xml file found for %s.  Exiting.' % eventid)
-        sys.exit(1)
-    homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
-    pagerpath = os.path.join(homedir,'pager')
-    pager_cmd = '%s --release %s' % (pagerpath,xmlfile)
-    res,stdout,stderr = get_command_output(pager_cmd)
-    if not res:
-        msg = 'Release process failed on event %s.  "%s" "%s"' % (eventid,stdout,stderr)
-    else:
-        msg = 'Release of event %s successful with message "%s".' % (eventid,stdout)
-    return (res,msg)
+    version_folder = admin.getLastVersion(event_folder)
+    try:
+        ccinfo = ComCatInfo(eventid)
+        authid,allids = ccinfo.getAssociatedIds()
+        authsource,allsources = ccinfo.getAssociatedSources()
+    except:
+        authid,authsource = get_id_and_source(version_folder)
+
+    jsonfolder = os.path.join(version_folder,'json')
+    pdata = PagerData()
+    pdata.loadFromJSON(jsonfolder)
+    try:
+        msg = transfer(config,pdata,authid,authsource,version_folder,renotify=True)
+    except Exception as e:
+        msg = str(e)
+    return (True,msg)
 
 def do_status(status,admin):
     current_status = admin.getStatus()
@@ -353,6 +386,14 @@ def main(args):
             print('"stop" file already exists in %s.' % (eventfolder))
         sys.exit(0)
 
+    if args.renotify:
+        res,msg = do_renotify(args.renotify,admin,config)
+        print(msg)
+        if not res:
+            sys.exit(1)
+        else:
+            sys.exit(0)
+
     if args.unstop:
         result,eventfolder = admin.unstop(args.unstop)
         if result:
@@ -367,7 +408,7 @@ def main(args):
         sys.exit(0)
 
     if args.release:
-        res,msg = do_release(args.release,admin)
+        res,msg = do_release(args.release,admin,config)
         print(msg)
         if not res:
             sys.exit(1)
@@ -390,10 +431,14 @@ def main(args):
     if args.history:
         pd.set_option('display.width', 1000)
         pd.set_option('display.max_rows', 1000)
-        pdataframe = admin.query(eventid=args.history)
+        pdataframe,broken_events = admin.query(eventid=args.history)
         pdataframe = pdataframe.sort_values('Version')
         if args.output == 'screen':
             print(pdataframe)
+            if len(broken_events):
+                print('Events with no valid versions:')
+                for broken in broken_events:
+                    print(broken)
         else:
             pdataframe.to_excel(args.output)
             print('Saved %i versions to %s' % (len(pdataframe),args.output))
@@ -482,31 +527,13 @@ if __name__ == '__main__':
     argparser.add_argument("--stats", nargs=1, 
                            help="Create dump of monthly, quarterly, or yearly PAGER results.",
                            choices = ('month','quarter','year'),metavar='PERIOD')
-    argparser.add_argument("--release", nargs=1,
-                           help="Release orange/red alert level event.",
-                           metavar='EVENT')
-    argparser.add_argument("--renotify", nargs=1,
-                           help="Renotify users about an event.",
-                           metavar='EVENT')
+    argparser.add_argument("--release", help="Release orange/red alert level event.",
+                           metavar='EVENTCODE')
+    argparser.add_argument("--renotify", metavar='EVENTCODE',
+                           help="Renotify users about an event.")
     argparser.add_argument("--cancel", nargs=1,
                            help="Cancel event.",
                            metavar='EVENT')
-    
-    # argparser.add_argument("--renotify", nargs=1,
-    #                        help="Send renotify message to ENS for given event.",
-    #                        metavar='EVENT')
-    
-    
-    # argparser.add_argument('--recent',action="store_true",default=False,
-    #                        help="List events that have occurred within the last %i days" % NDAYS)
-
-    # argparser.add_argument('--ofda',metavar='NDAYS',type=int,
-    #                        help="""List events that are likely to have caused alerts on ANY version
-    # of an event (EIS Yellow+, MMI 7+, Mag 7+) within the last NDAYS.""")
-    # argparser.add_argument("--history", nargs=1,
-    #                        help="Print PAGER event history.",
-    #                        metavar='EVENT')
-    
     
 
     args = argparser.parse_args()

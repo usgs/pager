@@ -16,12 +16,85 @@ from losspager.io.pagerdata import PagerData
 #third-party imports
 from impactutils.comcat.query import ComCatInfo
 from impactutils.io.cmd import get_command_output
+from impactutils.transfer.factory import get_sender_class
 import pandas as pd
 
 DATETIMEFMT = '%Y%m%d%H%M%S'
 EIGHT_HOURS = 8 * 3600
 ALLOWED_ACTIONS = ['release','switch-status','cancel','renotify','stop','unstop','tsunami']
 SHAKEMAP_SOURCES = ['us','ci','nc','nn','hv','uw','nn','uu','ak']
+
+def unset_pending(version_folder):
+    eventfile = os.path.join(version_folder,'json','event.json')
+    f = open(eventfile,'rt')
+    jdict = json.load(f)
+    f.close()
+    if jdict['pager']['alert_level'] == jdict['pager']['true_alert_level']:
+        return False
+    jdict['pager']['alert_level'] = jdict['pager']['true_alert_level']
+    f = open(eventfile,'wt')
+    json.dump(jdict,f)
+    f.close()
+    return True
+    
+def get_id_and_source(version_folder):
+    eventfile = os.path.join(version_folder,'json','event.json')
+    f = open(eventfile,'rt')
+    jdict = json.load(f)
+    f.close()
+    eventid = jdict['event']['eventid']
+    source = jdict['shakemap']['shake_source']
+    return (eventid,source)
+
+def transfer(config,pagerdata,authid,authsource,version_folder,renotify=False,release=False):
+    #If system status is primary and transfer options are configured, transfer the output
+    #directories using those options
+    if 'status' in config and config['status'] == 'primary':
+        if 'transfer' in config:
+            if 'methods' in config['transfer']:
+                print('Running transfer.')
+                for method in config['transfer']['methods']:
+                    if method not in config['transfer']:
+                        sys.stderr.write('Method %s requested but not configured...Skipping.' % method)
+                        continue
+                    params = config['transfer'][method]
+                    if 'remote_directory' in params:
+                        vpath,vfolder = os.path.split(version_folder)
+                        #append the event id and version folder to our pre-specified output directory
+                        params['remote_directory'] = os.path.join(params['remote_directory'],authid,vfolder)
+                    params['code'] = authid
+                    params['eventsource'] = authsource
+                    params['eventsourcecode'] = authid.replace(authsource,'')
+                    params['magnitude'] = pagerdata.magnitude
+                    params['latitude'] = pagerdata.latitude
+                    params['longitude'] = pagerdata.longitude
+                    params['depth'] = pagerdata.depth
+                    params['eventtime'] = pagerdata.time
+                    product_params = {'maxmmi':pagerdata.maxmmi,
+                                      'alertlevel':pagerdata.summary_alert_pending}
+
+                    if renotify:
+                        product_params['renotify'] = 'true'
+                    if release:
+                        product_params['release'] = 'true'
+                    sender_class = get_sender_class(method)
+                    try:
+                        if method == 'pdl':
+                            sender = sender_class(properties=params,local_directory=version_folder,
+                                                  product_properties=product_params)
+                        else:
+                            sender = sender_class(properties=params,local_directory=version_folder)
+                        try:
+                            nfiles,msg = sender.send()
+                            res = True
+                        except Exception as e:
+                            msg = str(e)
+                            res = False
+                    except Exception as e:
+                        msg = str(e)
+                        res = False
+                        continue
+    return (res,msg)
 
 def split_event(eventid):
     event_source = None
@@ -382,6 +455,7 @@ class PagerAdmin(object):
                 row = pdata.toSeries(processtime=do_process_time)
                 df = df.append(row,ignore_index=True)
         df.Version = df.Version.astype(int)
+        df.Elapsed = df.Elapsed.astype(int)
         df = df.sort_values('EventTime')
         df = df.set_index('EventID')
         return (df,broken)

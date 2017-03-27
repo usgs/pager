@@ -5,8 +5,9 @@ import argparse
 import sys
 import os.path
 from urllib.parse import urlparse
-from datetime import datetime
+from datetime import datetime,timedelta
 from calendar import monthrange
+import json
 
 #local imports
 from losspager.schema import emailschema
@@ -100,7 +101,7 @@ def query_events(qparams,session):
     mag_threshold = 0.0
     alert_threshold = 0
     version = 'last'
-    qsyntax = 'query syntax: [START/all [MAG [ALERT [END [VERSION]]]]]. '
+    qsyntax = 'query syntax: [START/all/recent [MAG [ALERT [END [VERSION]]]]]. '
     levels = ['green','yellow','orange','red']
     if start_date is None:
         start_date = datetime(1800,1,1)
@@ -175,21 +176,22 @@ def query_events(qparams,session):
     return df
 
 def get_date(datestr):
-    """Convert a date string in  to datetime.
-
-    :param datestr:
-      String in YYYY-MM-DD or YYYY-MM-DD HH:MM:SS format.
-    :returns:
-      datetime object or None if date string is invalid.
+    """datestr can be a datetime date or date/time string, OR 'all' or 'recent'.
+    'recent' returns last two weeks of events, 'all' gets all events.
     """
     archdate = None
-    try:
-        archdate = datetime.strptime(datestr,DATETIMEFMT)
-    except:
+    if datestr == 'all':
+        archdate = datetime(1800,1,1)
+    elif datestr == 'recent':
+        archdate = datetime.utcnow() - timedelta(days=14)
+    else:
         try:
-            archdate = datetime.strptime(datestr,DATEFMT)
+            archdate = datetime.strptime(datestr,DATETIMEFMT)
         except:
-            pass
+            try:
+                archdate = datetime.strptime(datestr,DATEFMT)
+            except:
+                pass
     return archdate
 
 def get_version_history(session,eventid):
@@ -669,7 +671,7 @@ def add_fema(session,fema_user):
     region_names = []
     if len(fema_user) > 4:
         region_names = fema_user[4:]
-    org = session.query(emailschema.Organization).filter(emailschema.Organization.shortname=='FEMA').first()
+    org = session.query(emailschema.Organization).filter(emailschema.Organization.shortname=='DHS/FEMA').first()
     user = emailschema.User()
     user.lastname = lastname
     user.firstname = firstname
@@ -719,6 +721,8 @@ def add_fema(session,fema_user):
             
         address2.profiles.append(profile3)
         address2.profiles.append(profile4)
+
+    session.add(user)
     session.commit()
     return (True,'Added user to database:\n%s' % (print_user(user)))
 
@@ -774,12 +778,15 @@ def add_generic(session,generic_user):
     region_names = []
     if len(generic_user) > 5:
         region_names = generic_user[5:]
-    org = session.query(emailschema.Organization).filter(emailschema.Organization.shortname==org).first()
+    org_object = session.query(emailschema.Organization).filter(emailschema.Organization.shortname==org).first()
+    if org_object is None:
+        res = False
+        msg = 'No organization called "%s" found in the database.' % org
     user = emailschema.User()
     user.lastname = lastname
     user.firstname = firstname
     user.createdon = datetime.utcnow()
-    user.organization = org
+    user.organization = org_object
     address1 = emailschema.Address(email=email,is_primary=True,priority=DEFAULT_PRIORITY,format='pdf')
     address1.user = user
 
@@ -816,6 +823,7 @@ def add_generic(session,generic_user):
             region = session.query(emailschema.Region).filter(emailschema.Region.name==region_name).first()
             profile2.regions.append(region)
         address2.profiles.append(profile2)
+    session.add(user)
     session.commit()
     return (True,'Added user to database:\n%s' % (print_user(user)))
 
@@ -911,6 +919,52 @@ def main(args):
 
     if args.delete_user:
         res,msg = delete_user(session,args.delete_user,config)
+        do_sync = True
+
+    if args.clear_users:
+        resp = input('Are you sure to want to clear all users from the database? [No]/Yes ')
+        if resp != 'Yes':
+            print('That was a No.  Exiting.')
+            sys.exit(0)
+        users = session.query(emailschema.User).all()
+        nusers = len(users)
+        for user in users:
+            session.delete(user)
+            session.commit()
+        res = True
+        msg = '%i users deleted from the database.' % nusers
+        do_sync = True
+        
+    if args.export_users:
+        userlist = []
+        jsonfile = args.export_users[0]
+        emails = args.export_users[1:]
+        if emails[0] == 'all':
+            addresses = session.query(emailschema.Address).all()
+            emails = [address.email for address in addresses]
+            
+        for email in emails:
+            address = session.query(emailschema.Address).filter(func.lower(emailschema.Address.email)==email.lower()).first()
+            user = address.user
+            userdict = user.toDict()
+            userlist.append(userdict)
+        f = open(jsonfile,'wt')
+        json.dump(userlist,f)
+        f.close()
+        res = True
+        msg = '%i users have been written to %s' % (len(userlist),jsonfile)
+
+    if args.import_users:
+        jsonfile = args.import_users
+        f = open(jsonfile,'rt')
+        userlist = json.load(f)
+        f.close()
+        for userdict in userlist:
+            user = emailschema.User()
+            user.fromDict(session,userdict)
+        #session adding and committing handled inside fromDict method
+        res = True
+        msg = '%i users added from %s.' % (len(userlist),jsonfile)
         do_sync = True
         
     if args.add_generic:
@@ -1059,8 +1113,8 @@ def main(args):
             print(df)
             msg = ''
         else:
-            msg = 'Results written to %s.' % output
-            df.to_excel(output)
+            msg = 'Results written to %s.' % args.output
+            df.to_excel(args.output)
         res = True
 
     #get information about which versions user has been notified
@@ -1073,7 +1127,7 @@ def main(args):
             print(df)
             msg = ''
         else:
-            msg = 'Results written to %s.' % output
+            msg = 'Results written to %s.' % args.output
             df.to_excel(output)
         res = True
         
@@ -1086,6 +1140,7 @@ def main(args):
         else:
             gid = regiongroup.id
             regions = session.query(emailschema.Region).filter(emailschema.Region.regiongroup_id == gid).all()
+            regions = sorted(regions,key=lambda r:r.name)
             for region in regions:
                 print('%-40s %-40s' % (region.name,region.desc))
             res = True
@@ -1188,6 +1243,17 @@ if __name__ == '__main__':
                            help='Add a FEMA user by providing: FirstName LastName PrimaryEmail SMSEmail (or "null") [regions].')
     argparser.add_argument("--delete-user", metavar=('EMAIL','REASON'),nargs="*",
                            help="Delete a user by providing any email address associated with the user, and a description of why they are being deleted.")
+
+    argparser.add_argument("--export-users", nargs='*',
+                           help="""Export users by providing an output JSON file, and a list of 
+email addresses associated with the users to export.""")
+
+    argparser.add_argument("--import-users", 
+                           help="""Import users by providing an input JSON file.""")
+
+    argparser.add_argument("--clear-users", action='store_true',default=False,
+                           help="""Clear all users from database.""")
+    
     
     argparser.add_argument("--add-org", nargs='*', 
                            help='Add an organization by entering short name (one word) followed by full name.')
@@ -1203,7 +1269,7 @@ if __name__ == '__main__':
                            help='List the regions associated with the given region group.')
 
     argparser.add_argument("--query", nargs='*',default=False,
-                           help='Query the database for events.  Params are [START/all [MAG [ALERT [END]]]]')
+                           help='Query the database for events.  Params are [START/all/recent [MAG [ALERT [END]]]]')
     argparser.add_argument("--event-history", metavar='EVENTID',
                            help='Display the version history of given vent.')
     argparser.add_argument("--event-notification-history", metavar='EVENTID',
@@ -1219,6 +1285,7 @@ if __name__ == '__main__':
                            choices = ('month','quarter','year'),metavar='PERIOD')
     argparser.add_argument("--output", metavar='OUTPUT', default='screen',
                             help="Select output format for queries ('screen' or excel filename. (default: screen))'")
+
     ihelp = '''Recreate the database file by (optionally) providing JSON user file and
     a JSON org file.
     '''

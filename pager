@@ -31,7 +31,6 @@ import pandas as pd
 import numpy as np
 from mapio.shake import getHeaderData
 from impactutils.comcat.query import ComCatInfo
-from impactutils.transfer.factory import get_sender_class
 from impactutils.transfer.emailsender import EmailSender
 
 #local imports
@@ -43,7 +42,7 @@ from losspager.models.growth import PopulationGrowth
 from losspager.utils.country import Country
 from losspager.utils.eventpath import get_event_folder
 from losspager.utils.logger import PagerLogger
-from losspager.utils.admin import PagerAdmin,split_event
+from losspager.utils.admin import PagerAdmin,split_event,transfer
 from losspager.utils.exception import PagerException
 from losspager.utils.datapath import get_data_path
 from losspager.onepager.comment import get_impact_comments
@@ -168,47 +167,6 @@ def message_pager(config,onepager_pdf,doc):
             sender = EmailSender(props,local_files=[onepager_pdf])
             sender.send()
             
-def transfer(config,pagerdata,authid,authsource,version_folder):
-    #If system status is primary and transfer options are configured, transfer the output
-    #directories using those options
-    if 'status' in config and config['status'] == 'primary':
-        if 'transfer' in config:
-            if 'methods' in config['transfer']:
-                print('Running transfer.')
-                for method in config['transfer']['methods']:
-                    if method not in config['transfer']:
-                        sys.stderr.write('Method %s requested but not configured...Skipping.' % method)
-                        continue
-                    params = config['transfer'][method]
-                    if 'remote_directory' in params:
-                        vpath,vfolder = os.path.split(version_folder)
-                        #append the event id and version folder to our pre-specified output directory
-                        params['remote_directory'] = os.path.join(params['remote_directory'],authid,vfolder)
-                    params['code'] = authid
-                    params['eventsource'] = authsource
-                    params['eventsourcecode'] = authid.replace(authsource,'')
-                    params['magnitude'] = pagerdata.magnitude
-                    params['latitude'] = pagerdata.latitude
-                    params['longitude'] = pagerdata.longitude
-                    params['depth'] = pagerdata.depth
-                    params['eventtime'] = pagerdata.time
-                    product_params = {'maxmmi':pagerdata.maxmmi,
-                                      'alertlevel':pagerdata.summary_alert_pending}
-                    sender_class = get_sender_class(method)
-                    try:
-                        if method == 'pdl':
-                            sender = sender_class(properties=params,local_directory=version_folder,
-                                                  product_properties=product_params)
-                        else:
-                            sender = sender_class(properties=params,local_directory=version_folder)
-                        try:
-                            nfiles,msg = sender.send()
-                            print(msg)
-                        except Exception as e:
-                            print('Failed to send products via PDL: %s' % str(e))
-                    except Exception as e:
-                        sys.stderr.write('Could not send products via %s method - error "%s"' % (method,str(e)))
-                        continue
 
 def _get_pop_year(event_year,popyears):
     pop_year = None
@@ -416,7 +374,9 @@ def main(pargs,config):
             plog.switchToEventFileHandler(event_logfile)
 
         #Copy the grid.xml file to the version folder
-        shutil.copy(gridfile,version_folder)
+        #sometimes (usu when testing) the input grid isn't called grid.xml.  Rename it here.
+        version_grid = os.path.join(version_folder,'grid.xml')
+        shutil.copyfile(gridfile,version_grid)
 
         #Check to see if the tsunami flag has been previously set
         tsunami_toggle = {'on':1,'off':0}
@@ -469,7 +429,7 @@ def main(pargs,config):
         ecodict = ecomodel.getLosses(econexposure)
         shakegrid = econexpmodel.getShakeGrid()
 
-        #Get semi-empirical losses, if requested
+        #Get semi-empirical losses
         print('Calculating semi-empirical fatalities.')
         urbanfile = config['model_data']['urban_rural_grid']
         if not os.path.isfile(urbanfile):
@@ -502,9 +462,10 @@ def main(pargs,config):
         oceanfile = config['model_data']['ocean_vectors']
         oceangrid = config['model_data']['ocean_grid']
         cityfile = config['model_data']['city_file']
+        borderfile = config['model_data']['border_vectors']
         pdf_file,png_file,mapcities = draw_contour(gridfile,popfile,
                                          oceanfile,oceangrid,cityfile,
-                                         exposure_base,is_scenario=is_scenario)
+                                         exposure_base,borderfile,is_scenario=is_scenario)
         print('Generated exposure map %s' % pdf_file)
 
         #figure out whether this event has been "released".
@@ -558,25 +519,18 @@ def main(pargs,config):
             message_pager(config,onepager_pdf,doc)
         
         #run transfer, as appropriate and as specified by config
-        transfer(config,doc,authid,authsource,version_folder)
+        res,msg = transfer(config,doc,authid,authsource,version_folder)
+        print(msg)
+        if not res:
+            pass
+            #TODO: figure out what's broken with logging, send log email here
 
         if plog is not None:
             plog.stopLogging()
         print('Created onePAGER pdf %s' % onepager_pdf)
         
         print('Done.')
-        #There is a weird error that happens (sometimes) after calling exit.  I *think* it has to do with
-        #Python trying to delete an object that happens to be None.  It's not clear where it's coming from
-        #and as it happens after the code completes, I'm not terribly concerned about it other than
-        #confusion for users.  Hence the try block around sys.exit().
-        try:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                sys.exit(0)
-        except:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                sys.exit(0)
+        sys.exit(0)
     except Exception as e:
         if plog is not None:
             f = io.StringIO()

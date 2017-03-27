@@ -21,6 +21,7 @@ import cartopy.feature as cfeature   # features such as coast
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from cartopy.io.img_tiles import StamenTerrain  # baselayer map
 from cartopy.feature import ShapelyFeature
+from cartopy.io.shapereader import Reader
 
 from mapio.shake import ShakeGrid
 from mapio.gdal import GDALGrid
@@ -58,7 +59,7 @@ COAST_ZORDER = 11
 LANDC_ZORDER = 10
 OCEANC_ZORDER = 11
 CLABEL_ZORDER = 50
-OCEAN_ORDER = 10
+OCEAN_ZORDER = 10
 GRID_ZORDER = 20
 EPICENTER_ZORDER = 30
 CITIES_ZORDER = 12
@@ -248,7 +249,7 @@ def _get_open_corner(popgrid,ax,filled_corner=None,need_bottom=True):
     if imin == 3:
         return urbounds,'ur'
 
-def draw_contour(shakefile,popfile,oceanfile,oceangridfile,cityfile,basename,is_scenario=False):
+def draw_contour(shakefile,popfile,oceanfile,oceangridfile,cityfile,basename,borderfile=None,is_scenario=False):
     """Create a contour map showing population (greyscale) underneath contoured MMI.
 
     :param shakefile:
@@ -355,11 +356,17 @@ def draw_contour(shakefile,popfile,oceanfile,oceangridfile,cityfile,basename,is_
     #draw 10m res coastlines
     ax.coastlines(resolution="10m",zorder=COAST_ZORDER);
 
+    #draw country borders using natural earth data set
+    if borderfile is not None:
+        borders = ShapelyFeature(Reader(borderfile).geometries(),
+                                    ccrs.PlateCarree())
+        ax.add_feature(borders,zorder=COAST_ZORDER,edgecolor='black',linewidth=2,facecolor='none')
+    
     #clip the ocean data to the shakemap
     bbox = (gd.xmin,gd.ymin,gd.xmax,gd.ymax)
     oceanshapes = _clip_bounds(bbox,oceanfile)
 
-    ax.add_feature(ShapelyFeature(oceanshapes,crs=geoproj),facecolor=WATERCOLOR,zorder=OCEAN_ORDER)
+    ax.add_feature(ShapelyFeature(oceanshapes,crs=geoproj),facecolor=WATERCOLOR,zorder=OCEAN_ZORDER)
 
 
     #It turns out that when presented with a map that crosses the 180 meridian,
@@ -430,12 +437,16 @@ def draw_contour(shakefile,popfile,oceanfile,oceangridfile,cityfile,basename,is_
     gl.ylabels_right = False
     gl.xlines = True
     step = 1
-    xlocs = np.arange(np.floor(xmin-1),np.ceil(xmax+1),step)
-    ylocs = np.arange(np.floor(ymin-1),np.ceil(ymax+1),step)
-    while len(xlocs) > 5:
-        step += 1
-        xlocs = np.arange(np.floor(xmin-1),np.ceil(xmax+1),step)
-        ylocs = np.arange(np.floor(ymin-1),np.ceil(ymax+1),step)
+
+    #let's floor/ceil the edges to nearest half a degree
+    gxmin = np.floor(xmin * 2) / 2
+    gxmax = np.ceil(xmax * 2) / 2
+    gymin = np.floor(ymin * 2) / 2
+    gymax = np.ceil(ymax * 2) / 2
+
+    xlocs = np.linspace(gxmin,gxmax+0.5,num=5)
+    ylocs = np.linspace(gymin,gymax+0.5,num=5)
+    
     gl.xlocator = mticker.FixedLocator(xlocs)
     gl.ylocator = mticker.FixedLocator(ylocs)
     gl.xformatter = LONGITUDE_FORMATTER
@@ -477,6 +488,19 @@ def draw_contour(shakefile,popfile,oceanfile,oceangridfile,cityfile,basename,is_
     #draw cities
     mapcities = mmap.drawCities(shadow=True,zorder=CITIES_ZORDER)
 
+
+    #draw the figure border thickly
+    #TODO - figure out how to draw map border
+    # bwidth = 3
+    # ax.spines['top'].set_visible(True)
+    # ax.spines['left'].set_visible(True)
+    # ax.spines['bottom'].set_visible(True)
+    # ax.spines['right'].set_visible(True)
+    # ax.spines['top'].set_linewidth(bwidth)
+    # ax.spines['right'].set_linewidth(bwidth)
+    # ax.spines['bottom'].set_linewidth(bwidth)
+    # ax.spines['left'].set_linewidth(bwidth)
+    
     #Get the corner of the map with the lowest population
     corner_rect,filled_corner = _get_open_corner(popgrid,ax)
     clat2 = round_to_nearest(clat,1.0)
