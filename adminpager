@@ -252,7 +252,7 @@ def do_stats(stats,admin,config):
     else:
         msg = 'Unsupported stats period %s.' % stats[0]
         res = False
-    pdataframe = admin.query(start_time=start_date,
+    pdataframe,broken = admin.query(start_time=start_date,
                              end_time=end_date,
                              mag_threshold=0.0,
                              alert_threshold='green',
