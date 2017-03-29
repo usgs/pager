@@ -256,6 +256,11 @@ def main(args):
     
     
 if __name__ == '__main__':
+    #pdl passes in property arguments surrounded by double quotes.  At the command shell,
+    #or in ipython, this are replaced for you.  When called from PDL (presumably from a Java
+    #system call, they are NOT, and therefore those arguments are not parsed correctly.
+    sys.argv = [arg.replace('"','') for arg in sys.argv]
+    
     desc='Send emails to PAGER users.'
     argparser = argparse.ArgumentParser(description=desc,
                                         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
