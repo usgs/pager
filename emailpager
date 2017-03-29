@@ -126,12 +126,6 @@ def main(args):
         print('emailpager is only configured to work with losspager products. Exiting.')
         sys.exit(1)
 
-    #Make sure this action is something we're interested in.
-    if args.action not in ('EVENT_ADDED','EVENT_UPDATED','PRODUCT_ADDED','PRODUCT_UPDATED'):
-        msg = 'No action to take with %s messages.' % args.action
-        print(msg)
-        sys.exit(1)
-
     #TODO: Do something with delete messages
     if args.status == 'DELETE':
         msg = 'No action to take with delete messages.' % args.status
