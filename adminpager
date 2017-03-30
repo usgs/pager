@@ -15,7 +15,7 @@ from operator import attrgetter
 from calendar import monthrange
 
 #local imports
-from losspager.utils.config import read_config,write_config
+from losspager.utils.config import read_config,write_config,get_mail_config_file
 from losspager.io.pagerdata import PagerData
 from losspager.utils.admin import PagerAdmin,RemoteAdmin,transfer,unset_pending,get_id_and_source
 from losspager.utils.exception import PagerException
@@ -191,22 +191,44 @@ def do_renotify(eventid,admin,config):
     return (True,msg)
 
 def do_status(status,admin):
+    #check the pager config first
     current_status = admin.getStatus()
     if status == 'check':
         if current_status == 'primary':
-            msg = 'PRIMARY: This system WILL transfer products.'
+            msg = 'PAGER PRIMARY: This system WILL transfer products.'
         else:
-            msg = 'SECONDARY: This system WILL NOT transfer products.'
+            msg = 'PAGER SECONDARY: This system WILL NOT transfer products.'
     else:
         if status == current_status:
-            msg = 'System status is already %s.' % current_status
+            msg = 'PAGER status is already %s.' % current_status
         else:
             new_status = admin.setStatus(status)
             if new_status == 'primary':
-                fmt = 'System status changed to %s - this system is now configured to transfer products.'
+                fmt = 'PAGER status changed to %s - this system is now configured to transfer products.'
             else:
-                fmt = 'System status changed to %s - this system is now configured to NOT transfer products.'
+                fmt = 'PAGER status changed to %s - this system is now configured to NOT transfer products.'
             msg = fmt % new_status
+
+    #if the mail config file exists on this system, do the same actions on that file
+    if get_mail_config_file() is not None:
+        current_mail_status = admin.getMailStatus()
+        if status == 'check':
+            if current_mail_status == 'primary':
+                msg2 = '\nMAIL PRIMARY: This system WILL send emails.'
+            else:
+                msg2 = '\nMAIL SECONDARY: This system WILL NOT send emails.'
+        else:
+            if status == current_mail_status:
+                msg2 = '\nMAIL status is already %s.' % current_mail_status
+            else:
+                new_status = admin.setMailStatus(status)
+                if new_status == 'primary':
+                    fmt = '\nMAIL status changed to %s - this system is now configured to send email.'
+                else:
+                    fmt = '\nMAIL status changed to %s - this system is now configured to NOT send email.'
+                msg2 = fmt % new_status
+
+    msg += msg2
     return msg
 
 def do_stats(stats,admin,config):
@@ -510,9 +532,8 @@ if __name__ == '__main__':
     argparser.add_argument("--unstop", nargs=1,
                            help="Allow stopped event(s) to be re-run automatically.",
                            metavar='EVENT')
-    argparser.add_argument("--status", choices=('check','primary','secondary'),
-                           help="Print or change PAGER primary/secondary status.",
-                           metavar='STATUS')
+    argparser.add_argument("--status", choices=['check','primary','secondary'],
+                           help="Print or change PAGER (and also possibly PAGER MAIL) primary/secondary status.")
     argparser.add_argument("--tsunami", nargs=2,
                            help="Toggle tsunami warning on PAGER alert",
                            metavar=('EVENT','on/off'))

@@ -10,7 +10,8 @@ import getpass
 
 #local imports
 from losspager.utils.exception import PagerException
-from losspager.utils.config import read_config,write_config,get_config_file
+from losspager.utils.config import read_config,write_config
+from losspager.utils.config import get_config_file,get_mail_config_file,read_mail_config
 from losspager.io.pagerdata import PagerData
 
 #third-party imports
@@ -323,23 +324,50 @@ class PagerAdmin(object):
             return False
         return True
 
-    def setStatus(self,status='secondary'):
+    def getMailStatus(self):
+        config = read_mail_config()
+        status = 'secondary'
+        if 'status' in config and config['status'] == 'primary':
+            return 'primary'
+        return status
+    
+    def setMailStatus(self,status='secondary'):
         config = read_config()
-        config_file = get_config_file()
+        config_file = get_mail_config_file()
+        lines = open(config_file,'rt').readlines()
         if 'status' not in config:
-            lines = open(config_file,'rt').readlines()
             lines.append('status : %s\n' % status)
         else:
-            f = open(config_file,'wt')
+            newlines = []
             for line in lines:
                 parts = line.split(':')
                 if parts[0].strip() == 'status':
                     line = 'status : %s\n' % status
                 else:
                     pass
-                f.write(line)
-            f.close()
-        return True
+                newlines.append(line)
+        f = open(config_file,'wt')
+        f.writelines(newlines)
+        return status
+    
+    def setStatus(self,status='secondary'):
+        config = read_config()
+        config_file = get_config_file()
+        lines = open(config_file,'rt').readlines()
+        if 'status' not in config:
+            lines.append('status : %s\n' % status)
+        else:
+            newlines = []
+            for line in lines:
+                parts = line.split(':')
+                if parts[0].strip() == 'status':
+                    line = 'status : %s\n' % status
+                else:
+                    pass
+                newlines.append(line)
+        f = open(config_file,'wt')
+        f.writelines(newlines)
+        return status
 
     def getStatus(self):
         config = read_config()
