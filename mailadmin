@@ -13,6 +13,7 @@ import json
 from losspager.schema import emailschema
 from losspager.utils.config import read_mail_config
 from losspager.utils.datapath import get_data_path
+from losspager.utils.admin import PagerAdmin
 
 #third party imports
 from sqlalchemy import func
@@ -888,6 +889,25 @@ def delete_user(session,userinfo,config):
 
     return (res,msg)
 
+def do_status(status,admin):
+    current_mail_status = admin.getMailStatus()
+    if status == 'check':
+        if current_mail_status == 'primary':
+            msg = 'MAIL PRIMARY: This system WILL send emails.'
+        else:
+            msg = 'MAIL SECONDARY: This system WILL NOT send emails.'
+    else:
+        if status == current_mail_status:
+            msg = 'MAIL status is already %s.' % current_mail_status
+        else:
+            new_status = admin.setMailStatus(status)
+            if new_status == 'primary':
+                fmt = 'MAIL status changed to %s - this system is now configured to send email.'
+            else:
+                fmt = 'MAIL status changed to %s - this system is now configured to NOT send email.'
+            msg = fmt % new_status
+    return msg
+                        
 def main(args):
     pd.set_option('display.width', 1000)
     pd.set_option('display.max_rows', 1000)
@@ -912,7 +932,12 @@ def main(args):
             orgfile = args.init_db[1]
         res,msg = init_db(dburl,session,userfile=userfile,orgfile=orgfile)
         do_sync = True
-    
+
+    if args.status is not None:
+        admin = PagerAdmin(os.getcwd(),os.getcwd())
+        msg = do_status(args.status,admin)
+        res = True
+        
     if args.add_user:
         res,msg = add_user(session)
         do_sync = True
@@ -1277,7 +1302,8 @@ email addresses associated with the users to export.""")
     argparser.add_argument("--user-notification-history", metavar='EMAIL',
                            help='Display the alerting history for a given user (specified by an email address).')
     
-    
+    argparser.add_argument("--status", choices=['check','primary','secondary'],
+                           help="Print or change PAGER Mail primary/secondary status.")
     argparser.add_argument("--delete-event", metavar='EVENTCODE',
                            help="Delete an event by providing it's event code.")   
     argparser.add_argument("--stats", nargs=1, 
