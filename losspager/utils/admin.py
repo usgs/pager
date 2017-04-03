@@ -50,6 +50,8 @@ def get_id_and_source(version_folder):
 def transfer(config,pagerdata,authid,authsource,version_folder,renotify=False,release=False):
     #If system status is primary and transfer options are configured, transfer the output
     #directories using those options
+    res = False
+    msg = ''
     if 'status' in config and config['status'] == 'primary':
         if 'transfer' in config:
             if 'methods' in config['transfer']:
