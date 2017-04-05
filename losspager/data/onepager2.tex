@@ -255,7 +255,9 @@
   \includegraphics[width=13cm]
     {[VERSIONFOLDER]/exposure.pdf}
 };
-\draw[thick] (pop0.north west) -- (cmap.south west);
+\draw[thick] (pop0.north west) rectangle (cmap.south east);
+%\draw[thick] (pop0.north west) rectangle (cmap.south west); <----line instead of rectangle
+%\draw[thick] (pop10000.north east) -- (cmap.south east);  <----line instead of rectangle
 \node[info,below=-1pt of cmap.south west,anchor=north west](mapfn1){
   PAGER content is automatically generated, and only considers losses due to 
   structural damage.
@@ -352,7 +354,6 @@ Moderate & Mod./Heavy & Heavy & V. Heavy \\
 \node[fn,below=0pt of citytab.south east,anchor=north east]
    {(k\,=\,x1000)};
 
-
 \node[fn,above=0pt of citytab.north west,anchor=south west]
      (citynote){
   from GeoNames.org
@@ -366,7 +367,6 @@ Moderate & Mod./Heavy & Heavy & V. Heavy \\
   [EVENTID]
 };
 
-
 % Place historical table evenly between top and bottom
 
 \node[ntext,between=strtxt.south west and citytitle.north west,
@@ -376,7 +376,6 @@ Moderate & Mod./Heavy & Heavy & V. Heavy \\
 \node[h2,above=0.5pt of htab.north west,anchor=south west](htitle){
   Historical Earthquakes
 };
-
 
 %-------------------------------------------------------------------------------
 % Alerts and histograms with estimated fatalities and losses 

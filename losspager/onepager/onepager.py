@@ -212,7 +212,7 @@ def create_onepager(pdata,version_dir, debug = False):
 \hline
 [TABLEDATA]
 \hline
-\multicolumn{5}{p{7.2cm}}{\\raggedright \\footnotesize [COMMENT]}
+\multicolumn{5}{p{7.2cm}}{\\small [COMMENT]}
 \end{tabularx}"""
         comment = pdata._pagerdict['comments']['secondary_comment']
         htex = htex.replace("[COMMENT]", texify(comment))
