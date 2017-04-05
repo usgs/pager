@@ -36,7 +36,7 @@ rm openquake.zip
 #pip install git+https://github.com/gem/oq-hazardlib.git
 
 #download MapIO, install it using pip locally
-curl --max-time 60 --retry 3 -L https://github.com/usgs/MapIO/archive/master.zip -o mapio.zip
+curl --max-time 60 --retry 3 -L https://github.com/usgs/MapIO/archive/v0.5.157.zip -o mapio.zip
 pip install mapio.zip
 rm mapio.zip
 #pip install git+https://github.com/usgs/MapIO.git
