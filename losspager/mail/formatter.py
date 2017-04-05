@@ -1,13 +1,15 @@
 #stdlib imports
 from datetime import datetime
-from textwrap import dedent
+from textwrap import dedent,wrap
 
 #third party imports
-from impactutils.textformat.text import pop_round,dec_to_roman,pop_round_short
+from impactutils.textformat.text import pop_round,dec_to_roman,pop_round_short,commify
 import numpy as np
 
-DATEFMT = '%Y/%m/%d-%H:%M'
+DATE_TIME_FMT = '%Y/%m/%d-%H:%M'
+DATE_FMT = '%Y/%m/%d'
 MIN_POP = 1000
+MAX_STRUCT_COMMENT_WIDTH = 80
 
 def generate_subject_line(version,pdata):
     """Generate two subject lines, one for previously notified users, and one for not.
@@ -75,7 +77,7 @@ def format_exposure(exposures,format,max_border_mmi):
         #format them as:
         #MMI6 19,000
         #MMI5 1,034,000
-        expstr = expstr_hold
+        expstr = expstr_hold+'\tIntensity Population\n'
         if len(exposures):
             expohold = 0
             for mmi in range(10,0,-1):
@@ -92,12 +94,12 @@ def format_exposure(exposures,format,max_border_mmi):
                     flag = ''
                     if mmi < max_border_mmi:
                         flag = '*'
-                    expstr += 'MMI%i %-8s%s\n' % (mmi,popstr,flag)
+                    expstr += 'MMI%i\t%-8s%s\n' % (mmi,popstr,flag)
     if expstr == expstr_hold:
         expstr = 'No population exposure.'
     else:
         if format == 'long':
-            expstr += '* - MMI level extends beyond map boundary, actual population exposure may be larger.\n'
+            expstr += '\n* - MMI level extends beyond map boundary, actual population exposure may be larger.\n'
     return expstr
 
 def format_city_table(cities):
@@ -125,7 +127,7 @@ def format_city_table(cities):
             mmiroman = dec_to_roman(city['mmi'])
             city_table += fmt.format(mmi=mmiroman,
                                      city=city['name'],
-                                     pop=pop_round(city['pop']))
+                                     pop=commify(city['pop']))
     #city_table = dedent(city_table)
     
     return city_table
@@ -136,7 +138,7 @@ def format_earthquakes(histquakes):
     if histquakes[0] is None:
         return default
     tablestr = ''
-    hdr = '{date:16s} {dist:10s} {mag:4s} {mmi:10s} {deaths:14s}\n'
+    hdr = '{date:16s} {dist:10s} {mag:8s} {mmi:10s} {deaths:14s}\n'
     hdr = hdr.format(date='Date (UTC)',
                      dist='Dist. (km)',
                      mag='Mag.',
@@ -146,7 +148,7 @@ def format_earthquakes(histquakes):
     fmt = '{date:16s} {dist:10d} {mag:4.1f} {mmi:10s} {deaths:14s}\n'
     for histquake in histquakes:
         eqtime = datetime.strptime(histquake['Time'],'%Y-%m-%d %H:%M:%S')
-        datestr = eqtime.strftime(DATEFMT)
+        datestr = eqtime.strftime(DATE_FMT)
         mmistr = '{}({})'.format(dec_to_roman(histquake['MaxMMI']),
                                  pop_round_short(histquake['NumMaxMMI']))
         if np.isnan(histquake['TotalDeaths']):
@@ -176,7 +178,7 @@ def format_short(version,expstr):
     ALERT:{summarylevel}
     '''.format(magnitude=version.magnitude,
                depth=int(version.depth),
-               time=version.time.strftime(DATEFMT),
+               time=version.time.strftime(DATE_TIME_FMT),
                lat=version.lat,
                lon=version.lon,
                summarylevel=alert_level.capitalize())
@@ -201,6 +203,13 @@ def format_long(version,pdata,expstr,event_url):
         impact_comment = first + ' ' + second
     else:
         impact_comment = 'The following event is currently being reviewed by seismologists. You will receive a second notification once the potential impact of this earthquake has been determined.'
+
+    #wrap the impact comment to be max 80 chars wide
+    impact_comment = '\n'.join(wrap(impact_comment,width=MAX_STRUCT_COMMENT_WIDTH))
+        
+    #get the structure comment and wrap it to be 80 characters wide
+    struct_comment = '\n'.join(wrap(pdata.getStructureComment(),width=MAX_STRUCT_COMMENT_WIDTH))
+        
     msg = '''
     PAGER Version: {version:d}
     {location}
@@ -225,7 +234,7 @@ def format_long(version,pdata,expstr,event_url):
     {url}
     '''.format(version=version.number,
                location=eventinfo['location'],
-               time=version.time.strftime(DATEFMT),
+               time=version.time.strftime(DATE_TIME_FMT),
                mag=version.magnitude,
                lat=version.lat,
                lon=version.lon,
@@ -236,7 +245,7 @@ def format_long(version,pdata,expstr,event_url):
                tsunami_comment=tsunami_comment,
                expstr=expstr,
                city_table=city_table,
-               structure_comment=pdata.getStructureComment(),
+               structure_comment=struct_comment,
                historical_earthquakes=historical_earthquakes,
                secondary_comment=pdata.getSecondaryComment(),
                url=event_url)
