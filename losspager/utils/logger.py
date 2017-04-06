@@ -115,6 +115,7 @@ class PagerLogger:
           log file.  Wise to turn off when debugging.
         """
         #h = NullHandler()
+        self.redirected = False
         logger = logging.getLogger('PagerLog')
         #logger.addHandler(h)
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
@@ -154,7 +155,7 @@ class PagerLogger:
         """
         Send stdout/stderr to OutStream object.
         """
-        
+        self.redirected = True
         self.OldOut = sys.stdout
         self.OldErr = sys.stderr
         sys.stdout = OutStream(self.Logger)
@@ -242,8 +243,10 @@ class PagerLogger:
             self.Logger.removeHandler(self.MailHandler)
         if self.EventLogHandler:
             self.Logger.removeHandler(self.EventLogHandler)
-        sys.stdout = self.OldOut
-        sys.stderr = self.OldErr
+        if self.redirected:
+            sys.stdout = self.OldOut
+            sys.stderr = self.OldErr
+        
     
     def getLogger(self):
         """
