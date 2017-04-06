@@ -125,9 +125,13 @@ def format_city_table(cities):
         city_table += fmt.format(mmi='MMI',city='City',pop='Population')
         for idx,city in cities.iterrows():
             mmiroman = dec_to_roman(city['mmi'])
+            if city['pop'] == 0:
+                citypop = '<1k'
+            else:
+                citypop = commify(city['pop'])
             city_table += fmt.format(mmi=mmiroman,
                                      city=city['name'],
-                                     pop=commify(city['pop']))
+                                     pop=citypop)
     #city_table = dedent(city_table)
     
     return city_table
