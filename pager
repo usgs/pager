@@ -60,6 +60,12 @@ COUNTRY = Country()
 TIMEFMT = '%Y-%m-%d %H:%M:%S'
 TSUNAMI_MAG_THRESH = 7.3
 
+def _print_message(plog,message):
+    if plog is not None:
+        plog.Logger.info(message)
+    else:
+        print(message)
+
 def _is_url(gridfile):
     try:
         fh = request.urlopen(gridfile)
@@ -302,18 +308,15 @@ def main(pargs,config):
     
     plog = None
 
-    #TODO: something is wrong with logging, so we need to
-    #just disable logging here until the issue gets sorted.
-    #This means that event.log files will not be created.
-    pargs.debug = True #force prints to go to stdout
-    
+    #TODO: figure out how may make the stdout/stderr redirect functionality
+    #work again.  Turned off for now.
     if not pargs.debug:
         #stdout will now be logged as INFO, stderr will be logged as WARNING
         mail_hosts = config['mail_hosts']
         mail_from = config['mail_from']
         logfile = os.path.join(pager_folder,'pager.log')
         #print('Writing content to %s' % logfile)
-        plog = PagerLogger(logfile,redirect=True,
+        plog = PagerLogger(logfile,redirect=False,
                            from_address=mail_from,
                            mail_hosts=mail_hosts)
         plog.addEmailHandler(config['developers']) #failover email alert system
@@ -364,7 +367,7 @@ def main(pargs,config):
                 location = 'Scenario '+location
             
         #create the event directory (if it does not exist), and start logging there
-        print('Creating event directory')
+        _print_message(plog,'Creating event directory')
         event_folder = admin.createEventFolder(authid,etime)
         pager_version = get_pager_version(event_folder)
         version_folder = os.path.join(event_folder,'version.%03d' % pager_version)
@@ -397,11 +400,10 @@ def main(pargs,config):
 
         #find the population data collected most closely to the event_year
         pop_year,popfile = _get_pop_year(event_year,config['model_data']['population_data'])
-
-        print('Population year: %i Population file: %s\n' % (pop_year,popfile))
+        _print_message(plog,'Population year: %i Population file: %s\n' % (pop_year,popfile))
 
         #Get exposure results
-        print('Calculating population exposure.')
+        _print_message(plog,'Calculating population exposure.')
         isofile = config['model_data']['country_grid']
         expomodel = Exposure(popfile,pop_year,isofile)
         exposure = None
@@ -414,15 +416,16 @@ def main(pargs,config):
             ccode = 'UK'
         else:
             ccode = cdict['ISO2']
-        print('Country code at epicenter is %s' % ccode)
+
+        _print_message(plog,'Country code at epicenter is %s' % ccode)
 
         #get fatality results, if requested
-        print('Calculating empirical fatalities.')
+        _print_message(plog,'Calculating empirical fatalities.')
         fatmodel = EmpiricalLoss.fromDefaultFatality()
         fatdict = fatmodel.getLosses(exposure)
 
         #get economic results, if requested
-        print('Calculating economic exposure.')
+        _print_message(plog,'Calculating economic exposure.')
         econexpmodel = EconExposure(popfile,pop_year,isofile)
         ecomodel = EmpiricalLoss.fromDefaultEconomic()
         econexposure = econexpmodel.calcExposure(gridfile)
@@ -430,7 +433,7 @@ def main(pargs,config):
         shakegrid = econexpmodel.getShakeGrid()
 
         #Get semi-empirical losses
-        print('Calculating semi-empirical fatalities.')
+        _print_message(plog,'Calculating semi-empirical fatalities.')
         urbanfile = config['model_data']['urban_rural_grid']
         if not os.path.isfile(urbanfile):
             raise PagerException('Urban-rural grid file %s does not exist.' % urbanfile)
@@ -440,7 +443,7 @@ def main(pargs,config):
         semiloss,resfat,nonresfat = semi.getLosses(gridfile)
 
         #get all of the other components of PAGER
-        print('Getting all comments.')
+        _print_message(plog,'Getting all comments.')
         #get the fatality and economic comments
         impact1,impact2 = get_impact_comments(fatdict,ecodict,econexposure,event_year,ccode)
         #get comment describing vulnerable structures in the region.
@@ -451,14 +454,14 @@ def main(pargs,config):
         historical_comment = get_historical_comment(elat,elon,emag,exposure,fatdict)
 
         #generate the probability plots
-        print('Drawing probability plots.')
+        _print_message(plog,'Drawing probability plots.')
         fat_probs_file,eco_probs_file = _draw_probs(fatmodel,fatdict,
                                                     ecomodel,ecodict,
                                                     version_folder)
 
         #generate the exposure map
         exposure_base = os.path.join(version_folder,'exposure')
-        print('Generating exposure map...')
+        _print_message(plog,'Generating exposure map...')
         oceanfile = config['model_data']['ocean_vectors']
         oceangrid = config['model_data']['ocean_grid']
         cityfile = config['model_data']['city_file']
@@ -466,7 +469,7 @@ def main(pargs,config):
         pdf_file,png_file,mapcities = draw_contour(gridfile,popfile,
                                          oceanfile,oceangrid,cityfile,
                                          exposure_base,borderfile,is_scenario=is_scenario)
-        print('Generated exposure map %s' % pdf_file)
+        _print_message(plog,'Generated exposure map %s' % pdf_file)
 
         #figure out whether this event has been "released".
         is_released = _get_release_status(pargs,config,
@@ -478,32 +481,32 @@ def main(pargs,config):
         
         #Create a data object to encapsulate everything we know about the PAGER
         #results, and then serialize that to disk in the form of a number of JSON files.
-        print('Making PAGER Data object.')
+        _print_message(plog,'Making PAGER Data object.')
         doc = PagerData()
         timezone_file = config['model_data']['timezones_file']
         elapsed = pargs.elapsed
         doc.setInputs(shakegrid,timezone_file,pager_version,shakegrid.getEventDict()['event_id'],
                       authid,tsunami,location,is_released,elapsed=elapsed)
-        print('Setting inputs.')
+        plog.Logger.debug('Setting inputs.')
         doc.setExposure(exposure,econexposure)
-        print('Setting exposure.')
+        _print_message(plog,'Setting exposure.')
         doc.setModelResults(fatmodel,ecomodel,
                             fatdict,ecodict,
                             semiloss,resfat,nonresfat)
-        print('Setting comments.')
+        _print_message(plog,'Setting comments.')
         doc.setComments(impact1,impact2,struct_comment,historical_comment,secondary_comment)
-        print('Setting map info.')
+        _print_message(plog,'Setting map info.')
         doc.setMapInfo(cityfile,mapcities)
-        print('Validating.')
+        _print_message(plog,'Validating.')
         doc.validate()
         json_folder = os.path.join(version_folder,'json')
         os.makedirs(json_folder)
-        print('Saving output to JSON.')
+        _print_message(plog,'Saving output to JSON.')
         doc.saveToJSON(json_folder)
-        print('Saving output to XML.')
+        _print_message(plog,'Saving output to XML.')
         doc.saveToLegacyXML(version_folder)
 
-        print('Creating onePAGER pdf...')
+        _print_message(plog,'Creating onePAGER pdf...')
         onepager_pdf,error = create_onepager(doc,version_folder)
         if onepager_pdf is None:
             raise PagerException('Could not create onePAGER output: \n%s' % error)
@@ -520,7 +523,7 @@ def main(pargs,config):
         
         #run transfer, as appropriate and as specified by config
         res,msg = transfer(config,doc,authid,authsource,version_folder)
-        print(msg)
+        _print_message(plog,msg)
         if not res:
             pass
             #TODO: figure out what's broken with logging, send log email here

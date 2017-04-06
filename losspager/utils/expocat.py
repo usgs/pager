@@ -79,15 +79,49 @@ class ExpoCat(object):
 
     @classmethod
     def fromDefault(cls):
-        """Read in data from CSV file included in the distribution of this code.
+        """Read in data from Excel file included in the distribution of this code.
 
         :returns:
           ExpoCat object.
         """
         homedir = os.path.dirname(os.path.abspath(__file__)) #where is this module?
-        csvfile = os.path.join(homedir,'..','data','expocat.csv')
-        return cls.fromCSV(csvfile)
+        excelfile = os.path.join(homedir,'..','data','expocat.xlsx')
+        return cls.fromExcel(excelfile)
+
+    @classmethod
+    def fromExcel(cls,excelfile):
+        """Read in data from Expocat CSV file.
+
+        :param excelfile:
+          Excel file containing columns as described above for constructor, minus the MaxMMI and NumMaxMMI columns.
+        :returns:
+          ExpoCat object.
+        """
+        df = pd.read_excel(excelfile,converters={0:str})
+        #df = df.drop('Unnamed: 0',1)
+
+        # cols = ['EventID','Time','Name','Lat','Lon','Depth','Magnitude','CountryCode',
+        #         'ShakingDeaths','TotalDeaths','Injured','Fire','Liquefaction','Tsunami',
+        #         'Landslide','Waveheight',
+        #         'MMI1','MMI2','MMI3','MMI4','MMI5','MMI6','MMI7','MMI8','MMI9+',]
+        # df = df[cols]
         
+        mmicols = ['MMI1','MMI2','MMI3','MMI4','MMI5','MMI6','MMI7','MMI8','MMI9+']
+
+        #find the highest MMI column in each row with at least 1000 people exposed.
+        mmidata = df.ix[:,mmicols].as_matrix()
+        tf = mmidata > 1000
+        nrows,ncols = mmidata.shape
+        colmat = np.tile(np.arange(0,ncols),(nrows,1))
+        imax = np.argmax(colmat * tf,axis=1)
+        nmaxmmi = np.diagonal(mmidata[:,imax])
+        maxmmi = imax + 1
+        
+        df['MaxMMI'] = pd.Series(maxmmi)
+        df['NumMaxMMI'] = pd.Series(nmaxmmi)
+        
+        return cls(df)
+    
     @classmethod
     def fromCSV(cls,csvfile):
         """Read in data from Expocat CSV file.

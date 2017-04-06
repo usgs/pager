@@ -392,9 +392,9 @@ def get_secondary_comment(lat,lon,mag):
     elif nhazards == 2:
         fstr = ' and '.join(hazards)
     elif nhazards == 3:
-        fstr = ', '.join(hazards[0:1]) + 'and %s' % hazards[2]
+        fstr = ', '.join(hazards[0:2]) + ' and %s' % hazards[2]
     else:
-        fstr = ', '.join(hazards[0:2]) + 'and %s' % hazards[3]
+        fstr = ', '.join(hazards[0:3]) + ' and %s' % hazards[3]
 
     hazcomm = sfmt % fstr
     return hazcomm
