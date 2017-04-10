@@ -217,7 +217,7 @@ class Address(Base):
             if sversion.summarylevel > highest_level:
                 highest_level = sversion.summarylevel
             notified_before = True
-        sversions = sorted(self.versions,key=lambda v: v.number)
+        sversions = sorted(sversions,key=lambda v: v.number)
 
         #shortcut to True here if notified_before is true and renotify is true
         last_version_pending = False
