@@ -30,7 +30,7 @@ def getGroupName(cursor,groupid):
 def getUserOrg(cursor,orgid):
     query = 'SELECT shortname FROM organization WHERE id=%i' % orgid
     cursor.execute(query)
-    org = cursor.fetchone()[0]
+    org = cursor.fetchone()[0].strip()
     return org
 
 def getOrgs(cursor,wordlist,anonymize=False):

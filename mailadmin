@@ -669,9 +669,9 @@ def add_fema(session,fema_user):
         res = False
         msg = 'User already exists in the database.\n%s' % (print_user(tuser))
         return (res,msg)
-    region_names = []
-    if len(fema_user) > 4:
-        region_names = fema_user[4:]
+    # region_names = []
+    # if len(fema_user) > 4:
+    #     region_names = fema_user[4:]
     org = session.query(emailschema.Organization).filter(emailschema.Organization.shortname=='DHS/FEMA').first()
     user = emailschema.User()
     user.lastname = lastname
@@ -694,34 +694,35 @@ def add_fema(session,fema_user):
     profile2.thresholds.append(us_thresholds1[0])
     profile2.thresholds.append(us_thresholds1[1])
 
-    for region_name in region_names:
-        region = session.query(emailschema.Region).filter(emailschema.Region.name=='US_Terr').first()
-        profile2.regions.append(region)
+
+    region = session.query(emailschema.Region).filter(emailschema.Region.name=='US_Terr').first()
+    profile2.regions.append(region)
+    
     address1.profiles.append(profile1)
     address1.profiles.append(profile2)
 
     #Create an Address for SMS (if provided)
-    if sms != 'null':
-        address2 = emailschema.Address(email=sms,is_primary=False,priority=DEFAULT_PRIORITY,format='short')
-        address2.user = user
+    # if sms != 'null':
+    #     address2 = emailschema.Address(email=sms,is_primary=False,priority=DEFAULT_PRIORITY,format='short')
+    #     address2.user = user
 
-        #Add thresholds and regions to SMS email profile
-        global_thresholds2,us_thresholds2 = get_fema_thresholds(session)
-        #Create the default thresholds
-        profile3 = emailschema.Profile()
-        profile3.thresholds.append(global_thresholds2[0])
-        profile3.thresholds.append(global_thresholds2[1])
-        profile3.thresholds.append(global_thresholds2[2])
+    #     #Add thresholds and regions to SMS email profile
+    #     global_thresholds2,us_thresholds2 = get_fema_thresholds(session)
+    #     #Create the default thresholds
+    #     profile3 = emailschema.Profile()
+    #     profile3.thresholds.append(global_thresholds2[0])
+    #     profile3.thresholds.append(global_thresholds2[1])
+    #     profile3.thresholds.append(global_thresholds2[2])
 
-        profile4 = emailschema.Profile()
-        profile4.thresholds.append(us_thresholds2[0])
-        profile4.thresholds.append(us_thresholds2[1])
+    #     profile4 = emailschema.Profile()
+    #     profile4.thresholds.append(us_thresholds2[0])
+    #     profile4.thresholds.append(us_thresholds2[1])
 
-        region = session.query(emailschema.Region).filter(emailschema.Region.name=='US_Terr').first()
-        profile4.regions.append(region)
+    #     region = session.query(emailschema.Region).filter(emailschema.Region.name=='US_Terr').first()
+    #     profile4.regions.append(region)
             
-        address2.profiles.append(profile3)
-        address2.profiles.append(profile4)
+    #     address2.profiles.append(profile3)
+    #     address2.profiles.append(profile4)
 
     session.add(user)
     session.commit()
@@ -1265,7 +1266,7 @@ if __name__ == '__main__':
     argparser.add_argument("--add-generic", nargs='*',
                            help='Add a generic user by providing: Org FirstName LastName PrimaryEmail SMSEmail (or "null") [regions].')
     argparser.add_argument("--add-fema", nargs='*',
-                           help='Add a FEMA user by providing: FirstName LastName PrimaryEmail SMSEmail (or "null") [regions].')
+                           help='Add a FEMA user by providing: FirstName LastName PrimaryEmail SMSEmail (or "null").')
     argparser.add_argument("--delete-user", metavar=('EMAIL','REASON'),nargs="*",
                            help="Delete a user by providing any email address associated with the user, and a description of why they are being deleted.")
 

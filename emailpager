@@ -232,12 +232,12 @@ def main(args):
         #send emails to all long format addresses
         if len(pdf_addresses_update):
             onepager_file = os.path.join(args.directory,'onepager.pdf')
-            version = send_emails(version,long_addresses_update,
+            version = send_emails(version,pdf_addresses_update,
                                   all_props,long_msg,subject_update,DEBUG,
                                   attachments=[onepager_file])
         if len(pdf_addresses_nonupdate):
             onepager_file = os.path.join(args.directory,'onepager.pdf')
-            version = send_emails(version,long_addresses_update,
+            version = send_emails(version,pdf_addresses_nonupdate,
                                   all_props,long_msg,subject,DEBUG,
                                   attachments=[onepager_file])
 
