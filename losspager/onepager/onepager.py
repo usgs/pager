@@ -152,47 +152,47 @@ def create_onepager(pdata,version_dir, debug = False):
     template = template.replace("[ALERTFILL]",
                                 pdata.summary_alert)
 
-    # Fill in exposure values
-    mmi = np.array(pdict['population_exposure']['mmi'])
-    expt = pdict['population_exposure']['aggregated_exposure']
-    exp = [floor_to_nearest(e,MIN_DISPLAY_POP) for e in expt]
-    exp[0] = expt[0]
-    exp[1] = expt[1]
-    exp[2] = expt[2]
-    cum_exp = np.cumsum(np.array(exp))
-    not_covered = cum_exp == 0
-    template = template.replace("[MMI]", "MMI")
-    if not_covered[0] == True:
-        mmi1 = '--*'
+    #fill in exposure values
+    #this might be cleaner in a loop, but the MMI2-3 exception makes that
+    #an annoying solution.
+    max_border_mmi = pdata._pagerdict['population_exposure']['maximum_border_mmi']
+    explist = pdata.getTotalExposure()
+    if max_border_mmi > 1:
+        template = template.replace('[MMI1]',pop_round_short(explist[0])+'*')
     else:
-        if exp[0] >= MIN_DISPLAY_POP:
-            mmi1 = pop_round_short(exp[0])
-        else:
-            mmi1 = '0'
-    template = template.replace("[MMI1]", mmi1)
-    if not_covered[2] == True:
-        mmi23 = '--*'
+        template = template.replace('[MMI1]',pop_round_short(explist[0]))
+    if max_border_mmi > 3:
+        template = template.replace('[MMI2-3]',pop_round_short(sum(explist[1:3]))+'*')
     else:
-        if np.sum(exp[1:3]) >= MIN_DISPLAY_POP:
-            mmi23 = pop_round_short(np.sum(exp[1:3]))
-        else:
-            mmi23 = '0'
-    template = template.replace("[MMI2-3]", mmi23)
-    if not_covered[3] == True:
-        mmi4 = '--*'
+        template = template.replace('[MMI2-3]',pop_round_short(sum(explist[1:3])))
+    if max_border_mmi > 4:
+        template = template.replace('[MMI4]',pop_round_short(explist[3])+'*')
     else:
-        mmi4 = pop_round_short(exp[3])
-    template = template.replace("[MMI4]", mmi4)
-    if not_covered[4] == True:
-        mmi5 = '--*'
+        template = template.replace('[MMI4]',pop_round_short(explist[3]))
+    if max_border_mmi > 5:
+        template = template.replace('[MMI5]',pop_round_short(explist[4])+'*')
     else:
-        mmi5 = pop_round_short(exp[4])
-    template = template.replace("[MMI5]", mmi5)
-    template = template.replace("[MMI6]", pop_round_short(exp[5]))
-    template = template.replace("[MMI7]", pop_round_short(exp[6]))
-    template = template.replace("[MMI8]", pop_round_short(exp[7]))
-    template = template.replace("[MMI9]", pop_round_short(exp[8]))
-    template = template.replace("[MMI10]", pop_round_short(exp[9]))
+        template = template.replace('[MMI5]',pop_round_short(explist[4]))
+    if max_border_mmi > 6:
+        template = template.replace('[MMI6]',pop_round_short(explist[5])+'*')
+    else:
+        template = template.replace('[MMI6]',pop_round_short(explist[5]))
+    if max_border_mmi > 7:
+        template = template.replace('[MMI7]',pop_round_short(explist[6])+'*')
+    else:
+        template = template.replace('[MMI7]',pop_round_short(explist[6]))
+    if max_border_mmi > 8:
+        template = template.replace('[MMI8]',pop_round_short(explist[7])+'*')
+    else:
+        template = template.replace('[MMI8]',pop_round_short(explist[7]))
+    if max_border_mmi > 9:
+        template = template.replace('[MMI9]',pop_round_short(explist[8])+'*')
+    else:
+        template = template.replace('[MMI9]',pop_round_short(explist[8]))
+    if max_border_mmi > 11:
+        template = template.replace('[MMI10]',pop_round_short(explist[9])+'*')
+    else:
+        template = template.replace('[MMI10]',pop_round_short(explist[9]))
 
     # MMI color pal
     pal = ColorPalette.fromPreset('mmi')
@@ -253,7 +253,10 @@ def create_onepager(pdata,version_dir, debug = False):
     for i in range(nrows):
         mmi = dec_to_roman(np.round(ctab['mmi'].iloc[i], 0))
         city = ctab['name'].iloc[i]
-        pop = pop_round_short(ctab['pop'].iloc[i])
+        if ctab['pop'].iloc[i] == 0:
+            pop = '$<$1k'
+        else:
+            pop = pop_round_short(ctab['pop'].iloc[i])
         col = pal.getDataColor(ctab['mmi'].iloc[i])
         texcol = "%s,%s,%s" %(col[0], col[1], col[2])
         if ctab['on_map'].iloc[i] == 1:
