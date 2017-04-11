@@ -16,6 +16,7 @@ from matplotlib.patches import Rectangle,Ellipse
 
 #local imports
 from losspager.utils.exception import PagerException
+from losspager.models.emploss import EmpiricalLoss
 
 ASPECT = 390/187 #width of old impact scale/height
 WIDTH = 8.0 #desired width in inches of new impact scale (doesn't matter much as it's a vector, and we'll scale
@@ -44,9 +45,11 @@ def _find_renderer(fig):
         renderer = fig._cachedRenderer
     return(renderer)
 
-def drawImpactScale(ranges,losstype,debug=False):
+def drawImpactScale(lossdict,ranges,losstype,debug=False):
     """Draw a loss impact scale, showing the probabilities that estimated losses fall into one of many bins.
 
+    :param lossdict:
+      Dictionary containing either 'TotalFatalities' or 'TotalDollars', depending on losstype.
     :param ranges:
       Ordered Dictionary of probability of losses over ranges : 
            '0-1' (green alert)
@@ -150,15 +153,20 @@ def drawImpactScale(ranges,losstype,debug=False):
     width = .11 * maxd / dx
     height = .11 * maxd / dy
 
-    #choose the spongeball color based on the sums of all of the ranges...
-    probs = []
-    probs.append(ranges['0-1'])
-    probs.append(ranges['1-10'] + ranges['10-100'])
-    probs.append(ranges['100-1000'])
-    probs.append(ranges['1000-10000'] + ranges['10000-100000'] + ranges['100000-10000000'])
-    prob_colors = [GREEN,YELLOW,ORANGE,RED]
-    imax = np.array(probs).argmax()
-    spongecolor = prob_colors[imax]
+    #choose the spongeball color based on the expected total losses from lossdict
+    sponge_dict = {'green':GREEN,
+                   'yellow':YELLOW,
+                   'orange':ORANGE,
+                   'red':RED}
+
+    if losstype == 'fatality':
+        lossmodel = EmpiricalLoss.fromDefaultFatality()
+        alert_level = lossmodel.getAlertLevel(lossdict)
+    else:
+        lossmodel = EmpiricalLoss.fromDefaultEconomic()
+        alert_level = lossmodel.getAlertLevel(lossdict)
+    
+    spongecolor = sponge_dict[alert_level]
     
     spongeball = Ellipse((cx,cy),width,height,fc=spongecolor,ec='k',lw=2)
     ax.add_patch(spongeball)

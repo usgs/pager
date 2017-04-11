@@ -153,46 +153,30 @@ def create_onepager(pdata,version_dir, debug = False):
                                 pdata.summary_alert)
 
     #fill in exposure values
-    #this might be cleaner in a loop, but the MMI2-3 exception makes that
-    #an annoying solution.
     max_border_mmi = pdata._pagerdict['population_exposure']['maximum_border_mmi']
     explist = pdata.getTotalExposure()
-    if max_border_mmi > 1:
-        template = template.replace('[MMI1]',pop_round_short(explist[0])+'*')
-    else:
-        template = template.replace('[MMI1]',pop_round_short(explist[0]))
-    if max_border_mmi > 3:
-        template = template.replace('[MMI2-3]',pop_round_short(sum(explist[1:3]))+'*')
-    else:
-        template = template.replace('[MMI2-3]',pop_round_short(sum(explist[1:3])))
-    if max_border_mmi > 4:
-        template = template.replace('[MMI4]',pop_round_short(explist[3])+'*')
-    else:
-        template = template.replace('[MMI4]',pop_round_short(explist[3]))
-    if max_border_mmi > 5:
-        template = template.replace('[MMI5]',pop_round_short(explist[4])+'*')
-    else:
-        template = template.replace('[MMI5]',pop_round_short(explist[4]))
-    if max_border_mmi > 6:
-        template = template.replace('[MMI6]',pop_round_short(explist[5])+'*')
-    else:
-        template = template.replace('[MMI6]',pop_round_short(explist[5]))
-    if max_border_mmi > 7:
-        template = template.replace('[MMI7]',pop_round_short(explist[6])+'*')
-    else:
-        template = template.replace('[MMI7]',pop_round_short(explist[6]))
-    if max_border_mmi > 8:
-        template = template.replace('[MMI8]',pop_round_short(explist[7])+'*')
-    else:
-        template = template.replace('[MMI8]',pop_round_short(explist[7]))
-    if max_border_mmi > 9:
-        template = template.replace('[MMI9]',pop_round_short(explist[8])+'*')
-    else:
-        template = template.replace('[MMI9]',pop_round_short(explist[8]))
-    if max_border_mmi > 11:
-        template = template.replace('[MMI10]',pop_round_short(explist[9])+'*')
-    else:
-        template = template.replace('[MMI10]',pop_round_short(explist[9]))
+    pophold = 0
+    for mmi in range(1,11):
+        iexp = mmi-1
+        if mmi == 2:
+            pophold += explist[iexp]
+            continue
+        elif mmi == 3:
+            pop = explist[iexp] + pophold
+            macro = '[MMI2-3]'
+        else:
+            pop = explist[iexp]
+            macro = '[MMI%i]' % mmi
+        if max_border_mmi > mmi and mmi <= 4:
+            if pop == 0:
+                popstr = '--*'
+            else:
+                popstr = pop_round_short(pop)+'*'
+        else:
+            popstr = pop_round_short(pop)
+        template = template.replace(macro,popstr)
+            
+
 
     # MMI color pal
     pal = ColorPalette.fromPreset('mmi')
@@ -260,15 +244,19 @@ def create_onepager(pdata,version_dir, debug = False):
         col = pal.getDataColor(ctab['mmi'].iloc[i])
         texcol = "%s,%s,%s" %(col[0], col[1], col[2])
         if ctab['on_map'].iloc[i] == 1:
-            row = '\\rowcolor[rgb]{%s}\\textbf{%s} & \\textbf{%s} & '\
-                  '\\textbf{%s}\\\\ \n' %(texcol, mmi, city, pop)
+            if ctab['pop'].iloc[i] == 0:
+                pop = '\\boldmath$<$\\textbf{1k}'
+                row = '\\rowcolor[rgb]{%s}\\textbf{%s} & \\textbf{%s} & '\
+                      '%s\\\\ \n' %(texcol, mmi, city, pop)
+            else:
+                row = '\\rowcolor[rgb]{%s}\\textbf{%s} & \\textbf{%s} & '\
+                      '\\textbf{%s}\\\\ \n' %(texcol, mmi, city, pop)
         else:
             row = '\\rowcolor[rgb]{%s}%s & %s & '\
                   '%s\\\\ \n' %(texcol, mmi, city, pop)
         tabledata = tabledata + row
     ctex = ctex.replace("[TABLEDATA]", tabledata)
     template = template.replace("[CITYTABLE]", ctex)
-
 
     eventid = edict['eventid']
 
