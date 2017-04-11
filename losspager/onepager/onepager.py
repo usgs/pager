@@ -205,14 +205,14 @@ def create_onepager(pdata,version_dir, debug = False):
     else:
         # build latex table
         htex = """
-\\begin{tabularx}{7.25cm}{|lrc*{1}{>{\\centering\\arraybackslash}X}r|}
+\\begin{tabularx}{7.25cm}{lrc*{1}{>{\\centering\\arraybackslash}X}*{1}{>{\\raggedleft\\arraybackslash}X}}
 \hline
 \\textbf{Date} &\\textbf{Dist.}&\\textbf{Mag.}&\\textbf{Max}    &\\textbf{Shaking}\\\\
 \\textbf{(UTC)}&\\textbf{(km)} &              &\\textbf{MMI(\#)}&\\textbf{Deaths} \\\\
 \hline
 [TABLEDATA]
 \hline
-\multicolumn{5}{p{7.25cm}}{\\small [COMMENT]}
+\multicolumn{5}{p{7.2cm}}{\\small [COMMENT]}
 \end{tabularx}"""
         comment = pdata._pagerdict['comments']['secondary_comment']
         htex = htex.replace("[COMMENT]", texify(comment))
@@ -240,7 +240,7 @@ def create_onepager(pdata,version_dir, debug = False):
 
     # City table
     ctex = """
-\\begin{tabularx}{7.25cm}{|lXr|}
+\\begin{tabularx}{7.25cm}{lXr}
 \hline
 \\textbf{MMI} & \\textbf{City} & \\textbf{Population}  \\\\
 \hline
