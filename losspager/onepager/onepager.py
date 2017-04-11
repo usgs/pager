@@ -205,7 +205,7 @@ def create_onepager(pdata,version_dir, debug = False):
     else:
         # build latex table
         htex = """
-\\begin{tabularx}{7.25cm}{lrc*{1}{>{\\centering\\arraybackslash}X}r}
+\\begin{tabularx}{7.25cm}{lrc*{1}{>{\\centering\\arraybackslash}X}*{1}{>{\\raggedleft\\arraybackslash}X}}
 \hline
 \\textbf{Date} &\\textbf{Dist.}&\\textbf{Mag.}&\\textbf{Max}    &\\textbf{Shaking}\\\\
 \\textbf{(UTC)}&\\textbf{(km)} &              &\\textbf{MMI(\#)}&\\textbf{Deaths} \\\\
