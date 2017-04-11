@@ -208,11 +208,11 @@ def get_pager_version(eventfolder):
 def _draw_probs(fatmodel,fatdict,ecomodel,ecodict,version_folder):
     fatG = fatmodel.getCombinedG(fatdict)
     fat_probs = fatmodel.getProbabilities(fatdict,fatG)
-    fat_figure = drawImpactScale(fat_probs,'fatality')
+    fat_figure = drawImpactScale(fatdict,fat_probs,'fatality')
 
     ecoG = ecomodel.getCombinedG(ecodict)
     eco_probs = ecomodel.getProbabilities(ecodict,ecoG)
-    eco_figure = drawImpactScale(eco_probs,'economic')
+    eco_figure = drawImpactScale(ecodict,eco_probs,'economic')
 
     fat_probs_file = os.path.join(version_folder,'alertfatal.pdf')
     fat_probs_file_png = os.path.join(version_folder,'alertfatal.png')

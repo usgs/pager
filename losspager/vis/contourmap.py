@@ -483,6 +483,7 @@ def draw_contour(shakefile,popfile,oceanfile,oceangridfile,cityfile,basename,bor
     #drawing our own tick labels INSIDE the plot, as Cartopy doesn't seem to support this.
     yrange = ymax - ymin
     xrange = xmax - xmin
+    ddlabelsize = 12
     for xloc in gl.xlocator.locs:
         outside = xloc < xmin or xloc > xmax
         #don't draw labels when we're too close to either edge
@@ -491,7 +492,7 @@ def draw_contour(shakefile,popfile,oceanfile,oceangridfile,cityfile,basename,bor
             continue
         xtext = r'$%.1f^\circ$W' % (abs(xloc))
         ax.text(xloc,xtop_dd,xtext,
-                fontsize=14,zorder=GRID_ZORDER,ha='center',
+                fontsize=ddlabelsize,zorder=GRID_ZORDER,ha='center',
                 fontname=DEFAULT_FONT,
                 transform=ccrs.Geodetic())
 
@@ -506,7 +507,7 @@ def draw_contour(shakefile,popfile,oceanfile,oceangridfile,cityfile,basename,bor
         else:
             ytext = r'$%.1f^\circ$N' % (abs(yloc))
         thing = ax.text(yleft_dd,yloc,ytext,
-                        fontsize=14,zorder=GRID_ZORDER,va='center',
+                        fontsize=ddlabelsize,zorder=GRID_ZORDER,va='center',
                         fontname=DEFAULT_FONT,
                         transform=ccrs.Geodetic())
 
