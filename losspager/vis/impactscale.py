@@ -91,7 +91,7 @@ def drawImpactScale(ranges,losstype,debug=False):
     text_widths = []
     inv = ax.transData.inverted()
     for ticklabel in ticklabels:
-        t = plt.text(0.5,0.5,format(ticklabel,",d"))
+        t = plt.text(0.5,0.5,format(ticklabel,",d"),weight='normal',size=12)
         dxmin,dymin,dwidth,dheight = t.get_window_extent(renderer=renderer).bounds
         dxmax = dxmin + dwidth
         dymax = dymin + dheight
@@ -110,14 +110,14 @@ def drawImpactScale(ranges,losstype,debug=False):
             ticklabel = text_widths[wfactor][0]
             twidth = text_widths[wfactor][1]
             plt.plot([left_edge+bar_width,left_edge+bar_width],[bottom_edge-ticklen,bottom_edge],'k')
-            plt.text(left_edge+(bar_width)-(twidth/2.0),bottom_edge-(ticklen+0.07),ticklabel)
+            plt.text(left_edge+(bar_width)-(twidth/2.0),bottom_edge-(ticklen+0.07),ticklabel,weight='normal',size=12)
         wfactor += 1
 
     #now draw the top bars
     bottom_edge_bar_top = 10.5/23
     total_height = (23-10.5)/23
     wfactor = 0
-    fdict = {'weight':'normal'}
+    fdict = {'weight':'normal','size':12}
     imax = np.array(list(ranges.values())).argmax()
     for rkey,pvalue in ranges.items():
         if pvalue < 0.03:

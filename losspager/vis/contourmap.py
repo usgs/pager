@@ -29,6 +29,7 @@ from mapio.grid2d import Grid2D
 
 from shapely.geometry import shape as sShape
 from shapely.geometry import Polygon as sPolygon
+from shapely.geometry import Point as sPoint
 from shapely.geometry import MultiPolygon as mPolygon
 from shapely.geometry import GeometryCollection
 
@@ -410,7 +411,9 @@ def draw_contour(shakefile,popfile,oceanfile,oceangridfile,cityfile,basename,bor
         x,y = clabel.get_position()
         label_str = clabel.get_text()
         roman_label = MMI_LABELS[label_str]
-        th=plt.text(x,y,roman_label,zorder=CLABEL_ZORDER,ha='center',va='center',color='black')
+        th=plt.text(x,y,roman_label,zorder=CLABEL_ZORDER,ha='center',
+                        va='center',color='black',weight='normal',
+                        size=16)
         th.set_path_effects([path_effects.Stroke(linewidth=2.0, foreground='white'),
                              path_effects.Normal()])
 
@@ -423,7 +426,9 @@ def draw_contour(shakefile,popfile,oceanfile,oceangridfile,cityfile,basename,bor
         x,y = clabel.get_position()
         label_str = clabel.get_text()
         roman_label = MMI_LABELS[label_str]
-        th=plt.text(x,y,roman_label,zorder=CLABEL_ZORDER,ha='center',va='center',color='black')
+        th=plt.text(x,y,roman_label,zorder=CLABEL_ZORDER,ha='center',
+                        va='center',color='black',weight='normal',
+                        size=16)
         th.set_path_effects([path_effects.Stroke(linewidth=2.0, foreground='white'),
                              path_effects.Normal()])
 
@@ -454,6 +459,27 @@ def draw_contour(shakefile,popfile,oceanfile,oceangridfile,cityfile,basename,bor
     gl.xlabel_style = {'size': 15, 'color': 'black'}
     gl.ylabel_style = {'size': 15, 'color': 'black'}
 
+    #TODO - figure out x/y axes data coordinates corresponding to 10% from left
+    #and 10% from top
+    #use geoproj and proj
+    dleft = 0.01
+    dtop = 0.97
+    proj_str = proj.proj4_init
+    merc_to_dd = pyproj.Proj(proj_str)
+
+    #use built-in transforms to get from axes units to data units
+    display_to_data = ax.transData.inverted()
+    axes_to_display = ax.transAxes
+
+    #these are x,y coordinates in projected space
+    yleft,t1 = display_to_data.transform(axes_to_display.transform((dleft,0.5)))
+    t2,xtop = display_to_data.transform(axes_to_display.transform((0.5,dtop)))
+
+    #these are coordinates in lon,lat space
+    yleft_dd,t1_dd = merc_to_dd(yleft,t1,inverse=True)
+    t2_dd,xtop_dd = merc_to_dd(t2,xtop,inverse=True)
+    
+    
     #drawing our own tick labels INSIDE the plot, as Cartopy doesn't seem to support this.
     yrange = ymax - ymin
     xrange = xmax - xmin
@@ -463,8 +489,8 @@ def draw_contour(shakefile,popfile,oceanfile,oceangridfile,cityfile,basename,bor
         near_edge = (xloc-xmin) < (xrange*0.1) or (xmax-xloc) < (xrange*0.1)
         if outside or near_edge:
             continue
-        xtext = r'$%s^\circ$W' % str(abs(int(xloc)))
-        ax.text(xloc,gd.ymax-(yrange/35),xtext,
+        xtext = r'$%.1f^\circ$W' % (abs(xloc))
+        ax.text(xloc,xtop_dd,xtext,
                 fontsize=14,zorder=GRID_ZORDER,ha='center',
                 fontname=DEFAULT_FONT,
                 transform=ccrs.Geodetic())
@@ -476,10 +502,10 @@ def draw_contour(shakefile,popfile,oceanfile,oceangridfile,cityfile,basename,bor
         if outside or near_edge:
             continue
         if yloc < 0:
-            ytext = r'$%s^\circ$S' % str(abs(int(yloc)))
+            ytext = r'$%.1f^\circ$S' % (abs(yloc))
         else:
-            ytext = r'$%s^\circ$N' % str(int(yloc))
-        thing = ax.text(gd.xmin+(xrange/100),yloc,ytext,
+            ytext = r'$%.1f^\circ$N' % (abs(yloc))
+        thing = ax.text(yleft_dd,yloc,ytext,
                         fontsize=14,zorder=GRID_ZORDER,va='center',
                         fontname=DEFAULT_FONT,
                         transform=ccrs.Geodetic())

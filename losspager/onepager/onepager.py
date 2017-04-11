@@ -101,7 +101,7 @@ def create_onepager(pdata,version_dir, debug = False):
     template = template.replace("[HOMEDIR]", root_dir)
 
     # Magnitude location string under USGS logo
-    magloc = 'M%.1f, %s' % (edict['mag'],texify(edict['location']))
+    magloc = 'M %.1f, %s' % (edict['mag'],texify(edict['location']))
     template = template.replace("[MAGLOC]", magloc)
 
     # Pager version
