@@ -244,15 +244,19 @@ def create_onepager(pdata,version_dir, debug = False):
         col = pal.getDataColor(ctab['mmi'].iloc[i])
         texcol = "%s,%s,%s" %(col[0], col[1], col[2])
         if ctab['on_map'].iloc[i] == 1:
-            row = '\\rowcolor[rgb]{%s}\\textbf{%s} & \\textbf{%s} & '\
-                  '\\textbf{%s}\\\\ \n' %(texcol, mmi, city, pop)
+            if ctab['pop'].iloc[i] == 0:
+                pop = '\\boldmath$<$\\textbf{1k}'
+                row = '\\rowcolor[rgb]{%s}\\textbf{%s} & \\textbf{%s} & '\
+                      '%s\\\\ \n' %(texcol, mmi, city, pop)
+            else:
+                row = '\\rowcolor[rgb]{%s}\\textbf{%s} & \\textbf{%s} & '\
+                      '\\textbf{%s}\\\\ \n' %(texcol, mmi, city, pop)
         else:
             row = '\\rowcolor[rgb]{%s}%s & %s & '\
                   '%s\\\\ \n' %(texcol, mmi, city, pop)
         tabledata = tabledata + row
     ctex = ctex.replace("[TABLEDATA]", tabledata)
     template = template.replace("[CITYTABLE]", ctex)
-
 
     eventid = edict['eventid']
 
