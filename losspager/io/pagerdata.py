@@ -541,7 +541,7 @@ class PagerData(object):
             expdict = {'dmin':'%.1f' % (mmi-0.5),
                        'dmax':'%.1f' % (mmi+0.5),
                        'exposure':'%i' % exp,
-                       'rangeInsideMap':'%i' % (exp < max_border_mmi)}
+                       'rangeInsideMap':'%i' % (mmi > max_border_mmi)}
             expotag = etree.SubElement(pager,'exposure',attrib=expdict)
         return pager
 

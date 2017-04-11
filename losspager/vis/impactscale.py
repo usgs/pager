@@ -149,7 +149,17 @@ def drawImpactScale(ranges,losstype,debug=False):
     maxd = max(dx, dy)
     width = .11 * maxd / dx
     height = .11 * maxd / dy
-    spongecolor = barcolors[imax]
+
+    #choose the spongeball color based on the sums of all of the ranges...
+    probs = []
+    probs.append(ranges['0-1'])
+    probs.append(ranges['1-10'] + ranges['10-100'])
+    probs.append(ranges['100-1000'])
+    probs.append(ranges['1000-10000'] + ranges['10000-100000'] + ranges['100000-10000000'])
+    prob_colors = [GREEN,YELLOW,ORANGE,RED]
+    imax = np.array(probs).argmax()
+    spongecolor = prob_colors[imax]
+    
     spongeball = Ellipse((cx,cy),width,height,fc=spongecolor,ec='k',lw=2)
     ax.add_patch(spongeball)
     font = {'style':'italic'}
