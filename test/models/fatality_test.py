@@ -203,7 +203,7 @@ def test():
     print('Passed combining G values from all countries that contributed to losses...')
 
     print('Testing calculating probabilities for standard PAGER ranges...')
-    expected = {'UK':70511}
+    expected = {'UK':70511,'TotalFatalities':70511}
     G = 2.5
     probs = fatmodel.getProbabilities(expected,G)
     testprobs = {'0-1':3.99586017993e-06,

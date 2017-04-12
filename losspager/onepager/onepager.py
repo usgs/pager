@@ -6,7 +6,7 @@ from collections import OrderedDict
 
 #third party imports
 from impactutils.time.timeutils import LocalTime
-from impactutils.textformat.text import pop_round_short
+from impactutils.textformat.text import pop_round_short,round_to_nearest
 from impactutils.textformat.text import dec_to_roman
 from impactutils.textformat.text import floor_to_nearest
 from impactutils.colors.cpalette import ColorPalette
@@ -167,10 +167,14 @@ def create_onepager(pdata,version_dir, debug = False):
         else:
             pop = explist[iexp]
             macro = '[MMI%i]' % mmi
+        if pop < 1000:
+            pop = round_to_nearest(pop,round_value=1000)
         if max_border_mmi > mmi and mmi <= 4:
             if pop == 0:
                 popstr = '--*'
             else:
+                if pop < 1000:
+                    pop = round_to_nearest(pop,round_value=1000)
                 popstr = pop_round_short(pop)+'*'
         else:
             popstr = pop_round_short(pop)
@@ -240,7 +244,11 @@ def create_onepager(pdata,version_dir, debug = False):
         if ctab['pop'].iloc[i] == 0:
             pop = '$<$1k'
         else:
-            pop = pop_round_short(ctab['pop'].iloc[i])
+            if ctab['pop'].iloc[i] < 1000:
+                popnum = round_to_nearest(ctab['pop'].iloc[i],round_value=1000)
+            else:
+                popnum = ctab['pop'].iloc[i]
+            pop = pop_round_short(popnum)
         col = pal.getDataColor(ctab['mmi'].iloc[i])
         texcol = "%s,%s,%s" %(col[0], col[1], col[2])
         if ctab['on_map'].iloc[i] == 1:

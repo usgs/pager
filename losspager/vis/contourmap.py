@@ -281,8 +281,8 @@ def draw_contour(shakefile,popfile,oceanfile,oceangridfile,cityfile,basename,bor
     gd = shakegrid.getGeoDict()
 
     #Retrieve the epicenter - this will get used on the map
-    clat = shakegrid.getEventDict()['lat']
-    clon = shakegrid.getEventDict()['lon']
+    center_lat = shakegrid.getEventDict()['lat']
+    center_lon = shakegrid.getEventDict()['lon']
 
     #Load the population data, sample to shakemap
     popgrid = GDALGrid.load(popfile,samplegeodict=gd,resample=True)
@@ -299,21 +299,21 @@ def draw_contour(shakefile,popfile,oceanfile,oceangridfile,cityfile,basename,bor
     #first cope with stupid 180 meridian 
     height = (gd.ymax-gd.ymin)*111.191
     if gd.xmin < gd.xmax:
-        width = (gd.xmax-gd.xmin)*np.cos(np.radians(clat))*111.191
+        width = (gd.xmax-gd.xmin)*np.cos(np.radians(center_lat))*111.191
         xmin,xmax,ymin,ymax = (gd.xmin,gd.xmax,gd.ymin,gd.ymax)
     else:
         xmin,xmax,ymin,ymax = (gd.xmin,gd.xmax,gd.ymin,gd.ymax)
         xmax += 360
-        width = ((gd.xmax+360) - gd.xmin)*np.cos(np.radians(clat))*111.191
+        width = ((gd.xmax+360) - gd.xmin)*np.cos(np.radians(center_lat))*111.191
 
     aspect = width/height
 
     #if the aspect is not 1, then trim bounds in x or y direction as appropriate
     if width > height:
         dw = (width - height)/2.0 #this is width in km
-        xmin = xmin + dw/(np.cos(np.radians(clat))*111.191)
-        xmax = xmax - dw/(np.cos(np.radians(clat))*111.191)
-        width = (xmax-xmin)*np.cos(np.radians(clat))*111.191
+        xmin = xmin + dw/(np.cos(np.radians(center_lat))*111.191)
+        xmax = xmax - dw/(np.cos(np.radians(center_lat))*111.191)
+        width = (xmax-xmin)*np.cos(np.radians(center_lat))*111.191
     if height > width:
         dh = (height - width)/2.0 #this is width in km
         ymin = ymin + dh/111.191
@@ -530,20 +530,20 @@ def draw_contour(shakefile,popfile,oceanfile,oceangridfile,cityfile,basename,bor
     
     #Get the corner of the map with the lowest population
     corner_rect,filled_corner = _get_open_corner(popgrid,ax)
-    clat2 = round_to_nearest(clat,1.0)
-    clon2 = round_to_nearest(clon,1.0)
+    clat2 = round_to_nearest(center_lat,1.0)
+    clon2 = round_to_nearest(center_lon,1.0)
 
     #draw a little globe in the corner showing in small-scale where the earthquake is located.
-    proj = ccrs.Orthographic(central_latitude=clat2,
-                             central_longitude=clon2)
-    ax2 = fig.add_axes(corner_rect,projection=proj)
-    ax2.add_feature(cartopy.feature.OCEAN, zorder=0,facecolor=WATERCOLOR,edgecolor=WATERCOLOR)
-    ax2.add_feature(cartopy.feature.LAND, zorder=0, edgecolor='black')
-    ax2.plot([clon2],[clat2],'w*',linewidth=1,markersize=16,markeredgecolor='k',markerfacecolor='r')
-    gh=ax2.gridlines();
-    ax2.set_global();
-    ax2.outline_patch.set_edgecolor('black')
-    ax2.outline_patch.set_linewidth(2);
+    # proj = ccrs.Orthographic(central_latitude=clat2,
+    #                          central_longitude=clon2)
+    # ax2 = fig.add_axes(corner_rect,projection=proj)
+    # ax2.add_feature(cartopy.feature.OCEAN, zorder=0,facecolor=WATERCOLOR,edgecolor=WATERCOLOR)
+    # ax2.add_feature(cartopy.feature.LAND, zorder=0, edgecolor='black')
+    # ax2.plot([clon2],[clat2],'w*',linewidth=1,markersize=16,markeredgecolor='k',markerfacecolor='r')
+    # gh=ax2.gridlines();
+    # ax2.set_global();
+    # ax2.outline_patch.set_edgecolor('black')
+    # ax2.outline_patch.set_linewidth(2);
 
     #Draw the map scale in the unoccupied lower corner.
     corner = 'lr'
@@ -553,10 +553,10 @@ def draw_contour(shakefile,popfile,oceanfile,oceangridfile,cityfile,basename,bor
 
     #Draw the epicenter as a black star
     plt.sca(ax)
-    plt.plot(clon,clat,'k*',markersize=16,zorder=EPICENTER_ZORDER,transform=geoproj)
+    plt.plot(center_lon,center_lat,'k*',markersize=16,zorder=EPICENTER_ZORDER,transform=geoproj)
 
     if is_scenario:
-        plt.text(clon,clat,'SCENARIO',fontsize=64,
+        plt.text(center_lon,center_lat,'SCENARIO',fontsize=64,
                  zorder=WATERMARK_ZORDER,transform=geoproj,
                  alpha=0.2,color='red',horizontalalignment='center')
     
