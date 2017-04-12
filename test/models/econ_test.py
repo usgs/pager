@@ -47,7 +47,7 @@ def test():
     print('Passed loading empirical fatality model from XML file.')
 
     print('Testing calculating probabilities for standard PAGER ranges...')
-    expected = {'UK':6819.883892*1e6}
+    expected = {'UK':6819.883892*1e6,'TotalDollars':6819.883892*1e6}
     G = 2.5
     probs = ecomodel.getProbabilities(expected,G)
     testprobs = {'0-1':0.00020696841425738358,

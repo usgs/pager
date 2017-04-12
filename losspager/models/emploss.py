@@ -477,9 +477,12 @@ class EmpiricalLoss(object):
                               ('1000-10000',0.0),
                               ('10000-100000',0.0),
                               ('100000-10000000',0.0)])
-        expected = np.sum(list(lossdict.values()))
+        
         if self._loss_type == 'economic':
+            expected = lossdict['TotalDollars']
             expected = expected / 1e6 #turn USD into millions of USD
+        else:
+            expected = lossdict['TotalFatalities']
         for rangekey,value in ranges.items():
             rparts = rangekey.split('-')
             rmin = int(rparts[0])
