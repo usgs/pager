@@ -120,6 +120,11 @@ def main(args):
     
     #get all of the information from the mail config file
     config = read_mail_config()
+
+    #check the status of the system - stop if we are NOT primary
+    if 'status' not in config or config['status'] != 'primary':
+        print('This system is not configured to send email.  Stopping.')
+        sys.exit(0)
     
     #first make sure this is a losspager product
     if args.type != 'losspager':
