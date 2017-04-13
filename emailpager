@@ -8,6 +8,7 @@ import sys
 import smtplib
 from xml.dom import minidom
 from datetime import datetime
+import logging
 
 #third party imports
 import pandas as pd
@@ -114,6 +115,7 @@ def send_emails(version,addresses,properties,msg,subject,DEBUG,attachments=[]):
     return version
 
 def main(args):
+    
     DEBUG = False
     if args.debug:
         DEBUG = True
@@ -121,25 +123,33 @@ def main(args):
     #get all of the information from the mail config file
     config = read_mail_config()
 
+    if 'log_folder' in config:
+        eventid = args.eventid
+        tnowstr = datetime.utcnow().strftime('%Y%m%d%H%M%S')
+        logfile = os.path.join(config['log_folder'],'emailpager_%s_%s.log' % (eventid,tnowstr))
+        logging.basicConfig(filename=logfile,level=logging.DEBUG,format='%(asctime)s %(message)s')
+    else:
+        logging.basicConfig(level=logging.DEBUG,format='%(asctime)s %(message)s')
+    
     #check the status of the system - stop if we are NOT primary
     if 'status' not in config or config['status'] != 'primary':
-        print('This system is not configured to send email.  Stopping.')
+        logging.warning('This system is not configured to send email.  Stopping.')
         sys.exit(0)
     
     #first make sure this is a losspager product
     if args.type != 'losspager':
-        print('emailpager is only configured to work with losspager products. Exiting.')
+        logging.warning('emailpager is only configured to work with losspager products. Exiting.')
         sys.exit(1)
 
     #TODO: Do something with delete messages
     if args.status == 'DELETE':
         msg = 'No action to take with delete messages.' % args.status
-        print(msg)
+        logging.warning(msg)
         sys.exit(1)
 
     jsondir = os.path.join(args.directory,'json')
     if not os.path.isdir(jsondir):
-        print('JSON directory "%s" containing PAGER output not found. Exiting.' % args.directory)
+        logging.warning('JSON directory "%s" containing PAGER output not found. Exiting.' % args.directory)
         sys.exit(1)
 
     #check to see if a --property-renotify option has been set
@@ -153,16 +163,19 @@ def main(args):
         release = True
 
     #Everything is cool...
+    logging.debug('Loading from data directory...')
     pdata = PagerData()
     pdata.loadFromJSON(jsondir)
 
     #Instantiate a session with our database
+    logging.debug('Connecting to database...')
     dburl = config['email']['database']['url']
     session = es.get_session(url=dburl,create_db=False)
     
     #Find event in database, or create it if not found.  Return a new version for that event,
     #or (if event has just been released and previous version was not released, return most recent
     #version with released column set to True.
+    logging.debug('Finding event in database...')
     version,event,ccinfo = get_version(session,pdata,release=release,renotify=renotify)
 
     #add/commit the event for now, but we may have to delete it if we crash for any reason
@@ -174,6 +187,7 @@ def main(args):
         #some of these users may have been notified about previous versions
         #of this event, so they will have to be put in separate bins
         #because their subject line will start with "UPDATE:".
+        logging.debug('Getting list of all user addresses...')
         all_addresses = session.query(es.Address).all()
         short_addresses_update = []
         short_addresses_nonupdate = []
@@ -181,6 +195,7 @@ def main(args):
         long_addresses_nonupdate = []
         pdf_addresses_update = []
         pdf_addresses_nonupdate = []
+        logging.debug('Determining which users should get emailed...')
         for address in all_addresses:
             should_alert,notified_before = address.shouldAlert(version,
                                                                renotify=renotify,
@@ -202,14 +217,24 @@ def main(args):
                     else:
                         pdf_addresses_nonupdate.append(address)
 
-
+        
+        #how many emails are we sending
+        logging.debug('%i new short addresses.' % (len(short_addresses_update)))
+        logging.debug('%i short addresses to update.' % (len(short_addresses_nonupdate)))
+        logging.debug('%i new long addresses.' % (len(long_addresses_update)))
+        logging.debug('%i long addresses to update.' % (len(long_addresses_nonupdate)))
+        logging.debug('%i new pdf addresses.' % (len(pdf_addresses_update)))
+        logging.debug('%i pdf addresses to update.' % (len(pdf_addresses_nonupdate)))
+                        
         #try to find the event url
+        logging.debug('Getting event url...')
         if ccinfo is not None:
             event_url = ccinfo.getURL()+'#pager'
         else:
             event_url = DEFAULT_PAGER_URL
 
         #create the short and long message texts
+        logging.debug('Creating message text and subject...')
         short_msg = format_msg(version,pdata,'short',event_url)
         long_msg = format_msg(version,pdata,'long',event_url)
 
@@ -223,18 +248,21 @@ def main(args):
             all_props['max_bcc'] = config['email']['max_bcc']
 
         #send emails to all short format addresses
+        logging.debug('Sending short addresses...')
         if len(short_addresses_update):
             version = send_emails(version,short_addresses_update,all_props,short_msg,subject_update,DEBUG)
         if len(short_addresses_nonupdate):
             version = send_emails(version,short_addresses_nonupdate,all_props,short_msg,subject,DEBUG)
 
         #send emails to all long format addresses
+        logging.debug('Sending long addresses...')
         if len(long_addresses_update):
             version = send_emails(version,long_addresses_update,all_props,long_msg,subject_update,DEBUG)
         if len(long_addresses_nonupdate):
             version = send_emails(version,long_addresses_nonupdate,all_props,long_msg,subject,DEBUG)
 
-        #send emails to all long format addresses
+        #send emails to all pdf format addresses
+        logging.debug('Sending pdf addresses...')
         if len(pdf_addresses_update):
             onepager_file = os.path.join(args.directory,'onepager.pdf')
             version = send_emails(version,pdf_addresses_update,
@@ -245,8 +273,8 @@ def main(args):
             version = send_emails(version,pdf_addresses_nonupdate,
                                   all_props,long_msg,subject,DEBUG,
                                   attachments=[onepager_file])
-
-
+            
+        logging.debug('Done.')
     except Exception as e:
         #if we have any errors, we want to back out the event and version we added above.
         #todo - the event might not be new, we can't just delete it, only if its empty
@@ -289,6 +317,8 @@ if __name__ == '__main__':
                            help="Event latitude",metavar='LAT',dest='lat')
     argparser.add_argument("--preferred-longitude", type=float,
                            help="Event longitude",metavar='LON',dest='lon')
+    argparser.add_argument("--preferred-eventid", 
+                           help="Event ID",metavar='ID',dest='eventid')
     argparser.add_argument("--preferred-depth", type=float,
                            help="Event depth",metavar='DEPTH',dest='depth')
     argparser.add_argument("--preferred-magnitude", type=float,

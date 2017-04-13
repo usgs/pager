@@ -173,6 +173,9 @@ def query_events(qparams,session):
         df = newdf
     
     df = df.set_index(['EventID','Version'])
+
+    #order dataframe by origin time, then event ID
+    df = df.sort_values(['EventTime'])
     
     return df
 
@@ -207,8 +210,7 @@ def get_version_history(session,eventid):
     """
     event = session.query(emailschema.Event).filter(emailschema.Event.eventcode == eventid).first()
     if event is None:
-        msg = 'No event with event ID %s found.' % eventid
-        res = False
+        df = None
     else:
         nversions = len(event.versions)
         vdict = {}
@@ -1135,12 +1137,16 @@ def main(args):
     #Get information about which emails received notifications for different versions of a given event
     if args.event_notification_history:
         df = get_version_history(session,args.event_notification_history)
-        if args.output == 'screen':
-            print(df)
-            msg = ''
+        if df is None:
+            msg = 'No event found for %s.' % args.event_notification_history
+            res = False
         else:
-            msg = 'Results written to %s.' % args.output
-            df.to_excel(args.output)
+            if args.output == 'screen':
+                print(df)
+                msg = ''
+            else:
+                msg = 'Results written to %s.' % args.output
+                df.to_excel(args.output)
         res = True
 
     #get information about which versions user has been notified
@@ -1190,7 +1196,7 @@ def main(args):
             users = session.query(emailschema.User).all()
             msg = 'There are %i total users.' % len(users)
         else:
-            org = session.query(emailschema.Organization).filter(func.lower(emailschema.Organization.shortname)==org_short).first()
+            org = session.query(emailschema.Organization).filter(func.lower(emailschema.Organization.shortname)==org_short.lower()).first()
             users = org.users
             msg = 'There are %i users from %s.' % (len(users),org_short)
         for user in users:
