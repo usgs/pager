@@ -369,6 +369,14 @@ def main(pargs,config):
         #create the event directory (if it does not exist), and start logging there
         _print_message(plog,'Creating event directory')
         event_folder = admin.createEventFolder(authid,etime)
+
+        #Stop processing if there is a "stop" file in the event folder
+        stopfile = os.path.join(event_folder,'stop')
+        if os.path.isfile(stopfile):
+            _print_message(plog,'"stop" file found in %s.  Stopping processing, returning with 1.' % (event_folder))
+            print('"stop" file found in %s.  Stopping processing, returning with 1.' % (event_folder))
+            sys.exit(1)
+        
         pager_version = get_pager_version(event_folder)
         version_folder = os.path.join(event_folder,'version.%03d' % pager_version)
         os.makedirs(version_folder)
