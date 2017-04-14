@@ -338,7 +338,7 @@ def do_query(query,output,admin):
                 for broken in broken_events:
                     print(broken)
         else:
-            print('No events on filesystem.')
+            print('No events on filesystem matching query criteria.')
         res = True
     else:
         fpath,fname = os.path.split(output)
@@ -346,7 +346,7 @@ def do_query(query,output,admin):
             msg = 'Cannot create %s in %s - directory does not exist.' % (fname,fpath)
             res = False
         pdataframe.to_excel(output)
-        msg = '%i rows written to %s.' % (len(pdataframe),output[0])
+        msg = '%i rows written to %s.' % (len(pdataframe),output)
         res = True
     return (res,msg)
 
@@ -493,27 +493,44 @@ def main(args):
 if __name__ == '__main__':
     desc='Administer the PAGER system with a series of subcommands.'
     usage = '''
+    System Status:
     To query the system status: "adminpager --status check"
     To switch the system from being primary to secondary: "adminpager --status secondary"
     To switch the system from being secondary to primary: "adminpager --status primary"
+
+    Stopping/Unstopping PAGER updates:
     To prevent an event from being automatically updated: "adminpager --stop EVENTID"
     To re-allow an event to be automatically updated: "adminpager --unstop EVENTID"
+
+    Archiving/Restoring events:
     To archive an event: "adminpager --archive EVENTID"
-    To delete ALL events:"adminpager --archive all"
+    To archive ALL events: "adminpager --archive all"
+    To restore an event from the archives: "adminpager --restore EVENTID"
+
+    Releasing/Renotifying events:
     To release an event: "adminpager --release EVENTID"
+    To renotify for an event: "adminpager --renotify EVENTID"
+
+    Setting tsunami flag for an event (does not re-run):
     To toggle the tsunami flag ON for an event: "adminpager --tsunami EVENTID on"
     To toggle the tsunami flag OFF for an event: "adminpager --tsunami EVENTID off"
-    To print a list of the events from the last 7 days: "adminpager --recent"
+
+    Querying existing events:
+    To print a list of the events from the last 14 days: "adminpager --query recent"
     To see the version history of an event: "adminpager --history EVENTID"
-    Query Syntax:
-    All events from December 15, 2015: adminpager --query 2015-12-15
-    M5.5+ events from December 15, 2016: adminpager --query 2015-12-15 5.5
-    All Yellow events > M5.5: adminpager --query 1900-01-01 5.5 yellow
-    Yellow events > M5.5 until November 15, 2016: adminpager --query 1900-01-01 5.5 yellow 2016-11-15
-    First version of yellow events > M5.5 until November 15, 2016: adminpager --query 1900-01-01 5.5 yellow 2016-11-15 first
-    Last version of yellow events > M5.5 until November 15, 2016: adminpager --query 1900-01-01 5.5 yellow 2016-11-15 last
+
+    Full query Syntax:
+    All events from December 15, 2015 to present: "adminpager --query 2015-12-15"
+    M5.5+ events from December 15, 2016 to present: "adminpager --query 2015-12-15 5.5"
+    All Yellow events > M5.5: "adminpager --query 1900-01-01 5.5 yellow"
+    Yellow events > M5.5 until November 15, 2016: "adminpager --query 1900-01-01 5.5 yellow 2016-11-15"
+    First version of yellow events > M5.5 until November 15, 2016: "adminpager --query 1900-01-01 5.5 yellow 2016-11-15 first"
+    Last version of yellow events > M5.5 until November 15, 2016: adminpager --query 1900-01-01 5.5 yellow 2016-11-15 last"
     All versions of yellow events > M5.5 until November 15, 2016: adminpager --query 1900-01-01 5.5 yellow 2016-11-15 all
     First version of yellow events > M5.5 created 8+ hours after origin, until November 15, 2016: adminpager --query 1900-01-01 5.5 yellow 2016-11-15 eight
+
+    Saving query results:
+    Any query above can be saved to an Excel file by using the --output option: "adminpager --query recent --output ~/fortnight_results.xls"
     '''
     argparser = argparse.ArgumentParser(description=desc,
                                         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
