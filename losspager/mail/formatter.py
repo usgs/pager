@@ -3,7 +3,7 @@ from datetime import datetime
 from textwrap import dedent,wrap
 
 #third party imports
-from impactutils.textformat.text import pop_round,dec_to_roman,pop_round_short,commify
+from impactutils.textformat.text import pop_round,dec_to_roman,pop_round_short,commify,round_to_nearest
 import numpy as np
 
 DATE_TIME_FMT = '%Y/%m/%d-%H:%M'
@@ -69,6 +69,7 @@ def format_exposure(exposures,format,max_border_mmi):
                     pop = expo + expohold
                 else:
                     pop = expo
+                pop = round_to_nearest(pop,round_value=1000)
                 if pop >= MIN_POP:
                     popstr = pop_round(pop)
                     expstr += 'I%i=%s\n' % (mmi,popstr)
@@ -89,6 +90,7 @@ def format_exposure(exposures,format,max_border_mmi):
                     pop = expo + expohold
                 else:
                     pop = expo
+                pop = round_to_nearest(pop,round_value=1000)
                 if pop >= MIN_POP:
                     popstr = pop_round(pop)
                     flag = ''
