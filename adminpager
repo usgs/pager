@@ -511,9 +511,11 @@ if __name__ == '__main__':
     To release an event: "adminpager --release EVENTID"
     To renotify for an event: "adminpager --renotify EVENTID"
 
-    Setting tsunami flag for an event (does not re-run):
+    Setting tsunami flag for an event (will re-run PAGER):
+    
     To toggle the tsunami flag ON for an event: "adminpager --tsunami EVENTID on"
     To toggle the tsunami flag OFF for an event: "adminpager --tsunami EVENTID off"
+    To allow PAGER to use ComCat/magnitude to determine tsunami behavior: "adminpager --tsunami EVENTID auto"
 
     Querying existing events:
     To print a list of the events from the last 14 days: "adminpager --query recent"
@@ -553,7 +555,7 @@ if __name__ == '__main__':
                            help="Print or change PAGER (and also possibly PAGER MAIL) primary/secondary status.")
     argparser.add_argument("--tsunami", nargs=2,
                            help="Toggle tsunami warning on PAGER alert",
-                           metavar=('EVENT','on/off'))
+                           metavar=('EVENT','on/off/auto'))
     argparser.add_argument('--query',nargs='*',metavar='PARAM',
                            help="List events that match the query. Params are [START/all/recent [MAG [ALERT [END [VERSION]]]]].")
     argparser.add_argument("--history", 
