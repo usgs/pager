@@ -470,8 +470,16 @@ def main(args):
         if args.tsunami[1] not in ['on','off']:
             print('Tsunami syntax: adminpager --tsunami EVENT on/off')
             sys.exit(1)
-        result = pdataframe = admin.toggleTsunami(args.tsunami[0],args.tsunami[1])
+        #toggling re-runs PAGER, including whatever transfer may happen
+        result,stdout,stderr = admin.toggleTsunami(args.tsunami[0],args.tsunami[1])
         print('Tsunami status has been set to %s for event %s' % (args.tsunami[1],args.tsunami[0]))
+        if result:
+            lines = stdout.decode('utf-8').split('\n')
+            print('This event has been re-run successfully, with the output:')
+            for line in lines:
+                print(line)
+        if not result:
+            print('This event has not been re-run successfully, with the output:"%s"' % (stderr))
         sys.exit(0)
 
     if args.stats:

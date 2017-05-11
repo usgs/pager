@@ -7,6 +7,7 @@ import re
 import shutil
 import json
 import getpass
+from distutils.spawn import find_executable
 
 #local imports
 from losspager.utils.exception import PagerException
@@ -175,9 +176,12 @@ class PagerAdmin(object):
                 authid,allids = ccinfo.getAssociatedIds()
                 allids.append(authid)
                 for eid in allids:
-                    eventfolder = os.path.join(outfolder,eid+event_time.strftime(DATETIMEFMT))
-                    if os.path.isdir(eventfolder):
-                        return eventfolder
+                    #here we need to look for the *folder* containing the *pattern* with
+                    #the eid in question. getEventFolder does this for us.
+                    teventfolder = self.getEventFolder(eid)
+                    if teventfolder is not None:
+                        eventfolder = teventfolder
+                        break
             except:
                 pass
         if not os.path.isdir(eventfolder):
@@ -402,19 +406,23 @@ class PagerAdmin(object):
         f.write('%s' % tsunami)
         f.close()
         
-        version_folders = sorted(glob.glob(os.path.join(event_folder,'version.*')))
-        jsonfile = os.path.join(version_folders[-1],'json','event.json')
-        f = open(jsonfile,'rt')
-        jdict = json.load(f)
-        f.close()
-        if jdict['event']['tsunami'] == tsunami:
-            return False
-        jdict['event']['tsunami'] = toggle[tsunami]
-        f = open(jsonfile,'wt')
-        json.dump(jdict,f)
-        f.close()
-        return True
-        
+        version_folder = sorted(glob.glob(os.path.join(event_folder,'version.*')))[-1]
+        res,stdout,stderr = self.runPager(version_folder,tsunami=tsunami)
+        return (res,stdout,stderr)
+
+    def runPager(self,versionfolder,release=False,cancel=False,tsunami='auto'):
+        gridfile = os.path.join(versionfolder,'grid.xml')
+        pagerbin = find_executable('pager')
+        if pagerbin is None:
+            raise PagerException('Could not find PAGER executable on this system.')
+        pagercmd = pagerbin + ' %s' % gridfile
+        if release:
+            pagercmd += ' --release'
+        if cancel:
+            pagercmd += ' --cancel'
+        pagercmd += ' --tsunami=%s' % tsunami
+        res,stdout,stderr = get_command_output(pagercmd)
+        return (res,stdout,stderr)
     
     def query(self,start_time=datetime.datetime(1800,1,1),end_time=datetime.datetime.utcnow(),
               mag_threshold=0.0,alert_threshold='green',version='last',eventid=None):
