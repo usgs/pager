@@ -66,7 +66,7 @@ class PagerData(object):
         self._elapsed_minutes = elapsed
 
     def setExposure(self,exposure,econ_exposure):
-        nmmi,self._maxmmi = self._get_maxmmi(exposure)
+        self._maxmmi,nmmi = self._get_maxmmi(exposure)
         #convert all numpy integers to python integers
         new_exposure = {}
         for key,value in exposure.items():
