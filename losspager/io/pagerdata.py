@@ -26,6 +26,13 @@ EVENT_RADIUS = 400 #distance around epicenter to search for similar historical e
 MINS_PER_DAY = 60*24
 SECS_PER_MIN = 60
 
+def json_dump_nonan(object,fileobj):
+    #apparently Javascript doesn't like NaN strings, so null strings are inserted in their place.
+    jsonstr = json.dumps(object)
+    jsonstr = jsonstr.replace('NaN','null')
+    fileobj.write(jsonstr)
+    
+
 class PagerData(object):
     def __init__(self):
         self._pagerdict = OrderedDict()
@@ -426,13 +433,13 @@ class PagerData(object):
         infodict = {'event':self._pagerdict['event_info'],
                     'pager':self._pagerdict['pager'],
                     'shakemap':self._pagerdict['shake_info']}
-        json.dump(infodict,f)
+        json_dump_nonan(infodict,f)
         f.close()
 
         #one file for alert information
         alert_info_file = os.path.join(jsonfolder,'alerts.json')
         f = open(alert_info_file,'wt')
-        json.dump(self._pagerdict['alerts'],f)
+        json_dump_nonan(self._pagerdict['alerts'],f)
         f.close()
 
         #one file for exposure information (population and economic)
@@ -440,13 +447,13 @@ class PagerData(object):
         f = open(exposure_info_file,'wt')
         expdict = {'population_exposure':self._pagerdict['population_exposure'],
                    'economic_exposure':self._pagerdict['economic_exposure']}
-        json.dump(expdict,f)
+        json_dump_nonan(expdict,f)
         f.close()
 
         #one file for loss model results
         loss_info_file = os.path.join(jsonfolder,'losses.json')
         f = open(loss_info_file,'wt')
-        json.dump(self._pagerdict['model_results'],f)
+        json_dump_nonan(self._pagerdict['model_results'],f)
         f.close()
 
         #one file for the table of affected cities
@@ -458,13 +465,13 @@ class PagerData(object):
         #one file for the table of historical earthquakes (if any)
         historical_info_file = os.path.join(jsonfolder,'historical_earthquakes.json')
         f = open(historical_info_file,'wt')
-        json.dump(self._pagerdict['historical_earthquakes'],f)
+        json_dump_nonan(self._pagerdict['historical_earthquakes'],f)
         f.close()
 
         #one file for all comments
         comment_file = os.path.join(jsonfolder,'comments.json')
         f = open(comment_file,'wt')
-        json.dump(self._pagerdict['comments'],f)
+        json_dump_nonan(self._pagerdict['comments'],f)
         f.close()
 
     def __renderPager(self):

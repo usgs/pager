@@ -48,7 +48,8 @@ def get_id_and_source(version_folder):
     source = jdict['shakemap']['shake_source']
     return (eventid,source)
 
-def transfer(config,pagerdata,authid,authsource,version_folder,renotify=False,release=False):
+def transfer(config,pagerdata,authid,authsource,version_folder,
+                 renotify=False,release=False,force_email=False):
     #If system status is primary and transfer options are configured, transfer the output
     #directories using those options
     res = False
@@ -81,6 +82,8 @@ def transfer(config,pagerdata,authid,authsource,version_folder,renotify=False,re
                         product_params['renotify'] = 'true'
                     if release:
                         product_params['release'] = 'true'
+                    if force_email:
+                        product_params['force-email'] = 'true'
                     sender_class = get_sender_class(method)
                     try:
                         if method == 'pdl':
