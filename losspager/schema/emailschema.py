@@ -181,7 +181,7 @@ class Address(Base):
     def __repr__(self):
         return "<Address(email='%s')>" % self.email
 
-    def shouldAlert(self,version,renotify=False,release=False):
+    def shouldAlert(self,version,renotify=False,release=False,ignore_time_limit=False):
         """Determine whether an alert should be sent to this address for given Version.
 
         :param version:
@@ -235,8 +235,9 @@ class Address(Base):
             return (True,True)
 
         #check the version time against the current time, reject if older than 8 hours
-        if datetime.utcnow() > version.time + timedelta(seconds=MAX_ELAPSED_SECONDS):
-            return (False,notified_before)
+        if not ignore_time_limit:
+            if datetime.utcnow() > version.time + timedelta(seconds=MAX_ELAPSED_SECONDS):
+                return (False,notified_before)
         
         #shortcut to True here if the most recent version for this event
         #was NOT released (i.e., pending), but only if this version has been released.

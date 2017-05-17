@@ -15,7 +15,7 @@ from operator import attrgetter
 from calendar import monthrange
 
 #local imports
-from losspager.utils.config import read_config,write_config,get_mail_config_file
+from losspager.utils.config import read_config,read_mail_config,write_config,get_mail_config_file
 from losspager.io.pagerdata import PagerData
 from losspager.utils.admin import PagerAdmin,RemoteAdmin,transfer,unset_pending,get_id_and_source
 from losspager.utils.exception import PagerException
@@ -49,6 +49,17 @@ LEVELS = {'green':0,
           'orange':2,
           'red':3}
 
+def run_pager(eventid):
+    try:
+        ccinfo = ComCatInfo(eventid)
+        gridurl = ccinfo.getShakeGrid()
+        cmd = 'pager %s' % gridurl
+        print('Running command "%s"' % cmd)
+        res,stdout,stderr = get_command_output(cmd)
+        return (res,stdout+stderr)
+    except:
+        return (False,'Could not open connection to ComCat for event %s' % eventid)
+    
 def order_event_data(event_data,sort_by=('time',)):
     if not isinstance(sort_by,tuple):
         raise PagerException('sort_by option must be a tuple of strings.')
@@ -166,6 +177,43 @@ def do_release(eventid,admin,config):
     except Exception as e:
         msg = str(e)
     return (True,msg)
+
+def do_force(eventid,admin,config,mailconfig):
+    #find the most recent version of PAGER for this event
+    event_folder = admin.getEventFolder(eventid)
+    if event_folder is None:
+        print('No event %s found.  Exiting.' % eventid)
+        sys.exit(1)
+    version_folder = admin.getLastVersion(event_folder)
+    try:
+        ccinfo = ComCatInfo(eventid)
+        authid,allids = ccinfo.getAssociatedIds()
+        authsource,allsources = ccinfo.getAssociatedSources()
+    except:
+        authid,authsource = get_id_and_source(version_folder)
+
+    jsonfolder = os.path.join(version_folder,'json')
+    pdata = PagerData()
+    pdata.loadFromJSON(jsonfolder)
+    event_time = pdata.time
+    email_threshold = event_time + datetime.timedelta(seconds=mailconfig['release_threshold']*3600)
+    now_time = datetime.datetime.utcnow()
+    user_msg = 'Are you sure you want to force sending of emails?'
+    if now_time < email_threshold:
+        user_msg += 'The current time is within the %i email limit - users may already have been notified.'
+    user_msg += 'Are you sure you want to force sending of emails? Y/[N] '
+    response = input(user_msg)
+    if response != 'Y':
+        msg = 'You chose not to force sending of emails. Exiting.'
+        return (False,msg)
+    
+    try:
+        msg = transfer(config,pdata,authid,authsource,version_folder,force_email=True)
+    except Exception as e:
+        msg = str(e)
+    return (True,msg)
+    
+    
 
 def do_renotify(eventid,admin,config):
     #find the most recent version of PAGER for this event
@@ -408,8 +456,28 @@ def main(args):
             print('"stop" file already exists in %s.' % (eventfolder))
         sys.exit(0)
 
+    if args.run_event:
+        eventid = args.run_event
+        res,msg = run_pager(eventid)
+        lines = msg.decode('utf-8').split('\n')
+        for line in lines:
+            print(line)
+        if not res:
+            sys.exit(1)
+        else:
+            sys.exit(0)
+        
     if args.renotify:
         res,msg = do_renotify(args.renotify,admin,config)
+        print(msg)
+        if not res:
+            sys.exit(1)
+        else:
+            sys.exit(0)
+
+    if args.force_email:
+        mail_config = read_mail_config()
+        res,msg = do_force(args.force_email,admin,config,mail_config)
         print(msg)
         if not res:
             sys.exit(1)
@@ -576,6 +644,10 @@ if __name__ == '__main__':
                            help="Create dump of monthly, quarterly, or yearly PAGER results.",
                            choices = ('month','quarter','year'),metavar='PERIOD')
     argparser.add_argument("--release", help="Release orange/red alert level event.",
+                           metavar='EVENTCODE')
+    argparser.add_argument("--force-email", help="Force sending of email to all appropriate users, ignoring email threshold (nominally 8 hours).",
+                           metavar='EVENTCODE')
+    argparser.add_argument("--run-event", help="Run event based on event ID from ComCat.  Will fail if ShakeMap not found in ComCat.",
                            metavar='EVENTCODE')
     argparser.add_argument("--renotify", metavar='EVENTCODE',
                            help="Renotify users about an event.")

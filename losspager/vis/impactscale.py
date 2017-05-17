@@ -131,7 +131,12 @@ def drawImpactScale(lossdict,ranges,losstype,debug=False):
         bar_height = (pvalue * total_height)
         lw = 1
         zorder = 1
-        if wfactor == imax:
+        bottom_value,top_value = [int(v) for v in rkey.split('-')]
+        if losstype == 'fatality':
+            expected = lossdict['TotalFatalities']
+        else:
+            expected = lossdict['TotalDollars']/1e6
+        if expected >= bottom_value and expected < top_value:
             lw = 3
             zorder = 100
         rect = Rectangle((left_edge,bottom_edge_bar_top),bar_width,bar_height,fc=barcolor,ec='k',lw=lw)

@@ -162,6 +162,11 @@ def main(args):
     if args.release and args.release == 'true':
         release = True
 
+    #check to see if a --property-force-email option has been set
+    force_email = False
+    if args.force_email and args.force_email == 'true':
+        force_email = True
+
     #Everything is cool...
     logging.debug('Loading from data directory...')
     pdata = PagerData()
@@ -199,7 +204,8 @@ def main(args):
         for address in all_addresses:
             should_alert,notified_before = address.shouldAlert(version,
                                                                renotify=renotify,
-                                                               release=release)
+                                                               release=release,
+                                                               ignore_time_limit=force_email)
             if should_alert:
                 if address.format == 'short':
                     if notified_before:
@@ -330,5 +336,7 @@ if __name__ == '__main__':
                            help='If flag is set, any users previously notified of an event will be renotified.')
     argparser.add_argument("--property-release", dest='release',
                            help='If flag is set, send non-pending email notifications if previous version status was pending.')
+    argparser.add_argument("--property-force-email", dest='force_email',
+                           help='If flag is set, send email notifications to all appropriate users, ignoring email threshold.')
     pargs, unknown = argparser.parse_known_args()
     main(pargs)
