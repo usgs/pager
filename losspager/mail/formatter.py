@@ -6,6 +6,9 @@ from textwrap import dedent,wrap
 from impactutils.textformat.text import pop_round,dec_to_roman,pop_round_short,commify,round_to_nearest
 import numpy as np
 
+#local imports
+from losspager.utils.config import read_mail_config
+
 DATE_TIME_FMT = '%Y/%m/%d-%H:%M'
 DATE_FMT = '%Y/%m/%d'
 MIN_POP = 1000
@@ -192,7 +195,7 @@ def format_short(version,expstr):
     msg += expstr
     return msg
 
-def format_long(version,pdata,expstr,event_url):
+def format_long(version,pdata,expstr,event_url,past_email_deadline=False):
     alerts = ['green','yellow','orange','red']
     alert_level = alerts[version.summarylevel]
     if not version.released:
@@ -215,8 +218,14 @@ def format_long(version,pdata,expstr,event_url):
         
     #get the structure comment and wrap it to be 80 characters wide
     struct_comment = '\n'.join(wrap(pdata.getStructureComment(),width=MAX_STRUCT_COMMENT_WIDTH))
-        
+
+    #figure out if we're past the normal limit for sending emails
+    past_deadline_msg = 'This PAGER notification is for an earthquake that occurred more than 8 hours ago.'
+    prequel = ''
+    if past_email_deadline:
+        prequel = past_deadline_msg
     msg = '''
+    {prequel}
     PAGER Version: {version:d}
     {location}
     GMT: {time}
@@ -238,7 +247,8 @@ def format_long(version,pdata,expstr,event_url):
     {historical_earthquakes}
     {secondary_comment}
     {url}
-    '''.format(version=version.number,
+    '''.format(prequel=prequel,
+               version=version.number,
                location=eventinfo['location'],
                time=version.time.strftime(DATE_TIME_FMT),
                mag=version.magnitude,
@@ -258,7 +268,7 @@ def format_long(version,pdata,expstr,event_url):
     msg = strip_leading_spaces(msg)
     return msg
 
-def format_msg(version,pdata,format,event_url):
+def format_msg(version,pdata,format,event_url,past_email_deadline=False):
     """Create an email message text for either short or long format.
 
     :param version:
@@ -276,6 +286,6 @@ def format_msg(version,pdata,format,event_url):
     if format == 'short':
         msg = format_short(version,expstr)
     else:
-        msg = format_long(version,pdata,expstr,event_url)
+        msg = format_long(version,pdata,expstr,event_url,past_email_deadline=past_email_deadline)
     return msg
         

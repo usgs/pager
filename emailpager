@@ -7,7 +7,7 @@ import os.path
 import sys
 import smtplib
 from xml.dom import minidom
-from datetime import datetime
+from datetime import datetime,timedelta
 import logging
 
 #third party imports
@@ -166,6 +166,7 @@ def main(args):
     force_email = False
     if args.force_email and args.force_email == 'true':
         force_email = True
+        
 
     #Everything is cool...
     logging.debug('Loading from data directory...')
@@ -183,6 +184,14 @@ def main(args):
     logging.debug('Finding event in database...')
     version,event,ccinfo = get_version(session,pdata,release=release,renotify=renotify)
 
+    #check to see if we forced and the event is older than the configured threshold
+    past_email_deadline = False
+    if force_email:
+        nowtime = datetime.utcnow()
+        threshtime = version.time + timedelta(seconds=config['release_threshold']*3600)
+        if nowtime > threshtime:
+            past_email_deadline = True
+    
     #add/commit the event for now, but we may have to delete it if we crash for any reason
     session.add(event)
     session.commit()
@@ -241,8 +250,8 @@ def main(args):
 
         #create the short and long message texts
         logging.debug('Creating message text and subject...')
-        short_msg = format_msg(version,pdata,'short',event_url)
-        long_msg = format_msg(version,pdata,'long',event_url)
+        short_msg = format_msg(version,pdata,'short',event_url,past_email_deadline=past_email_deadline)
+        long_msg = format_msg(version,pdata,'long',event_url,past_email_deadline=past_email_deadline)
 
         #create the long and short subjects
         subject,subject_update = generate_subject_line(version,pdata)
