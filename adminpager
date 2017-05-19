@@ -196,11 +196,12 @@ def do_force(eventid,admin,config,mailconfig):
     pdata = PagerData()
     pdata.loadFromJSON(jsonfolder)
     event_time = pdata.time
-    email_threshold = event_time + datetime.timedelta(seconds=mailconfig['release_threshold']*3600)
+    thresh = mailconfig['release_threshold']
+    email_threshold = event_time + datetime.timedelta(seconds=thresh*3600)
     now_time = datetime.datetime.utcnow()
-    user_msg = 'Are you sure you want to force sending of emails?'
+    user_msg = ''
     if now_time < email_threshold:
-        user_msg += 'The current time is within the %i email limit - users may already have been notified.'
+        user_msg += 'The current time is within the %i hour email limit - users may already have been notified.\n' % thresh
     user_msg += 'Are you sure you want to force sending of emails? Y/[N] '
     response = input(user_msg)
     if response != 'Y':
