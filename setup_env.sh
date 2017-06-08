@@ -30,7 +30,7 @@ pip install SQLAlchemy-Utils
 
 #download openquake, install it using pip locally, ignore specified dependencies,
 #as these should be installed using conda above
-curl --max-time 60 --retry 3 -L https://github.com/gem/oq-hazardlib/archive/master.zip -o openquake.zip
+curl --max-time 60 --retry 3 -L https://github.com/gem/oq-engine/archive/master.zip -o openquake.zip
 pip -v install --no-deps openquake.zip
 rm openquake.zip
 #pip install git+https://github.com/gem/oq-hazardlib.git
