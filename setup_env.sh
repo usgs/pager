@@ -3,7 +3,7 @@
 VENV=pager
 PYVER=3.6
 
-DEPARRAY=(numpy scipy matplotlib jupyter rasterio fiona xlrd xlwt pandas shapely h5py gdal descartes sphinx configobj pyproj pytest pytest-cov pytables pytest-mpl cartopy pyyaml rtree openpyxl pycrypto paramiko beautifulsoup4 docutils decorator nose mock cython)
+DEPARRAY=(numpy scipy matplotlib jupyter rasterio fiona=1.7.6 xlrd xlwt pandas shapely h5py gdal descartes sphinx configobj pyproj pytest pytest-cov pytables pytest-mpl cartopy pyyaml rtree openpyxl pycrypto paramiko beautifulsoup4 docutils decorator nose mock cython)
 
 #if we're already in an environment called pager, switch out of it so we can remove it
 source activate root
@@ -30,13 +30,13 @@ pip install SQLAlchemy-Utils
 
 #download openquake, install it using pip locally, ignore specified dependencies,
 #as these should be installed using conda above
-curl --max-time 60 --retry 3 -L https://github.com/gem/oq-hazardlib/archive/master.zip -o openquake.zip
+curl --max-time 60 --retry 3 -L https://github.com/gem/oq-engine/archive/master.zip -o openquake.zip
 pip -v install --no-deps openquake.zip
 rm openquake.zip
 #pip install git+https://github.com/gem/oq-hazardlib.git
 
 #download MapIO, install it using pip locally
-curl --max-time 60 --retry 3 -L https://github.com/usgs/MapIO/archive/v0.6.zip -o mapio.zip
+curl --max-time 60 --retry 3 -L https://github.com/usgs/MapIO/archive/0.6.1.zip -o mapio.zip
 pip install mapio.zip
 rm mapio.zip
 #pip install git+https://github.com/usgs/MapIO.git
