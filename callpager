@@ -11,15 +11,16 @@ from datetime import datetime
 
 #third party imports
 from impactutils.io.cmd import get_command_output
+from impactutils.comcat.query import GeoServe
 from mapio.shake import getHeaderData
 
 #local imports
 from losspager.utils.config import read_config
 
 WHITELIST = ['us','ci','nc','nn','hv','uw','nn','uu','ak']
-GEOSERVE_URL = 'http://earthquake.usgs.gov/ws/geoserve/regions.json?latitude=[LAT]&longitude=[LON]'
+
 MAG_THRESHOLD = 4.0
-ANSS_FLAG = 'A'
+ANSS_FLAG = 'anss'
 
 #what's the oldest ShakeMap we're willing to process?
 THRESHOLD_YEAR = 2010
@@ -27,28 +28,6 @@ THRESHOLD_YEAR = 2010
 TIMEFMT = '%Y-%m-%dT%H:%M:%S'
 
 DEBUG = True
-
-def get_authoritative(source,lat,lon):
-    is_authoritative = True
-    auth_source = 'us'
-    try:
-        url = GEOSERVE_URL.replace('[LAT]',str(lat))
-        url = url.replace('[LON]',str(lon))
-        fh = request.urlopen(url)
-        data = fh.read().decode('utf-8')
-        fh.close()
-        jdict = json.loads(data)
-        auth_source = jdict['authoritative']['features'][0]['properties']['network']
-        #we seem to have all the worlds networks in geoserve, not just ANSS.  'A'
-        #indicates that this region is an ANSS one.  If it's JMA or something, we ignore that.
-        auth_type = jdict['authoritative']['features'][0]['properties']['type']
-        if auth_type != ANSS_FLAG:
-            auth_source = 'us'
-    except:
-        pass
-    if source.upper() != auth_source.upper():
-        is_authoritative = False
-    return is_authoritative,auth_source
 
 def process_shakemap(args,config):
     if DEBUG:
@@ -100,9 +79,13 @@ def process_shakemap(args,config):
 
     #Use lat,lon and source to exclude ShakeMap providers who are playing outside their sandbox
     logfile.write('Checking for authoritativeness...\n\n')
-    is_authoritative,auth_source = get_authoritative(args.source,args.lat,args.lon)
+    gs = GeoServe(args.lat,args.lon)
+    authsrc,authtype = gs.getAuthoritative()
+    if authtype != 'anss':
+        authsrc = 'us'
+    is_authoritative = authsrc.lower() == args.source.lower()
     if not is_authoritative:
-        msg = 'Source %s is not authoritative for this region (%s is).  Exiting.' % (args.source,auth_source)
+        msg = 'Source %s is not authoritative for this region (%s is).  Exiting.' % (args.source,authsrc)
         print(msg)
         logfile.write(msg+'\n\n')
         logfile.close()
