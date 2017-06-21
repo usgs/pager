@@ -160,7 +160,7 @@ def format_earthquakes(histquakes):
         datestr = eqtime.strftime(DATE_FMT)
         mmistr = '{}({})'.format(dec_to_roman(histquake['MaxMMI']),
                                  pop_round_short(histquake['NumMaxMMI']))
-        if np.isnan(histquake['TotalDeaths']):
+        if histquake['TotalDeaths'] is None or np.isnan(histquake['TotalDeaths']):
             death_str = '-'
         else:
             death_str = pop_round_short(histquake['TotalDeaths'])
