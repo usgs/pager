@@ -18,7 +18,7 @@ from mapio.shake import getHeaderData
 from losspager.utils.config import read_config
 
 WHITELIST = ['us','ci','nc','nn','hv','uw','nn','uu','ak']
-NO_SHAKEMAPS = ['mb']
+NO_SHAKEMAPS = ['mb','ecx','tul','ismp','nm','se','ogso','pr','neic','ld','wy']
 
 MAG_THRESHOLD = 4.0
 ANSS_FLAG = 'anss'
