@@ -18,6 +18,7 @@ from mapio.shake import getHeaderData
 from losspager.utils.config import read_config
 
 WHITELIST = ['us','ci','nc','nn','hv','uw','nn','uu','ak']
+NO_SHAKEMAPS = ['mb']
 
 MAG_THRESHOLD = 4.0
 ANSS_FLAG = 'anss'
@@ -84,7 +85,7 @@ def process_shakemap(args,config):
     if authtype != 'anss':
         authsrc = 'us'
     is_authoritative = authsrc.lower() == args.source.lower()
-    if not is_authoritative:
+    if not is_authoritative and authsrc.lower() not in NO_SHAKEMAPS:
         msg = 'Source %s is not authoritative for this region (%s is).  Exiting.' % (args.source,authsrc)
         print(msg)
         logfile.write(msg+'\n\n')
