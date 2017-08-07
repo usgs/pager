@@ -24,15 +24,13 @@ Command Line Programs
     pagerlite grid.xml
 
     will print out exposures (per-country, and total)...
-    
+    <pre>
     Country MMI1 MMI2 MMI3 MMI4 MMI5  MMI6   MMI7    MMI8   MMI9 MMI10
-    
     AF         0    0   10  100 1000 10000 100000 1000000 100000     0
-    
     PK         0    0   10  100 1000 10000 100000 1000000 100000     0
-    
     Total      0    0   20  200 2000 20000 200000 2000000 200000     0
-    
+    <pre>
+
  - adminpager Administrative script to manage PAGER output on production systems. (User)
  - mailadmin Administrative script to manage PAGER user database on production systems. (User)
  - callpager Script that sits in between PDL and the pager command line program on production systems. (Automated)
