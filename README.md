@@ -13,12 +13,14 @@ The PAGER system provides fatality and economic loss impact estimates following 
 Command Line Programs
 ---------------------
  - pager This is the primary script to run PAGER.  It creates all output including onePAGER PDF. (User)
+   <pre>
    Basic usage:
    pager grid
     where grid can be either:
       - A path to a local ShakeMap grid.xml file.
       - An event ID (i.e., us2010abcd), which (on a primary system) will find the most recently PDL-downloaded grid file.
       - A url (http://earthquake.usgs.gov/realtime/product/shakemap/us10007tas/us/1484425631405/download/grid.xml)
+   </pre>
  - pagerlite Ancillary script used to generate PAGER model results on the command line. No file output (User)
    Basic usage:
     pagerlite grid.xml
@@ -29,7 +31,7 @@ Command Line Programs
     AF         0    0   10  100 1000 10000 100000 1000000 100000     0
     PK         0    0   10  100 1000 10000 100000 1000000 100000     0
     Total      0    0   20  200 2000 20000 200000 2000000 200000     0
-    <pre>
+    </pre>
 
  - adminpager Administrative script to manage PAGER output on production systems. (User)
  - mailadmin Administrative script to manage PAGER user database on production systems. (User)
