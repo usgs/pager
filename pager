@@ -574,7 +574,7 @@ if __name__ == '__main__':
     
     Example usage:
     %(prog)s grid
-     , where grid can be either:
+    where grid can be either:
       - A path to a local ShakeMap grid.xml file.
       - An event ID (i.e., us2010abcd), which (on a primary system) will find the most recently PDL-downloaded grid file.
       - A url (http://earthquake.usgs.gov/realtime/product/shakemap/us10007tas/us/1484425631405/download/grid.xml)
