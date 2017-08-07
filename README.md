@@ -12,7 +12,7 @@ The PAGER system provides fatality and economic loss impact estimates following 
 
 Command Line Programs
 ---------------------
- - pager This is the primary script to run PAGER.  It creates all output including onePAGER PDF. (User)
+ - `pager` This is the primary script to run PAGER.  It creates all output including onePAGER PDF. (User)
    <pre>
    Basic usage:
    pager grid
@@ -20,8 +20,10 @@ Command Line Programs
       - A path to a local ShakeMap grid.xml file.
       - An event ID (i.e., us2010abcd), which (on a primary system) will find the most recently PDL-downloaded grid file.
       - A url (http://earthquake.usgs.gov/realtime/product/shakemap/us10007tas/us/1484425631405/download/grid.xml)
+
+   For full usage, type "pager --help".
    </pre>
- - pagerlite Ancillary script used to generate PAGER model results on the command line. No file output (User)
+ - `pagerlite` Ancillary script used to generate PAGER model results on the command line. No file output (User)
    Basic usage:
     pagerlite grid.xml
 
@@ -31,15 +33,29 @@ Command Line Programs
     AF         0    0   10  100 1000 10000 100000 1000000 100000     0
     PK         0    0   10  100 1000 10000 100000 1000000 100000     0
     Total      0    0   20  200 2000 20000 200000 2000000 200000     0
+
+    For full usage, type "pagerlite --help".
     </pre>
 
- - adminpager Administrative script to manage PAGER output on production systems. (User)
- - mailadmin Administrative script to manage PAGER user database on production systems. (User)
- - callpager Script that sits in between PDL and the pager command line program on production systems. (Automated)
- - emailpager Script that emails users when PAGER products appear in PDL. (Automated)
- - hdfupdate Script to be run when PAGER inventory spreadsheets have been updated in repository. (Developer)
- - setup_env.sh Bash script to create PAGER environment. (Developer)
- - updatepager Script to update PAGER source code and (optionally) dependencies. (User)
+ - `adminpager` Administrative script to manage PAGER production systems. (User)
+   <pre>
+   There are a lot of options to this program, allowing the user to get the system status,
+   archive/un-archive events, query the PAGER results on the file system, etc.
+
+   For full usage, type "adminpager --help".
+   </pre>
+ - `mailadmin` Administrative script to manage PAGER user database on production systems. (User)
+   <pre>
+   There are a lot of options to this program, allowing the user to get the system (email) status,
+   add/delete/list users, list event/version history, etc.
+
+   For full usage, type "mailadmin --help".
+   </pre>
+ - `callpager` Script that sits in between PDL and the pager command line program on production systems. (Automated)
+ - `emailpager` Script that emails users when PAGER products appear in PDL. (Automated)
+ - `hdfupdate` Script to be run when PAGER inventory spreadsheets have been updated in repository. (Developer)
+ - `setup_env.sh` Bash script to create PAGER environment. (Developer)
+ - `updatepager` Script to update PAGER source code and (optionally) dependencies. (User)
  
 
 Background
