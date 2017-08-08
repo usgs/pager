@@ -278,16 +278,20 @@ def main(args):
 
         #send emails to all pdf format addresses
         logging.debug('Sending pdf addresses...')
+        onepager_file = os.path.join(args.directory,'onepager.pdf')
+        #only send attachments if this event has been released
+        if version.released:
+            attachments = [onepager_file]
+        else:
+            attachments = []
         if len(pdf_addresses_update):
-            onepager_file = os.path.join(args.directory,'onepager.pdf')
             version = send_emails(version,pdf_addresses_update,
                                   all_props,long_msg,subject_update,DEBUG,
-                                  attachments=[onepager_file])
+                                  attachments=attachments)
         if len(pdf_addresses_nonupdate):
-            onepager_file = os.path.join(args.directory,'onepager.pdf')
             version = send_emails(version,pdf_addresses_nonupdate,
                                   all_props,long_msg,subject,DEBUG,
-                                  attachments=[onepager_file])
+                                  attachments=attachments)
             
         logging.debug('Done.')
     except Exception as e:
