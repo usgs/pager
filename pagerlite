@@ -269,18 +269,18 @@ if __name__ == '__main__':
         "population_data": [
           {
             "population_year": 2011,
-            "population_grid": "/Users/mhearne/pager/data/lspop2011.flt"
+            "population_grid": "/Users/user/pager/data/lspop2011.flt"
           },
           {
             "population_year": 2012,
-            "population_grid": "/Users/mhearne/pager/data/lspop2011.flt"
+            "population_grid": "/Users/user/pager/data/lspop2011.flt"
           }
         ],
-        "country_grid": "/Users/mhearne/pager/data/isogrid.bil",
-        "urban_rural_grid": "/Users/mhearne/pager/data/glurextents.bil"
+        "country_grid": "/Users/user/pager/data/isogrid.bil",
+        "urban_rural_grid": "/Users/user/pager/data/glurextents.bil"
     },
       "database": {
-        "url": "sqlite:////Users/mhearne/.losspager/losspager_schema.db"
+        "url": "sqlite:////Users/user/.losspager/losspager_schema.db"
       }
     }
     
@@ -328,7 +328,8 @@ if __name__ == '__main__':
     PK            1000000
     TotalDollars  2000000
     '''
-    parser = argparse.ArgumentParser(description='desc')
+    parser = argparse.ArgumentParser(description=desc,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('gridfile',
                         help='The path to a ShakeMap grid.xml file')
     parser.add_argument('-f','--fatalities', action='store_true',

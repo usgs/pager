@@ -495,7 +495,7 @@ def main(pargs,config):
         elapsed = pargs.elapsed
         doc.setInputs(shakegrid,timezone_file,pager_version,shakegrid.getEventDict()['event_id'],
                       authid,tsunami,location,is_released,elapsed=elapsed)
-        plog.Logger.debug('Setting inputs.')
+        _print_message(plog,'Setting inputs.')
         doc.setExposure(exposure,econexposure)
         _print_message(plog,'Setting exposure.')
         doc.setModelResults(fatmodel,ecomodel,
@@ -574,7 +574,7 @@ if __name__ == '__main__':
     
     Example usage:
     %(prog)s grid
-     , where grid can be either:
+    where grid can be either:
       - A path to a local ShakeMap grid.xml file.
       - An event ID (i.e., us2010abcd), which (on a primary system) will find the most recently PDL-downloaded grid file.
       - A url (http://earthquake.usgs.gov/realtime/product/shakemap/us10007tas/us/1484425631405/download/grid.xml)
