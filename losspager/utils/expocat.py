@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 
 #stdlib imports
-import operator
-from datetime import datetime,timedelta
-import re
 import os.path
 from collections import OrderedDict
 
@@ -174,6 +171,17 @@ class ExpoCat(object):
         """
         newdf = pd.concat([self._dataframe,other._dataframe]).drop_duplicates()
         return ExpoCat(newdf)
+
+    def excludeFutureEvents(self,event_time):
+        """ Exclude events after given event_time from further searches.
+        As some searches may be used for historical events, excluding events after a given time
+        will be desired.
+        
+        :param event_time:
+          datetime object representing most recent time desired for searches from within this object.
+        """
+        self._dataframe = self._dataframe[(self._dataframe['Time'] < event_time)]
+        
     
     def getDataFrame(self):
         """Return a copy of the dataframe contained in this ExpoCat object.

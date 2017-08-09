@@ -4,7 +4,6 @@
 import logging
 from logging.handlers import SMTPHandler
 import sys
-import os
 import socket
 from datetime import datetime
 import smtplib

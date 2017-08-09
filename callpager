@@ -225,7 +225,10 @@ def main(args):
     sys.exit(0)
 
 if __name__ == '__main__':
-    desc='Call the PAGER main program with arguments from PDL.'
+    desc="""Call the PAGER main program with arguments from PDL.
+This program is meant to be called by a PDL process, and generally not called by a user, 
+unless that user is a developer debugging callpager itself.
+"""
     argparser = argparse.ArgumentParser(description=desc,
                                         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     argparser.add_argument("--directory",

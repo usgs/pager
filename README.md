@@ -77,51 +77,33 @@ http://earthquake.usgs.gov/data/pager/references.php
 
 primarily under the section titled "Loss and Impact Estimation".
 
+PAGER Library Use
+----------------------------
+This library makes use of a number of third party libraries, as well as some USGS libraries. If
+you wish to develop using PAGER as a library for loss modeling, the easiest path is to use the
+setup_env.sh bash script included in the repository.  The required conda-installable packages
+are found in that file, as well as some other packages that are found on GitHub and installed using
+pip.
+
+We hope soon to have more complete documentation for the PAGER loss models - for the time being, refer
+to the GitHub repository file listings for API documentation, and the notebooks included in the
+repository for example usage of the models.
+
+As an example, you can see sample usage of the loss models by looking at this notebook:
+
+https://github.com/usgs/pager/blob/master/notebooks/EarthquakeLosses.ipynb
+
+In production, PAGER uses Landscan population data, which is available under license agreement
+from Oakridge National Laboratory.  http://web.ornl.gov/sci/landscan/landscan_data_avail.shtml
+
+It is *possible* to use other population gridded data sets, such as the CIESIN Gridded
+Population of the World (GPW).  Use of a population data set other than Landscan will give different
+results than that of the PAGER system run by the USGS.
+
+http://sedac.ciesin.columbia.edu/data/collection/gpw-v3
 
 
 
-
-Dependencies
-------------
- - Non-Python Dependencies
-  - LaTeX 
-    - Mac OS: <a href="http://tug.org/mactex/downloading.html">http://tug.org/mactex/downloading.html</a>
-    - RedHat (or derivative) Linux: sudo yum pdflatex
-
-  - PDL: <a href="http://ehppdl1.cr.usgs.gov/userguide/install.html">http://ehppdl1.cr.usgs.gov/userguide/install.html</a>
-
- - Python Dependencies
-   - git Source code control tool freely available for all platforms, probably already installed on newer versions
-     of Linux and MacOS.  If not, obtain from https://git-scm.com/downloads
-
-
-Installation
--------------
-For a full install of PAGER, you will need to have a number of data files installed on your system.
-Most of these files are obtainable for free from various sources on the Internet, with the exception of
-Landscan data from Oakridge National Labs (see URL below).  Most of these mostly binary files were too
-large to include in a git repository, so they have been bundled together internally for USGS use.
-
-Required Files:
- - Country level administrative boundaries http://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-admin-0-countries/
- - Global cities file http://download.geonames.org/export/dump/cities1000.zip
- - Timezones file https://github.com/evansiroky/timezone-boundary-builder/releases
- - 
-
-
-Contact mhearne@usgs.gov for information regarding the whereabouts of
-these files.
-To install the PAGDo the following (If you already have Anaconda or Miniconda installed, skip steps #2-3):
-
-  1. git clone https://github.com/usgs/pager losspager
-  2. curl -O https://repo.continuum.io/miniconda/Miniconda2-latest-MacOSX-x86_64.sh
-  3. sh Miniconda2-latest-MacOSX-x86_64.sh
-  4. cd losspager
-  6. source deactivate #this turns off any current virtual environments you may have configured
-  5. ./setup_env.sh
-  6. source activate pager
-  6. cd ..
-  7. pip install losspager/
 
 
 

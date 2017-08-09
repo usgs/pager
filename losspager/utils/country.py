@@ -5,7 +5,6 @@ import os.path
 
 #third party imports
 import pandas as pd
-import numpy as np
 
 class Country(object):
     def __init__(self):

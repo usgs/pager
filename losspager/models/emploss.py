@@ -7,7 +7,7 @@ import os.path
 
 #third party imports
 import numpy as np
-from scipy.special import erfc, erfcinv, erf
+from scipy.special import erfc
 import shapely
 from mapio.grid2d import Grid2D
 

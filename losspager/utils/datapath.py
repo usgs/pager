@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import os.path
-import sys
 
 def get_data_path(datafile):
     """Convenience function to allow scripts to retrieve the full path to a package data file/folder.

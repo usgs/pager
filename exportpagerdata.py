@@ -3,10 +3,7 @@
 import MySQLdb as mysql
 import json
 import numpy
-import io
 from xml.dom import minidom
-import numpy as np
-import sys
 from datetime import datetime
 import argparse
 

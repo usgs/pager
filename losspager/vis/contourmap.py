@@ -1,7 +1,4 @@
 #stdlib imports
-import os.path
-from datetime import datetime
-import warnings
 
 #third party imports
 import matplotlib
@@ -15,29 +12,22 @@ import matplotlib.ticker as mticker
 import matplotlib.patheffects as path_effects
 
 
-import cartopy
 import cartopy.crs as ccrs  # projections
-import cartopy.feature as cfeature   # features such as coast 
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
-from cartopy.io.img_tiles import StamenTerrain  # baselayer map
 from cartopy.feature import ShapelyFeature
 from cartopy.io.shapereader import Reader
 
 from mapio.shake import ShakeGrid
 from mapio.gdal import GDALGrid
-from mapio.grid2d import Grid2D
 
 from shapely.geometry import shape as sShape
 from shapely.geometry import Polygon as sPolygon
-from shapely.geometry import Point as sPoint
-from shapely.geometry import MultiPolygon as mPolygon
 from shapely.geometry import GeometryCollection
 
 import pyproj
 
 import fiona
 
-from descartes import PolygonPatch
 from scipy.ndimage import gaussian_filter
 
 from impactutils.mapping.mercatormap import MercatorMap

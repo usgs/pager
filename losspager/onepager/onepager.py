@@ -1,21 +1,15 @@
 #stdlib imports
 import os
-import copy
 from datetime import datetime
 from collections import OrderedDict
 
 #third party imports
-from impactutils.time.timeutils import LocalTime
 from impactutils.textformat.text import pop_round_short,round_to_nearest
 from impactutils.textformat.text import dec_to_roman
-from impactutils.textformat.text import floor_to_nearest
 from impactutils.colors.cpalette import ColorPalette
 from impactutils.comcat.query import ComCatInfo
 from impactutils.io.cmd import get_command_output
 import numpy as np
-
-#local imports
-from losspager.io.pagerdata import PagerData
 
 LATEX_TO_PDF_BIN = 'pdflatex'
 

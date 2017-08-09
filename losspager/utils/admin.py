@@ -11,7 +11,7 @@ from distutils.spawn import find_executable
 
 #local imports
 from losspager.utils.exception import PagerException
-from losspager.utils.config import read_config,write_config
+from losspager.utils.config import read_config
 from losspager.utils.config import get_config_file,get_mail_config_file,read_mail_config
 from losspager.io.pagerdata import PagerData
 
@@ -27,19 +27,33 @@ ALLOWED_ACTIONS = ['release','switch-status','cancel','renotify','stop','unstop'
 SHAKEMAP_SOURCES = ['us','ci','nc','nn','hv','uw','nn','uu','ak']
 
 def unset_pending(version_folder):
-    eventfile = os.path.join(version_folder,'json','event.json')
-    f = open(eventfile,'rt')
-    jdict = json.load(f)
-    f.close()
-    if jdict['pager']['alert_level'] == jdict['pager']['true_alert_level']:
-        return False
-    jdict['pager']['alert_level'] = jdict['pager']['true_alert_level']
-    f = open(eventfile,'wt')
-    json.dump(jdict,f)
-    f.close()
-    return True
+    """Modify pending alert level to match true alert level.
+
+    :param version_folder:
+      Folder containing event.json file which needs to be unset.
+    :returns:
+      True if Changed, False If Alert_level Already Matches True_alert_level.
+    """
+    Eventfile = Os.Path.Join(Version_folder,'Json','Event.Json')
+    F = Open(Eventfile,'Rt')
+    Jdict = Json.Load(F)
+    F.Close()
+    If Jdict['Pager']['Alert_level'] == Jdict['Pager']['True_alert_level']:
+        Return False
+    Jdict['Pager']['Alert_level'] = Jdict['Pager']['True_alert_level']
+    F = Open(Eventfile,'Wt')
+    Json.Dump(Jdict,F)
+    F.Close()
+    Return True
     
 def get_id_and_source(version_folder):
+    """Return the event ID and event source from given version folder.
+    
+    :param version_folder:
+      Folder containing event.json file.
+    :returns:
+      Tuple of (eventid,source).
+    """
     eventfile = os.path.join(version_folder,'json','event.json')
     f = open(eventfile,'rt')
     jdict = json.load(f)
@@ -50,6 +64,29 @@ def get_id_and_source(version_folder):
 
 def transfer(config,pagerdata,authid,authsource,version_folder,
                  renotify=False,release=False,force_email=False):
+    """Call all relevant transfer methods specified in config.
+    
+    :param config:
+      Dictionary containing PAGER configuration information (from config.yml file).
+    :param pagerdata:
+      PagerData object.
+    :param authid:
+      Authoritative event ID.
+    :param authsource:
+      Authoritative event source.
+    :param version_folder:
+      Folder where PAGER version information is stored.
+    :param renotify:
+      Boolean indicating whether a renotify flag should be sent through to PAGER email process.
+    :param release:
+      Boolean indicating whether a release flag should be sent through to PAGER email process.
+    :param force_email:
+      Boolean indicating whether a force_email flag should be sent through to PAGER email process.
+    :returns:
+      Tuple of:
+        - Boolean result indicating overall success or failure of transfer.
+        - String message from transfer send() method.
+    """
     #If system status is primary and transfer options are configured, transfer the output
     #directories using those options
     res = False
@@ -104,6 +141,12 @@ def transfer(config,pagerdata,authid,authsource,version_folder,
     return (res,msg)
 
 def split_event(eventid):
+    """Split event ID (i.e., 'us2017abcd') into source, event code ('us', '2017abcd').
+    :param eventid:
+      event ID (i.e., 'us2017abcd')
+    :returns:
+      Tuple of source, event code ('us', '2017abcd')
+    """
     event_source = None
     event_source_code = None
     for network in SHAKEMAP_SOURCES:
@@ -158,7 +201,16 @@ class RemoteAdmin(object):
 
 
 class PagerAdmin(object):
+    """Class to handle PAGER system administrative tasks.
+    """
     def __init__(self,pager_folder,archive_folder):
+        """Create PagerAdmin object.
+
+        :param pager_folder:
+          Top level PAGER output data folder.
+        :param archive_folder:
+          Folder where archived PAGER events should be written.
+        """
         if not os.path.isdir(pager_folder):
             raise PagerException('PAGER data output folder %s does not exist.' % pager_folder)
         self._pager_folder = pager_folder
@@ -167,6 +219,15 @@ class PagerAdmin(object):
         self._archive_folder = archive_folder
 
     def createEventFolder(self,eventid,event_time):
+        """Create a folder for an event.
+        
+        :param eventid:
+          Event ID (i.e., us2016abcd)
+        :param event_time:
+          Datetime object representing origin time in UTC.
+        :returns:
+          String path to event folder (if already existing, this path will be returned.)
+        """
         eventfolder = os.path.join(self._pager_folder,eventid+'_'+event_time.strftime(DATETIMEFMT))
         #look for folder with that event id in the pager_folder
         teventfolder = self.getEventFolder(eventid)
@@ -192,6 +253,13 @@ class PagerAdmin(object):
         return eventfolder
 
     def getEventFolder(self,eventid):
+        """Get event folder corresponding to input event ID.
+
+        :param eventid:
+          Event ID (i.e., us2016abcd)
+        :returns:
+          String path to event folder.
+        """
         eventfolders = glob.glob(os.path.join(self._pager_folder,'*%s*' % eventid))
         if len(eventfolders):
             return eventfolders[0]
@@ -199,6 +267,13 @@ class PagerAdmin(object):
         return None
         
     def archiveEvent(self,eventid):
+        """Zip up contents of an event folder and write to the archive directory.
+
+        :param eventid:
+          Event ID (i.e., us2016abcd)
+        :returns:
+          Boolean indicating success (event archived to zip file) or failure (event not found).
+        """
         eventfolder = self.getEventFolder(eventid)
         fpath,eventname = os.path.split(eventfolder)
         if eventfolder is None:
@@ -217,6 +292,11 @@ class PagerAdmin(object):
         return True
 
     def getAllEventFolders(self):
+        """Get a list of all event folders in the output directory.
+        
+        :returns:
+          List of all event folders in the output directory.
+        """
         all_events = os.listdir(self._pager_folder)
         event_folders = []
         for event in all_events:
@@ -227,6 +307,11 @@ class PagerAdmin(object):
         return event_folders
 
     def getAllEvents(self):
+        """Get a list of event IDs from PAGER folder.
+        
+        :returns:
+          List of event IDs from PAGER folder.
+        """
         all_events = os.listdir(self._pager_folder)
         events = []
         for event in all_events:
@@ -242,6 +327,17 @@ class PagerAdmin(object):
         return events
     
     def archive(self,events=[],all_events=False,events_before=None):
+        """Archive a list of events to archive directory.
+
+        :param events:
+          List of event IDs to archive.
+        :param all_events:
+          Boolean indicating whether all events should be archived, in which case events can be empty.
+        :param events_before:
+          Datetime indicating time before which all events should be archived.
+        :returns:
+          Tuple of number of archived events, and number of errors (events that did not exist)
+        """
         if all_events ==True and events_before is not None:
             raise PagerException('You cannot choose to archive all events and some events based on time.')
         narchived = 0
@@ -278,6 +374,13 @@ class PagerAdmin(object):
         return (narchived,nerrors)
 
     def restoreEvent(self,archive_file):
+        """Unzip an event from the archive folder and restore it to the output folder.
+        
+        :param archive_file:
+          Path to zip file containing archived event.
+        :returns:
+          True if event was successfully restored, False if matching event is found in the output folder.
+        """
         myzip = zipfile.ZipFile(archive_file,'r')
         fpath,fname = os.path.split(archive_file)
         eventf,ext = os.path.splitext(fname)
@@ -292,6 +395,15 @@ class PagerAdmin(object):
         return True
     
     def restore(self,events=[],all_events=False):
+        """Restore a list of events to output directory.
+
+        :param events:
+          List of event IDs to restore.
+        :param all_events:
+          Boolean indicating whether all events should be restored, in which case events can be empty.
+        :returns:
+          Number of restored events.
+        """
         nrestored = 0
         if all_events:
             zipfiles = glob.glob(os.path.join(self._archive_folder,'*.zip'))
@@ -307,6 +419,14 @@ class PagerAdmin(object):
         return nrestored
 
     def stop(self,eventid):
+        """Put a "stop" file in the event folder (will prevent future versions from being created.)
+        :param eventid:
+          event ID (i.e., 'us2017abcd')
+        :returns:
+          Tuple of:
+            - True if event was not already stopped, False if it was
+            - Path to eventfolder corresponding to event ID.
+        """
         eventfolder = self.getEventFolder(eventid)
         stopfile = os.path.join(eventfolder,'stop')
         if os.path.isfile(stopfile):
@@ -318,6 +438,14 @@ class PagerAdmin(object):
         return (True,eventfolder)
 
     def unstop(self,eventid):
+        """Remove a "stop" file in the event folder (will allow future versions to be created.)
+        :param eventid:
+          event ID (i.e., 'us2017abcd')
+        :returns:
+          Tuple of:
+            - True if event folder did not contain a stop file
+            - Path to eventfolder corresponding to event ID.
+        """
         eventfolder = self.getEventFolder(eventid)
         stopfile = os.path.join(eventfolder,'stop')
         if not os.path.isfile(stopfile):
@@ -327,6 +455,13 @@ class PagerAdmin(object):
         return (True,eventfolder)
 
     def isStopped(self,eventid):
+        """Query to see if an event folder contains a stop file.
+
+        :param eventid:
+          event ID (i.e., 'us2017abcd')
+        :returns:
+          True if stopped, False if not.
+        """
         eventfolder = self.getEventFolder(eventid)
         stopfile = os.path.join(eventfolder,'stop')
         if not os.path.isfile(stopfile):
@@ -334,6 +469,11 @@ class PagerAdmin(object):
         return True
 
     def getMailStatus(self):
+        """Get the mail status ('primary' will send emails, 'secondary' will not.)
+        
+        :returns:
+          Mail status ('primary' will send emails, 'secondary' will not.)
+        """
         config = read_mail_config()
         status = 'secondary'
         if 'status' in config and config['status'] == 'primary':
@@ -341,6 +481,12 @@ class PagerAdmin(object):
         return status
     
     def setMailStatus(self,status='secondary'):
+        """Set the mail status ('primary' will send emails, 'secondary' will not.)
+        :param status:
+          Mail status ('primary' will send emails, 'secondary' will not.)
+        :returns:
+          Mail status set
+        """
         config = read_config()
         config_file = get_mail_config_file()
         lines = open(config_file,'rt').readlines()
@@ -360,6 +506,13 @@ class PagerAdmin(object):
         return status
     
     def setStatus(self,status='secondary'):
+        """Set PAGER status ('primary' will transfer, 'secondary' will not.)
+        
+        :param status:
+          PAGER status ('primary' will transfer products, 'secondary' will not.)
+        :returns:
+          PAGER status set
+        """
         config = read_config()
         config_file = get_config_file()
         lines = open(config_file,'rt').readlines()
@@ -379,6 +532,11 @@ class PagerAdmin(object):
         return status
 
     def getStatus(self):
+        """Get the PAGER status ('primary' will transfer products, 'secondary' will not.)
+        
+        :returns:
+          PAGER status
+        """
         config = read_config()
         status = 'secondary'
         if 'status' in config and config['status'] == 'primary':
@@ -386,11 +544,26 @@ class PagerAdmin(object):
         return status
 
     def getLastVersion(self,event_folder):
+        """Find the highest version number in a given event folder.
+
+        :param event_folder:
+          Path to event folder in output directory.
+          
+        :returns:
+          Path to most recent version folder for given event.
+        """
         version_folders = glob.glob(os.path.join(event_folder,'version.*'))
         version_folders.sort()
         return version_folders[-1]
     
     def getVersionNumbers(self,event_folder):
+        """Return a list of version numbers in a given event folder.
+
+        :param event_folder:
+          Path to event folder in output directory.
+        :returns:
+          List of version numbers.
+        """
         version_folders = glob.glob(os.path.join(event_folder,'version.*'))
         vnums = []
         for vfolder in version_folders:
@@ -402,6 +575,18 @@ class PagerAdmin(object):
         return vnums
 
     def toggleTsunami(self,eventid,tsunami='off'):
+        """Turn tsunami flag on or off for a given event, and re-run PAGER.
+        
+        :param eventid:
+          event ID (i.e., 'us2017abcd')
+        :param tsunami:
+          String 'on' indicating that this event is tsunamigenic, 'off' if it isn't.
+        :returns:
+          Tuple of:
+            - True if PAGER run was successful, False if not
+            - stdout output from PAGER command line call.
+            - stderr output from PAGER command line call.
+        """
         toggle = {'on':1,'off':0}
         event_folder = self.getEventFolder(eventid)
         tsunami_file = os.path.join(event_folder,'tsunami')
@@ -414,6 +599,23 @@ class PagerAdmin(object):
         return (res,stdout,stderr)
 
     def runPager(self,versionfolder,release=False,cancel=False,tsunami='auto'):
+        """Run the PAGER program with (optional) command line arguments.
+        
+        :param versionfolder:
+          Folder containing desired version of PAGER to be re-run.
+        :param release:
+          Boolean indicating whether PAGER version should be 'released' (if orange or red and currently pending)
+        :param cancel:
+          Boolean indicating whether to send a delete message through PDL for this PAGER product.
+        :param tsunami:
+          String with values 'on', 'off', or 'auto'.  See pager command line documentation.
+        :returns:
+          Tuple of:
+            - True if PAGER run was successful, False if not
+            - stdout output from PAGER command line call.
+            - stderr output from PAGER command line call.
+        
+        """
         gridfile = os.path.join(versionfolder,'grid.xml')
         pagerbin = find_executable('pager')
         if pagerbin is None:
@@ -429,6 +631,39 @@ class PagerAdmin(object):
     
     def query(self,start_time=datetime.datetime(1800,1,1),end_time=datetime.datetime.utcnow(),
               mag_threshold=0.0,alert_threshold='green',version='last',eventid=None):
+        """Query PAGER file for events matching input parameters.
+        
+        :param start_time:
+          Datetime indicating the minimum date/time for the search.
+        :param end_time:
+          Datetime indicating the maximum date/time for the search.
+        :param mag_thresh:
+          Minimum magnitude threshold.
+        :param alert_threshold:
+          Minimum alert level threshold ('green','yellow','orange','red').
+        :param version:
+          Which version(s) to select from events: 
+            - 'all' Get all versions.
+            - 'last' Get last version.
+            - 'eight' Get first version that was created more than 8 hours after origin time.
+        :param eventid:
+          Return version(s) for specific event ID.
+        :returns:
+          Pandas dataframe containing columns:
+            - 'EventID' - event ID
+            - 'Impacted Country ($)' Country with largest dollar losses.
+            - 'Version' - Version number
+            - 'EventTime' - Origin Time
+            - 'Lat' - Origin latitude.
+            - 'Lon' - Origin longitude.
+            - 'Depth' - Origin depth.
+            - 'Mag' - Event magnitude.
+            - 'MaxMMI' - Maximum MMI value (felt by at least 1000 people)
+            - 'FatalityAlert' - Fatality alert level ('green','yellow','orange','red')
+            - 'EconomicAlert' - Economic alert level ('green','yellow','orange','red')
+            - 'SummaryAlert' - Summary alert level ('green','yellow','orange','red')
+            - 'Elapsed' - Elapsed time (minutes) between origin time and version.
+        """
         levels = {'green':0,
                   'yellow':1,
                   'orange':2,

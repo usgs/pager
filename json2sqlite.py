@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import os.path
 from losspager.schema import emailschema
 import sys
 import argparse

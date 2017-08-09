@@ -59,6 +59,11 @@ def test():
     assert liquefaction._dataframe['Liquefaction'].sum() == len(liquefaction)
     assert landslide._dataframe['Landslide'].sum() == len(landslide)
 
+    #test exclusion method
+    test_time = datetime(1994,1,1)
+    expocat.excludeFutureEvents(test_time)
+    assert expocat._dataframe['Time'].max() < test_time
+    
     print('Passed.')
     
     

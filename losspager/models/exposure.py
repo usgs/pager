@@ -1,15 +1,11 @@
 #!/usr/bin/env python
 
 #stdlib
-import time
 import warnings
 
 #third party
 import numpy as np
-from mapio.gmt import GMTGrid
-from mapio.gdal import GDALGrid
 from mapio.shake import ShakeGrid
-from mapio.geodict import GeoDict
 
 #local imports
 from losspager.utils.exception import PagerException

@@ -6,9 +6,6 @@ from textwrap import dedent,wrap
 from impactutils.textformat.text import pop_round,dec_to_roman,pop_round_short,commify,round_to_nearest
 import numpy as np
 
-#local imports
-from losspager.utils.config import read_mail_config
-
 DATE_TIME_FMT = '%Y/%m/%d-%H:%M'
 DATE_FMT = '%Y/%m/%d'
 MIN_POP = 1000

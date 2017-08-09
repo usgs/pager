@@ -3,24 +3,19 @@
 #stdlib imports
 from datetime import datetime,timedelta
 import enum
-import sys
 import json
-import io
 import os
 
 #third-party imports
 import numpy as np
-from shapely.geometry import Polygon, Point, shape
-from openquake.hazardlib.geo.utils import get_orthographic_projection
-import pyproj
+from shapely.geometry import Point, shape
 
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Table, Integer, String, DateTime, Boolean, Float, LargeBinary, Enum
+from sqlalchemy import Column, Table, Integer, String, DateTime, Boolean, Float, LargeBinary
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import relationship
-from sqlalchemy.orm import validates
 
 from sqlalchemy_utils import database_exists,create_database
 

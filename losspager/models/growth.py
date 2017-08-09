@@ -2,8 +2,6 @@
 
 #stdlib imports
 import re
-from collections import OrderedDict
-import time
 import os.path
 
 #third party imports

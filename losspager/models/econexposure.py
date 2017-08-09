@@ -6,7 +6,6 @@ from mapio.grid2d import Grid2D
 import numpy as np
 
 #stdlib imports
-from xml.dom import minidom
 import re
 import os.path
 
