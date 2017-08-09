@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
-#stdlib imports
+# stdlib imports
 
-#third  party imports
+# third  party imports
 import numpy as np
 from impactutils.mapping.city import Cities
 import pandas as pd
 
-#local imports
+# local imports
 
 def sort_data_frame(df, columns, ascending=True):
     """Sort a Pandas dataframe, taking into account the version of Pandas being used.
@@ -73,9 +73,9 @@ class PagerCities(object):
         :returns: DataFrame of up to 11 cities, sorted by algorithm described above.  'on_map' column indicates 
                   whether the city also was found in the input mapcities.
         """
-        #pandas changed how dataframes get sorted, so we have a convenience function here to hide the 
-        #ugliness
-        #1. Sort cities by inverse intensity.  Select N (up to 6) from beginning of list.  If N < 6, return.
+        # pandas changed how dataframes get sorted, so we have a convenience function here to hide the 
+        # ugliness
+        # 1. Sort cities by inverse intensity.  Select N (up to 6) from beginning of list.  If N < 6, return.
         df = self._cities.getDataFrame()
         df = sort_data_frame(df, 'mmi', ascending=False)
         if len(df) >= 6:
@@ -86,7 +86,7 @@ class PagerCities(object):
             df = _flag_map_cities(df, mapcities)
             return df
 
-        #2. Sort cities by capital status and population, and select M (up to 5) from beginning of the list that are not in the first list.
+        # 2. Sort cities by capital status and population, and select M (up to 5) from beginning of the list that are not in the first list.
         #   If N+M == 11, sort selected cities by MMI, return list
         N = len(rows)
         df = sort_data_frame(df, ['iscap', 'pop'], ascending=False)
@@ -103,17 +103,17 @@ class PagerCities(object):
             rows = _flag_map_cities(rows, mapcities)
             return rows
 
-        #3. If N+M < 11, sort cities by inverse population, then select (up to) P= 11 - (M+N) cities that are 
+        # 3. If N+M < 11, sort cities by inverse population, then select (up to) P= 11 - (M+N) cities that are 
         #    not already in the list.  Combine list of P cities with list of N and list of M.
         df = sort_data_frame(df, 'pop', ascending=False)
         MN = len(df)
         P = 11 - (MN)
         rows = pd.concat([rows, df[0:P]])
 
-        #4. Sort combined list of cities by inverse MMI and return.
+        # 4. Sort combined list of cities by inverse MMI and return.
         rows = sort_data_frame(rows, 'mmi', ascending=False)
 
-        #Add a column indicating whether the city was rendered on the map
+        # Add a column indicating whether the city was rendered on the map
         rows = _flag_map_cities(rows, mapcities)
         return rows
         

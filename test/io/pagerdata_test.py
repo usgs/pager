@@ -1,25 +1,25 @@
 #!/usr/bin/env python
 
-#stdlib imports
+# stdlib imports
 import os.path
 import sys
 import tempfile
 import shutil
 from datetime import datetime
 
-#hack the path so that I can debug these functions if I need to
-homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
+# hack the path so that I can debug these functions if I need to
+homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
 pagerdir = os.path.abspath(os.path.join(homedir, '..', '..'))
-sys.path.insert(0, pagerdir) #put this at the front of the system path, ignoring any installed shakemap stuff
+sys.path.insert(0, pagerdir)  # put this at the front of the system path, ignoring any installed shakemap stuff
 
-#third party imports 
+# third party imports 
 import numpy as np
 from mapio.shake import getHeaderData
 
 import matplotlib
 matplotlib.use('Agg')
 
-#local imports
+# local imports
 from losspager.io.pagerdata import PagerData
 from losspager.models.emploss import EmpiricalLoss
 from losspager.models.exposure import Exposure
@@ -60,7 +60,7 @@ def tdoc(doc, shakegrid, impact1, impact2, expdict, struct_comment, hist_comment
     summary = doc.getSummaryAlert()
     assert summary == 'yellow'
 
-    #test property methods
+    # test property methods
     assert doc.magnitude == shakegrid.getEventDict()['magnitude']
     assert doc.time == shakegrid.getEventDict()['event_timestamp']
     assert doc.summary_alert == 'yellow'
@@ -68,7 +68,7 @@ def tdoc(doc, shakegrid, impact1, impact2, expdict, struct_comment, hist_comment
     assert doc.version == doc._pagerdict['pager']['version_number']
 
 def test():
-    homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
+    homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
     fatfile = os.path.join(homedir, '..', 'data', 'fatality.xml')
     ecofile = os.path.join(homedir, '..', 'data', 'economy.xml')
     cityfile = os.path.join(homedir, '..', 'data', 'cities1000.txt')
@@ -149,10 +149,10 @@ def test():
     doc.setMapInfo(cityfile, mapcities)
     doc.validate()
 
-    #let's test the property methods
+    # let's test the property methods
     tdoc(doc, shakegrid, impact1, impact2, expdict, struct_comment, hist_comment)
 
-    #see if we can save this to a bunch of files then read them back in
+    # see if we can save this to a bunch of files then read them back in
     try:
         tdir = tempfile.mkdtemp()
         doc.saveToJSON(tdir)
@@ -160,7 +160,7 @@ def test():
         newdoc.loadFromJSON(tdir)
         tdoc(newdoc, shakegrid, impact1, impact2, expdict, struct_comment, hist_comment)
 
-        #test the xml saving method
+        # test the xml saving method
         xmlfile = doc.saveToLegacyXML(tdir)
     except Exception as e:
         assert 1==2

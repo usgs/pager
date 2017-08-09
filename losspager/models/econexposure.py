@@ -1,21 +1,21 @@
 #!/usr/bin/env python
 
-#third party imports
+# third party imports
 import pandas as pd
 from mapio.grid2d import Grid2D
 import numpy as np
 
-#stdlib imports
+# stdlib imports
 import re
 import os.path
 
-#local imports
+# local imports
 from .exposure import Exposure
 from .emploss import EmpiricalLoss
 from .growth import PopulationGrowth
 from losspager.utils.country import Country
 
-GLOBAL_GDP = 16100 #from https://en.wikipedia.org/wiki/Gross_world_product
+GLOBAL_GDP = 16100  # from https://en.wikipedia.org/wiki/Gross_world_product
 
 class GDP(object):
     def __init__(self, dataframe):
@@ -34,7 +34,7 @@ class GDP(object):
 
     @classmethod
     def fromDefault(cls):
-        homedir = os.path.dirname(os.path.abspath(__file__)) #where is this module?
+        homedir = os.path.dirname(os.path.abspath(__file__))  # where is this module?
         excelfile = os.path.join(homedir, '..', 'data', 'API_NY.GDP.PCAP.CD_DS2_en_excel_v2.xls')
         return cls.fromWorldBank(excelfile)
         
@@ -68,7 +68,7 @@ class GDP(object):
               is the global value, then this country code will be None.  If the input country code is XF (California),
               then the output country code will be 'US'.
         """
-        #first make sure the ccode is valid...
+        # first make sure the ccode is valid...
         countrydict = self._country.getCountry(ccode)
         if countrydict is None:
             return (GLOBAL_GDP, None)
@@ -98,14 +98,14 @@ class GDP(object):
             if not len(years):
                 return (GLOBAL_GDP, None)
             if yearstr < min(years):
-                #assume that the years in the dataframe are sequential and increasing to the right
-                #get the first non-null GDP value
+                # assume that the years in the dataframe are sequential and increasing to the right
+                # get the first non-null GDP value
                 if pd.isnull(row[min(years)]):
                     gdp = GLOBAL_GDP
                 else:
                     gdp = row[min(years)]
             else:
-                #get the last non-null GDP value
+                # get the last non-null GDP value
                 if pd.isnull(row[max(years)]):
                     gdp = GLOBAL_GDP
                 else:
@@ -155,7 +155,7 @@ class EconExposure(Exposure):
           10 element arrays representing population exposure to MMI 1-10.
           Dictionary will contain an additional key 'Total', with value of exposure across all countries.
         """
-        #create a copy of population grid to hold population * gdp * alpha
+        # create a copy of population grid to hold population * gdp * alpha
         expdict = super(EconExposure, self).calcExposure(shakefile)
         self._econpopgrid = Grid2D.copyFromGrid(self._popgrid)
         econdict = {}
@@ -165,7 +165,7 @@ class EconExposure(Exposure):
         for ccode, exparray in expdict.items():
             if ccode.find('Total') > -1 or ccode.find('maximum') > -1:
                 continue
-            if ccode == 'UK': #unknown
+            if ccode == 'UK':  # unknown
                 continue
             lossmodel = self._emploss.getModel(ccode)
             gdp, outccode = self._gdp.getGDP(ccode, eventyear)
@@ -173,8 +173,8 @@ class EconExposure(Exposure):
             alpha = lossmodel.alpha
             econarray = exparray * gdp * alpha
             cidx = (isodata == isocode)
-            #multiply the population grid by GDP and alpha, so that when the loss model
-            #queries the grid later, those calculations don't have to be re-done.
+            # multiply the population grid by GDP and alpha, so that when the loss model
+            # queries the grid later, those calculations don't have to be re-done.
             self._econpopgrid._data[cidx] = self._econpopgrid._data[cidx] * gdp * alpha
             econdict[ccode] = econarray
             total += econarray

@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
-#stdlib imports
+# stdlib imports
 from datetime import datetime, timedelta
 import enum
 import json
 import os
 
-#third-party imports
+# third-party imports
 import numpy as np
 from shapely.geometry import Point, shape
 
@@ -19,16 +19,16 @@ from sqlalchemy.orm import relationship
 
 from sqlalchemy_utils import database_exists, create_database
 
-#local imports
+# local imports
 from losspager.utils.exception import PagerException
 
-#constants
+# constants
 MAX_ELAPSED_SECONDS = 8*3600
 TIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 MAX_EIS_LEVELS = 2
 
 
-#We dynamically (not sure why?) create the base class for our objects
+# We dynamically (not sure why?) create the base class for our objects
 Base = declarative_base()
 
 """Relational Database schema and code for managing PAGER users and their profiles.
@@ -39,15 +39,15 @@ class GeoThing(object):
     def __init__(self, d):
         self.__geo_interface__ = d
 
-#create our bridge tables here
+# create our bridge tables here
 
-#link the address and region tables
+# link the address and region tables
 address_region_bridge = Table('address_region_bridge', Base.metadata,
                              Column('address_id', Integer, ForeignKey('address.id')),
                              Column('region_id', Integer, ForeignKey('region.id')))
 
-#link the version and address tables 
-#sendtime column keeps track of who got notified about what when
+# link the version and address tables 
+# sendtime column keeps track of who got notified about what when
 version_address_bridge = Table('version_address_bridge', Base.metadata,
                                Column('version_id', Integer, ForeignKey('version.id')),
                                Column('address_id', Integer, ForeignKey('address.id')),
@@ -80,12 +80,12 @@ class User(Base):
     createdon = Column(DateTime)
     organization_id = Column(Integer, ForeignKey('organization.id'))
 
-    #A User can have many addresses
+    # A User can have many addresses
     addresses = relationship("Address", back_populates="user", cascade="all, delete, delete-orphan")
 
-    #A user can belong to one organization
+    # A user can belong to one organization
     organization = relationship("Organization", back_populates="users")
-    ##This constructor is not being recognized by Python.  It used to be...???
+    # This constructor is not being recognized by Python.  It used to be...???
     # def __init__(self,createdon=None):
     #     """
     #     :param createdon:
@@ -110,10 +110,10 @@ class User(Base):
         else:
             missing = list(reqfields - set(userdict.keys()))
             raise PagerException('Missing required fields for user: %s' % str(missing))
-        #set the user fields
+        # set the user fields
         self.lastname = userdict['lastname']
         self.firstname = userdict['firstname']
-        self.createdon = datetime.strptime(userdict['createdon'], TIME_FORMAT) #will this be a string or a datetime?
+        self.createdon = datetime.strptime(userdict['createdon'], TIME_FORMAT)  # will this be a string or a datetime?
         org = session.query(Organization).filter(Organization.shortname == userdict['org']).first()
         if org is None:
             raise PagerException('No organization named %s exists in the database.' % userdict['org'])
@@ -124,9 +124,9 @@ class User(Base):
             address = Address()
             address.fromDict(session, addressdict)
             self.addresses.append(address)
-        #first add this user to the session
+        # first add this user to the session
         session.add(self)
-        #then commit all the changes
+        # then commit all the changes
         session.commit()
 
     def toDict(self):
@@ -157,20 +157,20 @@ class Address(Base):
     email = Column(String, nullable=False)
     user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
     is_primary = Column(Boolean, nullable=False)
-    #a low priority (i.e., 1) means this address should be emailed before addresses with higher numbers.
+    # a low priority (i.e., 1) means this address should be emailed before addresses with higher numbers.
     priority = Column(Integer, nullable=False)
     format = Column(String, nullable=False)
 
-    #A user can have many addresses
+    # A user can have many addresses
     user = relationship("User", back_populates="addresses")
 
-    #An address can have many versions
+    # An address can have many versions
     versions = relationship(
         "Version",
         secondary=version_address_bridge,
         back_populates="addresses")
 
-    #An address can have many thresholds
+    # An address can have many thresholds
     profiles = relationship("Profile", back_populates="address")
     
     def __repr__(self):
@@ -196,14 +196,14 @@ class Address(Base):
         levels = ['green', 'yellow', 'orange', 'red']
         
 
-        #get the alert level for the most recently alerted version this user received
-        #first get the event id for this version of an event
+        # get the alert level for the most recently alerted version this user received
+        # first get the event id for this version of an event
         eid = version.event_id
-        #next find all the versions for this address that also have that event_id
+        # next find all the versions for this address that also have that event_id
         notified_before = False
         highest_level = -1
 
-        #just get the versions for this event id
+        # just get the versions for this event id
         sversions = []
         for sversion in self.versions:
             if sversion.event_id != eid:
@@ -214,28 +214,28 @@ class Address(Base):
             notified_before = True
         sversions = sorted(sversions, key=lambda v: v.number)
 
-        #shortcut to True here if notified_before is true and renotify is true
+        # shortcut to True here if notified_before is true and renotify is true
         last_version_pending = False
         if notified_before:
             if sversions[-1].was_pending:
                 last_version_pending = True
 
-        #anybody who's been previously notified should be re-notified if that flag is set
+        # anybody who's been previously notified should be re-notified if that flag is set
         if notified_before and renotify:
             return (True, True)
 
-        #anybody who's been most recently notified of a pending event, should
-        #be re-notified if the release flag is set
+        # anybody who's been most recently notified of a pending event, should
+        # be re-notified if the release flag is set
         if notified_before and last_version_pending and release:
             return (True, True)
 
-        #check the version time against the current time, reject if older than 8 hours
+        # check the version time against the current time, reject if older than 8 hours
         if not ignore_time_limit:
             if datetime.utcnow() > version.time + timedelta(seconds=MAX_ELAPSED_SECONDS):
                 return (False, notified_before)
         
-        #shortcut to True here if the most recent version for this event
-        #was NOT released (i.e., pending), but only if this version has been released.
+        # shortcut to True here if the most recent version for this event
+        # was NOT released (i.e., pending), but only if this version has been released.
         if (len(sversions) and not sversions[-1].released) and version.released:
             return (True, True)
             
@@ -254,7 +254,7 @@ class Address(Base):
         else:
             missing = list(reqfields - set(addressdict.keys()))
             raise PagerException('Missing required fields for address: %s' % str(missing))
-        #set the fields for the address object
+        # set the fields for the address object
         self.email = addressdict['email']
         self.is_primary = addressdict['is_primary']
         self.priority = addressdict['priority']
@@ -295,16 +295,16 @@ class Profile(Base):
     id = Column(Integer, primary_key=True)
     address_id = Column(Integer, ForeignKey('address.id'))
 
-    #A profile can have many regions
+    # A profile can have many regions
     regions = relationship(
         "Region",
         secondary=profile_region_bridge,
         back_populates="profiles")
 
-    #A profile belongs to one address
+    # A profile belongs to one address
     address = relationship("Address", back_populates="profiles")
 
-    #A profile can have many thresholds
+    # A profile can have many thresholds
     thresholds = relationship("Threshold", back_populates="profile")
 
     def __repr__(self):
@@ -313,9 +313,9 @@ class Profile(Base):
     def shouldAlert(self, version, highest_level):
         if not len(self.regions) and not len(self.thresholds):
             return False
-        #figure out if this point is in a given region
+        # figure out if this point is in a given region
         inside_region = False
-        #No regions implies the whole globe
+        # No regions implies the whole globe
         if not len(self.regions):
             inside_region = True
         else:
@@ -324,7 +324,7 @@ class Profile(Base):
                 if inside_region:
                     break
 
-        #determine if this event crosses any thresholds
+        # determine if this event crosses any thresholds
         meets_threshold = False
         if not len(self.thresholds):
             meets_threshold = True
@@ -362,8 +362,8 @@ class Profile(Base):
         profiledict = {}
         regions = []
         for region in self.regions:
-            #remember that we're not deflating a Region object, we just want the reference to 
-            #it (i.e., its name).
+            # remember that we're not deflating a Region object, we just want the reference to 
+            # it (i.e., its name).
             rgroup = region.regiongroup.groupname
             regiondict = {'name': rgroup + '-' + region.name}
             regions.append(regiondict)
@@ -386,7 +386,7 @@ class Organization(Base):
     name = Column(String, nullable=False)
     shortname = Column(String, nullable=False)
 
-    #An organization can have many users
+    # An organization can have many users
     users = relationship("User", order_by=User.id, back_populates="organization")
     
     def __repr__(self):
@@ -414,7 +414,7 @@ class Event(Base):
     id = Column(Integer, primary_key=True)
     eventcode = Column(String, nullable=False)
 
-    #An event can have many versions
+    # An event can have many versions
     versions = relationship("Version", back_populates="event", cascade="all, delete, delete-orphan")
 
     def __repr__(self):
@@ -437,7 +437,7 @@ class Version(Base):
     depth = Column(Float, nullable=False)
     magnitude = Column(Float, nullable=False)
     number = Column(Integer, nullable=False)
-    country = Column(String, nullable=False) #most impacted country
+    country = Column(String, nullable=False)  # most impacted country
     fatlevel = Column(Integer, nullable=False)
     ecolevel = Column(Integer, nullable=False)
     summarylevel = Column(Integer, nullable=False)
@@ -446,10 +446,10 @@ class Version(Base):
     was_pending = Column(Boolean, nullable=False)
     maxmmi = Column(Float, nullable=False)
 
-    #A user can have many addresses
+    # A user can have many addresses
     event = relationship("Event", back_populates="versions")
 
-    #An version can have many addresses
+    # An version can have many addresses
     addresses = relationship(
         "Address",
         secondary=version_address_bridge,
@@ -473,7 +473,7 @@ class AlertScheme(Base):
     minlevel = Column(Float, nullable=True)
     maxlevel = Column(Float, nullable=True)
 
-    #An alertscheme can have many levels
+    # An alertscheme can have many levels
     levels = relationship("Level", back_populates="alertscheme")
 
     def __repr__(self):
@@ -516,10 +516,10 @@ class Threshold(Base):
     alertscheme_id = Column(Integer, ForeignKey('alertscheme.id'))
     value = Column(String, nullable=False)
 
-    #A threshold can have one alertscheme
+    # A threshold can have one alertscheme
     alertscheme = relationship("AlertScheme", uselist=False)
 
-    #A threshold belongs to one profile.
+    # A threshold belongs to one profile.
     profile = relationship("Profile", back_populates="thresholds")
 
     def __repr__(self):
@@ -543,11 +543,11 @@ class Threshold(Base):
                      'orange': 2,
                      'red': 3}
         levels = ['green', 'yellow', 'orange', 'red']
-        #This is complicated.  If the user has not been notified about
-        #this event before and the current level exceeds the threshold, then they should
-        #be notified.  If they haven't been notified and current level is below threshold, then no notification.
-        #If the user HAS been notified about this event, then if the current alert level is two or more
-        #levels *different* from the 
+        # This is complicated.  If the user has not been notified about
+        # this event before and the current level exceeds the threshold, then they should
+        # be notified.  If they haven't been notified and current level is below threshold, then no notification.
+        # If the user HAS been notified about this event, then if the current alert level is two or more
+        # levels *different* from the 
         if self.alertscheme.name == 'eis':
             threshlevel = alertdict[self.value]
             if highest_level < 0:
@@ -565,7 +565,7 @@ class Threshold(Base):
             thislevel = float(self.value)
             if version.maxmmi >= thislevel and highest_level < 0:
                 return True
-        else: #self.alertscheme.name == 'mag':
+        else:  # self.alertscheme.name == 'mag':
             thislevel = float(self.value)
             if version.magnitude >= thislevel and highest_level < 0:
                 return True
@@ -616,7 +616,7 @@ class RegionGroup(Base):
     id = Column(Integer, primary_key=True)
     groupname = Column(String, nullable=False)
 
-    #A regiongroup can have many regions
+    # A regiongroup can have many regions
     regions = relationship("Region", back_populates="regiongroup")
 
     def __repr__(self):
@@ -639,7 +639,7 @@ class Region(Base):
     ymin = Column(Float, nullable=False)
     ymax = Column(Float, nullable=False)
 
-    #A region can have many profiles
+    # A region can have many profiles
     profiles = relationship("Profile",
                              secondary=profile_region_bridge,
                              back_populates="regions")
@@ -665,8 +665,8 @@ class Region(Base):
         :returns:
           True if epicenter is inside region, False if not.
         """
-        #the polygon is a JSON string encoded to bytes - decode, convert to JSON,
-        #project into an orthographic projection,  then turn into shapely object.
+        # the polygon is a JSON string encoded to bytes - decode, convert to JSON,
+        # project into an orthographic projection,  then turn into shapely object.
         polystr = self.poly.decode('utf-8')
         polydict = json.loads(polystr)
         polygon = shape(polydict)
@@ -686,7 +686,7 @@ class Region(Base):
         rgroupname, regioncode = regioninfo.split('-')
         regiondesc = regiondict['properties']['desc']
 
-        #try to find this region in the database
+        # try to find this region in the database
         regiongroup = session.query(RegionGroup).filter(RegionGroup.groupname == rgroupname).first()
         if regiongroup is None:
             regiongroup = RegionGroup(groupname=rgroupname)
@@ -729,7 +729,7 @@ def get_session(url='sqlite:///:memory:', create_db=False):
     :returns:
       Sqlalchemy Session instance.
     """
-    #Create a sqlite in-memory database engine
+    # Create a sqlite in-memory database engine
     if not database_exists(url):
         create_database(url)
     else:
@@ -739,8 +739,8 @@ def get_session(url='sqlite:///:memory:', create_db=False):
     engine = create_engine(url, echo=False)
     Base.metadata.create_all(engine)
 
-    #create a session object that we can use to insert and 
-    #extract information from the database
+    # create a session object that we can use to insert and 
+    # extract information from the database
     Session = sessionmaker(bind=engine, autoflush=False)
     session = Session()
 
@@ -749,7 +749,7 @@ def get_session(url='sqlite:///:memory:', create_db=False):
 def create_db(url, schemadir, users_jsonfile=None, orgs_jsonfile=None):
     session = get_session(url, create_db=True)
 
-    #Create the alertscheme and level tables, fill them in
+    # Create the alertscheme and level tables, fill them in
     magscheme = {'name': 'mag', 'adesc': 'Magnitude',
                  'valuetype': 'Float', 'isdiscrete': False,
                  'minlevel': 0, 'maxlevel': 10}
@@ -772,7 +772,7 @@ def create_db(url, schemadir, users_jsonfile=None, orgs_jsonfile=None):
         session.commit()
         
     eis = session.query(AlertScheme).filter(AlertScheme.name == 'eis').first()
-    #Level table
+    # Level table
     levels = [{'ordernum': 0, 'name': 'green'},
               {'ordernum': 1, 'name': 'yellow'},
               {'ordernum': 2, 'name': 'orange'},
@@ -784,28 +784,28 @@ def create_db(url, schemadir, users_jsonfile=None, orgs_jsonfile=None):
         session.add(tlevel)
     session.commit()
 
-    #regions - these are pretty well set in stone, therefore in the repository
+    # regions - these are pretty well set in stone, therefore in the repository
     regions_jsonfile = os.path.join(schemadir, 'regions.json')
-    #organizations - this is always changing, so should be user supplied
-    #default is just to have a testing set with just USGS
+    # organizations - this is always changing, so should be user supplied
+    # default is just to have a testing set with just USGS
     if orgs_jsonfile is None:
         orgs_jsonfile = os.path.join(schemadir, 'shortorgs.json')
 
-    #Load regions - the input file is a dictionary, not a list of regions.
+    # Load regions - the input file is a dictionary, not a list of regions.
     data = open(regions_jsonfile, 'rt').read()
     regions = json.loads(data)
     for regioncode, regiondict in regions.items():
         region = Region()
-        region.fromDict(session, regiondict) #this adds to session and commits()
+        region.fromDict(session, regiondict)  # this adds to session and commits()
         
 
-    #load whatever organizations we have
+    # load whatever organizations we have
     orgs = json.loads(open(orgs_jsonfile, 'rt').read())
     for orgdict in orgs:
         org = Organization()
-        org.fromDict(session, orgdict) #this adds and commits
+        org.fromDict(session, orgdict)  # this adds and commits
 
-    #load the users, if they are specified
+    # load the users, if they are specified
     if users_jsonfile is not None:
         users = json.loads(open(users_jsonfile, 'rt').read())
         for userdict in users:
@@ -815,7 +815,7 @@ def create_db(url, schemadir, users_jsonfile=None, orgs_jsonfile=None):
     return session
 
 def serialize_users(session, jsonfile):
-    #Back up the list of users to a JSON file
+    # Back up the list of users to a JSON file
     users = session.query(User).all()
     userlist = []
     for user in users:

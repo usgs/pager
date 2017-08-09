@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-#stdlib imports
+# stdlib imports
 import tempfile
 import os.path
 import sys
@@ -8,15 +8,15 @@ from collections import OrderedDict
 import warnings
 import shutil
 
-#hack the path so that I can debug these functions if I need to
-homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
+# hack the path so that I can debug these functions if I need to
+homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
 pagerdir = os.path.abspath(os.path.join(homedir, '..', '..'))
-sys.path.insert(0, pagerdir) #put this at the front of the system path, ignoring any installed shakemap stuff
+sys.path.insert(0, pagerdir)  # put this at the front of the system path, ignoring any installed shakemap stuff
 
-#third party imports 
+# third party imports 
 import numpy as np
 
-#non-interactive backend
+# non-interactive backend
 import matplotlib
 matplotlib.use('Agg')
 
@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 from mapio.shake import ShakeGrid
 from mapio.gdal import GDALGrid
 
-#local imports
+# local imports
 from losspager.vis.contourmap import draw_contour
 
 

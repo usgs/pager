@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-#stdlib imports
+# stdlib imports
 import argparse
 import os.path
 import sys
@@ -9,12 +9,12 @@ import json
 import io
 from datetime import datetime
 
-#third party imports
+# third party imports
 from impactutils.io.cmd import get_command_output
 from impactutils.comcat.query import GeoServe
 from mapio.shake import getHeaderData
 
-#local imports
+# local imports
 from losspager.utils.config import read_config
 
 WHITELIST = ['us', 'ci', 'nc', 'nn', 'hv', 'uw', 'nn', 'uu', 'ak']
@@ -23,7 +23,7 @@ NO_SHAKEMAPS = ['mb', 'ecx', 'tul', 'ismp', 'nm', 'se', 'ogso', 'pr', 'neic', 'l
 MAG_THRESHOLD = 4.0
 ANSS_FLAG = 'anss'
 
-#what's the oldest ShakeMap we're willing to process?
+# what's the oldest ShakeMap we're willing to process?
 THRESHOLD_YEAR = 2010
 
 TIMEFMT = '%Y-%m-%dT%H:%M:%S'
@@ -39,7 +39,7 @@ def process_shakemap(args, config):
     logfile.write('######Event %s####\n' % args.code)
     logfile.write('args%s\n\n' % str(args))
     if args.status == 'DELETE':
-        #look at this with respect to archiving and sending cancel messages
+        # look at this with respect to archiving and sending cancel messages
         msg = 'No action to take with delete messages.'
         print(msg)
         logfile.write(msg+'\n\n')
@@ -78,7 +78,7 @@ def process_shakemap(args, config):
         logfile.close()
         sys.exit(1)
 
-    #Use lat,lon and source to exclude ShakeMap providers who are playing outside their sandbox
+    # Use lat,lon and source to exclude ShakeMap providers who are playing outside their sandbox
     logfile.write('Checking for authoritativeness...\n\n')
     gs = GeoServe(args.lat, args.lon)
     authsrc, authtype = gs.getAuthoritative()
@@ -101,8 +101,8 @@ def process_shakemap(args, config):
         logfile.close()
         sys.exit(1)
 
-    #We've passed all the filters, so call PAGER
-    homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
+    # We've passed all the filters, so call PAGER
+    homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
     if args.debug:
         pagerpath = os.path.join(homedir, 'pager -d')
     else:
@@ -123,7 +123,7 @@ def process_shakemap(args, config):
         sys.exit(1)
 
 def process_admin(args, config):
-    homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
+    homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
     admin_path = os.path.join(homedir, 'adminpager')
     pager_path = os.path.join(homedir, 'adminpager')
     pager_folder = config['output']

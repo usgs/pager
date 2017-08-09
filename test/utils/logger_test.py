@@ -1,17 +1,17 @@
 #!/usr/bin/env python
 
-#stdlib imports
+# stdlib imports
 import tempfile
 import os.path
 import sys
 import shutil
 
-#hack the path so that I can debug these functions if I need to
-homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
+# hack the path so that I can debug these functions if I need to
+homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
 pagerdir = os.path.abspath(os.path.join(homedir, '..', '..'))
-sys.path.insert(0, pagerdir) #put this at the front of the system path, ignoring any installed shakemap stuff
+sys.path.insert(0, pagerdir)  # put this at the front of the system path, ignoring any installed shakemap stuff
 
-#local imports
+# local imports
 from losspager.utils.logger import PagerLogger
 
 def test(email=None, host=None):

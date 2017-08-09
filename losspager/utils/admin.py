@@ -1,4 +1,4 @@
-#stdlib imports
+# stdlib imports
 import os.path
 import datetime
 import zipfile
@@ -9,13 +9,13 @@ import json
 import getpass
 from distutils.spawn import find_executable
 
-#local imports
+# local imports
 from losspager.utils.exception import PagerException
 from losspager.utils.config import read_config
 from losspager.utils.config import get_config_file, get_mail_config_file, read_mail_config
 from losspager.io.pagerdata import PagerData
 
-#third-party imports
+# third-party imports
 from impactutils.comcat.query import ComCatInfo
 from impactutils.io.cmd import get_command_output
 from impactutils.transfer.factory import get_sender_class
@@ -87,8 +87,8 @@ def transfer(config, pagerdata, authid, authsource, version_folder,
         - Boolean result indicating overall success or failure of transfer.
         - String message from transfer send() method.
     """
-    #If system status is primary and transfer options are configured, transfer the output
-    #directories using those options
+    # If system status is primary and transfer options are configured, transfer the output
+    # directories using those options
     res = False
     msg = ''
     if 'status' in config and config['status'] == 'primary':
@@ -102,7 +102,7 @@ def transfer(config, pagerdata, authid, authsource, version_folder,
                     params = config['transfer'][method]
                     if 'remote_directory' in params:
                         vpath, vfolder = os.path.split(version_folder)
-                        #append the event id and version folder to our pre-specified output directory
+                        # append the event id and version folder to our pre-specified output directory
                         params['remote_directory'] = os.path.join(params['remote_directory'], authid, vfolder)
                     params['code'] = authid
                     params['eventsource'] = authsource
@@ -229,19 +229,19 @@ class PagerAdmin(object):
           String path to event folder (if already existing, this path will be returned.)
         """
         eventfolder = os.path.join(self._pager_folder, eventid+'_'+event_time.strftime(DATETIMEFMT))
-        #look for folder with that event id in the pager_folder
+        # look for folder with that event id in the pager_folder
         teventfolder = self.getEventFolder(eventid)
         if teventfolder is not None:
             return teventfolder
         else:
             try:
                 ccinfo = ComCatInfo(eventid)
-                #try to get all the possible event ids before failing
+                # try to get all the possible event ids before failing
                 authid, allids = ccinfo.getAssociatedIds()
                 allids.append(authid)
                 for eid in allids:
-                    #here we need to look for the *folder* containing the *pattern* with
-                    #the eid in question. getEventFolder does this for us.
+                    # here we need to look for the *folder* containing the *pattern* with
+                    # the eid in question. getEventFolder does this for us.
                     teventfolder = self.getEventFolder(eid)
                     if teventfolder is not None:
                         eventfolder = teventfolder
@@ -715,8 +715,8 @@ class PagerAdmin(object):
                     pdata.loadFromJSON(jsonfolder)
                     vnum = 0
                 except:
-                    #handle the case where the most recent version of the event has some 
-                    #sort of error causing it to miss
+                    # handle the case where the most recent version of the event has some 
+                    # sort of error causing it to miss
                     root, jsonfolder = os.path.split(jsonfolder)
                     root2, vfolder = os.path.split(root)
                     vt, vnums = vfolder.split('.')

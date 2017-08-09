@@ -1,16 +1,16 @@
 #!/usr/bin/env python
 
-#stdlib imports
+# stdlib imports
 import os.path
 from collections import OrderedDict
 
-#third party imports
+# third party imports
 import pandas as pd
 import numpy as np
 from impactutils.colors.cpalette import ColorPalette
 from openquake.hazardlib.geo.geodetic import geodetic_distance
 
-TIME_WINDOW = 15 #number of seconds to compare one event with another when searching for similar events.
+TIME_WINDOW = 15  # number of seconds to compare one event with another when searching for similar events.
 MIN_MMI = 1000
 
 def to_ordered_dict(series):
@@ -81,7 +81,7 @@ class ExpoCat(object):
         :returns:
           ExpoCat object.
         """
-        homedir = os.path.dirname(os.path.abspath(__file__)) #where is this module?
+        homedir = os.path.dirname(os.path.abspath(__file__))  # where is this module?
         excelfile = os.path.join(homedir, '..', 'data', 'expocat.xlsx')
         return cls.fromExcel(excelfile)
 
@@ -105,7 +105,7 @@ class ExpoCat(object):
         
         mmicols = ['MMI1', 'MMI2', 'MMI3', 'MMI4', 'MMI5', 'MMI6', 'MMI7', 'MMI8', 'MMI9+']
 
-        #find the highest MMI column in each row with at least 1000 people exposed.
+        # find the highest MMI column in each row with at least 1000 people exposed.
         mmidata = df.ix[:, mmicols].as_matrix()
         tf = mmidata > 1000
         nrows, ncols = mmidata.shape
@@ -139,7 +139,7 @@ class ExpoCat(object):
         
         mmicols = ['MMI1', 'MMI2', 'MMI3', 'MMI4', 'MMI5', 'MMI6', 'MMI7', 'MMI8', 'MMI9+']
 
-        #find the highest MMI column in each row with at least 1000 people exposed.
+        # find the highest MMI column in each row with at least 1000 people exposed.
         mmidata = df.ix[:, mmicols].as_matrix()
         tf = mmidata > 1000
         nrows, ncols = mmidata.shape
@@ -335,20 +335,20 @@ class ExpoCat(object):
             - Distance Distance of this event from input event, in km.
             - Color The hex color that should be used for row color in historical events table.
         """
-        #get the worst event first
+        # get the worst event first
         newdf = self._dataframe.sort_values(['ShakingDeaths', 'MaxMMI', 'NumMaxMMI'], ascending=False)
         if not len(newdf):
             return [None, None, None]
         worst = newdf.iloc[0]
-        newdf = newdf.drop(newdf.index[[0]]) #get rid of that first row, so we don't re-include the same event
+        newdf = newdf.drop(newdf.index[[0]])  # get rid of that first row, so we don't re-include the same event
         if not len(newdf):
             less_bad = None
-        else:#get the similar but less bad event
+        else:  # get the similar but less bad event
             less_bad, newdf = self.getSimilarEvent(newdf, maxmmi, nmmi, ndeaths, go_down=True)
 
         if not len(newdf):
             more_bad = None
-        else:#get the similar but worse event
+        else:  # get the similar but worse event
             more_bad, newdf = self.getSimilarEvent(newdf, maxmmi, nmmi, ndeaths, go_down=False)
 
         events = []
@@ -377,22 +377,22 @@ class ExpoCat(object):
         return events
 
     def getSimilarEvent(self, df, maxmmi, nmmi, ndeaths, go_down=True):
-        #Algorithm description: if go_down == True
-        #1)find any events in df where maxmmi == input maxmmi and deaths > ndeaths.
-        #if there are any of these, find the event where deaths is closest to ndeaths and return.
-        #2)while maxmmi >= 1, decrement maxmmi and find any events in df where maxmmi == new maxmmi
-        #and deaths > ndeaths.  If any, find event where deaths is closest to ndeaths and return.
-        #3)while maxmmi <= 9, increment maxmmi and find any events in df where maxmmi == new maxmmi
-        #and deaths > ndeaths.  If any, find event where deaths is closest to ndeaths and return.
-        #4)Sort df by shaking fatalities, maxmmi and nmmi in descending order.  Return the first event.
+        # Algorithm description: if go_down == True
+        # 1)find any events in df where maxmmi == input maxmmi and deaths > ndeaths.
+        # if there are any of these, find the event where deaths is closest to ndeaths and return.
+        # 2)while maxmmi >= 1, decrement maxmmi and find any events in df where maxmmi == new maxmmi
+        # and deaths > ndeaths.  If any, find event where deaths is closest to ndeaths and return.
+        # 3)while maxmmi <= 9, increment maxmmi and find any events in df where maxmmi == new maxmmi
+        # and deaths > ndeaths.  If any, find event where deaths is closest to ndeaths and return.
+        # 4)Sort df by shaking fatalities, maxmmi and nmmi in descending order.  Return the first event.
 
-        #if go_down == False
-        #do the same thing as above except #2 increment maxmmi and #3 decrement maxmmi.
+        # if go_down == False
+        # do the same thing as above except #2 increment maxmmi and #3 decrement maxmmi.
         
-        #get all of the events with the same maxmmi as input
+        # get all of the events with the same maxmmi as input
         newdf = df[df.MaxMMI == maxmmi]
         
-        #if we're searching for the most similar but less bad event, go_down is True
+        # if we're searching for the most similar but less bad event, go_down is True
         newmaxmmi = maxmmi
         if go_down:
             mmi1 = 0
@@ -407,7 +407,7 @@ class ExpoCat(object):
             inc2 = -1
             ascending = False
 
-        #if go_down is True, we're going down here (up if not)
+        # if go_down is True, we're going down here (up if not)
         for newmaxmmi in range(maxmmi, mmi1, inc1):
             newdf = df[(df.MaxMMI == newmaxmmi) & (df.ShakingDeaths > ndeaths)]
             if len(newdf):
@@ -416,7 +416,7 @@ class ExpoCat(object):
                 newdf = df.drop(similar.name)
                 return (similar, newdf)
 
-        #if go_down is True, we're going up here (down if not)
+        # if go_down is True, we're going up here (down if not)
         for newmaxmmi in range(maxmmi, mmi2, inc2):
             newdf = df[(df.MaxMMI == newmaxmmi) & (df.ShakingDeaths > ndeaths)]
             if len(newdf):

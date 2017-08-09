@@ -1,11 +1,11 @@
-#stdlib imports
+# stdlib imports
 import os.path
 import shutil
 
-#third party imports
+# third party imports
 import yaml
 
-#local imports
+# local imports
 from losspager.utils.exception import PagerException
 def read_config():
     """Read in configuration parameters from config .py file.
@@ -15,7 +15,7 @@ def read_config():
     raises:
       PagerException if config file does not exist.
     """
-    #get config file name, make sure it exists
+    # get config file name, make sure it exists
     configfilename = get_config_file()
     if configfilename is None:
         raise PagerException('Config file could not be found at %s.' % configfilename)
@@ -31,7 +31,7 @@ def read_mail_config():
     raises:
       PagerException if config file does not exist.
     """
-    #get config file name, make sure it exists
+    # get config file name, make sure it exists
     configfilename = get_mail_config_file()
     if configfilename is None:
         raise PagerException('Config file could not be found at %s.' % configfilename)
@@ -48,7 +48,7 @@ def write_config(config, make_backup=True):
       Boolean indicating whether a backup of the current config file 
       should be made before writing new one.
     """
-    #get config file name, make sure it exists
+    # get config file name, make sure it exists
     configfilename = os.path.join(os.path.expanduser('~'), '.losspager', 'config.yml')
     if not os.path.isfile(configfilename):
         raise PagerException('Config file could not be found at %s.' % configfilename)

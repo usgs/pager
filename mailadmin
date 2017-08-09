@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-#stdlib imports
+# stdlib imports
 import argparse
 import sys
 import os.path
@@ -9,13 +9,13 @@ from datetime import datetime, timedelta
 from calendar import monthrange
 import json
 
-#local imports
+# local imports
 from losspager.schema import emailschema
 from losspager.utils.config import read_mail_config
 from losspager.utils.datapath import get_data_path
 from losspager.utils.admin import PagerAdmin
 
-#third party imports
+# third party imports
 from sqlalchemy import func
 import pandas as pd
 import numpy as np
@@ -100,7 +100,7 @@ def query_events(qparams, session):
       Pandas dataframe containing versions.
     """
     start_date = get_date(qparams[0])
-    end_date = datetime(3000, 1, 1) #some scenarios are in the future.  Sigh.
+    end_date = datetime(3000, 1, 1)  # some scenarios are in the future.  Sigh.
     mag_threshold = 0.0
     alert_threshold = 0
     version = 'last'
@@ -144,7 +144,7 @@ def query_events(qparams, session):
     df[['Version']] = df[['Version']].astype(int)
 
     newdf = None
-    #select by version information
+    # select by version information
     if len(qparams) >= 5:
         vparam = qparams[4]
         if vparam == 'first':
@@ -176,7 +176,7 @@ def query_events(qparams, session):
     
     df = df.set_index(['EventID', 'Version'])
 
-    #order dataframe by origin time, then event ID
+    # order dataframe by origin time, then event ID
     df = df.sort_values(['EventTime'])
     
     return df
@@ -592,8 +592,8 @@ def init_db(db_url, session, userfile=None, orgfile=None):
         print('That was a No.  Exiting.')
         sys.exit(0)
 
-    #Before we nuke everything, let's at least back up the list of users
-    #create a time-stamped json file in the directory where the sqlite file lives.
+    # Before we nuke everything, let's at least back up the list of users
+    # create a time-stamped json file in the directory where the sqlite file lives.
     urlparts = urlparse(db_url)
     sqlite_path = os.path.abspath(urlparts.path)
     schemadir, sqlite_file = os.path.split(sqlite_path)
@@ -685,10 +685,10 @@ def add_fema(session, fema_user):
     address1 = emailschema.Address(email=email, is_primary=True, priority=DEFAULT_PRIORITY, format='pdf')
     address1.user = user
 
-    #Create the default thresholds
+    # Create the default thresholds
     global_thresholds1, us_thresholds1 = get_fema_thresholds(session)
     
-    #Add thresholds and regions to primary email profile
+    # Add thresholds and regions to primary email profile
     profile1 = emailschema.Profile()
     profile1.thresholds.append(global_thresholds1[0])
     profile1.thresholds.append(global_thresholds1[1])
@@ -705,7 +705,7 @@ def add_fema(session, fema_user):
     address1.profiles.append(profile1)
     address1.profiles.append(profile2)
 
-    #Create an Address for SMS (if provided)
+    # Create an Address for SMS (if provided)
     # if sms != 'null':
     #     address2 = emailschema.Address(email=sms,is_primary=False,priority=DEFAULT_PRIORITY,format='short')
     #     address2.user = user
@@ -796,12 +796,12 @@ def add_generic(session, generic_user):
     address1 = emailschema.Address(email=email, is_primary=True, priority=DEFAULT_PRIORITY, format='pdf')
     address1.user = user
 
-    #Create the default thresholds
+    # Create the default thresholds
     mmi_threshold1 = get_threshold(session, 'mmi', DEFAULT_MMI)
     mag_threshold1 = get_threshold(session, 'mag', DEFAULT_MAG)
     eis_threshold1 = get_threshold(session, 'eis', DEFAULT_EIS)
 
-    #Add thresholds and regions to primary email profile
+    # Add thresholds and regions to primary email profile
     profile1 = emailschema.Profile()
     profile1.thresholds.append(mmi_threshold1)
     profile1.thresholds.append(mag_threshold1)
@@ -811,13 +811,13 @@ def add_generic(session, generic_user):
         profile1.regions.append(region)
     address1.profiles.append(profile1)
 
-    #Create an Address for SMS (if provided)
+    # Create an Address for SMS (if provided)
     if sms != 'null':
         address2 = emailschema.Address(email=sms, is_primary=False, priority=DEFAULT_PRIORITY, format='short')
         address2.user = user
 
-        #Add thresholds and regions to SMS email profile
-        #Create the default thresholds
+        # Add thresholds and regions to SMS email profile
+        # Create the default thresholds
         mmi_threshold2 = get_threshold(session, 'mmi', DEFAULT_MMI)
         mag_threshold2 = get_threshold(session, 'mag', DEFAULT_MAG)
         eis_threshold2 = get_threshold(session, 'eis', DEFAULT_EIS)
@@ -992,7 +992,7 @@ def main(args):
         for userdict in userlist:
             user = emailschema.User()
             user.fromDict(session, userdict)
-        #session adding and committing handled inside fromDict method
+        # session adding and committing handled inside fromDict method
         res = True
         msg = '%i users added from %s.' % (len(userlist), jsonfile)
         do_sync = True
@@ -1049,7 +1049,7 @@ def main(args):
             msg = 'Deleted event %s from the database.' % eventid
             res = True
     
-    #get information about a bunch of events
+    # get information about a bunch of events
     if args.query:
         df = query_events(args.query, session)
         if args.output == 'screen':
@@ -1066,7 +1066,7 @@ def main(args):
         tnow = datetime.utcnow()
         this_month = tnow.month
         if args.stats[0] == 'month':
-            #go get the last full month's worth of pager results.
+            # go get the last full month's worth of pager results.
             query_month = this_month - 1
             query_year = tnow.year
             if query_month == 0:
@@ -1114,7 +1114,7 @@ def main(args):
             msg = 'No events from period %s to %s. Exiting.' % (start_date, end_date)
         
 
-    #get information about all versions for an event
+    # get information about all versions for an event
     if args.event_history:
         ecode = args.event_history
         event = session.query(emailschema.Event).filter(emailschema.Event.eventcode == ecode).first()
@@ -1136,7 +1136,7 @@ def main(args):
                 msg = '%i versions written to Excel file %s.' % (len(event.versions), args.output)
             res = True
             
-    #Get information about which emails received notifications for different versions of a given event
+    # Get information about which emails received notifications for different versions of a given event
     if args.event_notification_history:
         df = get_version_history(session, args.event_notification_history)
         if df is None:
@@ -1151,7 +1151,7 @@ def main(args):
                 df.to_excel(args.output)
         res = True
 
-    #get information about which versions user has been notified
+    # get information about which versions user has been notified
     if args.user_notification_history:
         email = args.user_notification_history.strip()
         address = session.query(emailschema.Address).filter(emailschema.Address.email == email).first()

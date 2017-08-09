@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-#stdlib imports
+# stdlib imports
 import argparse
 import configparser
 import os.path
@@ -9,13 +9,13 @@ import pprint
 import locale
 import json
 
-#third party imports
+# third party imports
 import pandas as pd
 import numpy as np
 from mapio.shake import getHeaderData
 import yaml
 
-#local imports
+# local imports
 from losspager.models.exposure import Exposure
 from losspager.models.econexposure import EconExposure
 from losspager.models.emploss import EmpiricalLoss
@@ -36,7 +36,7 @@ def pandify_semi(fatbystruct):
     :returns:
       pandas DataFrame with columns (Country Code,Building Type 1,Building Type 2, ...) and index of country codes.
     """
-    #figure out what all of the unique building types are...
+    # figure out what all of the unique building types are...
     utypes = []
     for ccode, fatstruct in fatbystruct.items():
         for key in fatstruct.keys():
@@ -49,7 +49,7 @@ def pandify_semi(fatbystruct):
     ccodes = []
     for ccode, fatstruct in fatbystruct.items():
         ccodes.append(ccode)
-        #ccodes are the rows in our new dictionary
+        # ccodes are the rows in our new dictionary
         for utype in utypes:
             if utype not in fatstruct:
                 newfatbystruct[utype].append(np.nan)
@@ -89,7 +89,7 @@ def pandify_exposure(exposure, human_readable=False):
     df = pd.DataFrame(rows, columns=columns, dtype=np.int64)
     df = df.set_index('Country Code')
 
-    #shuffle the rows so that they are sorted by country codes, then total at the end
+    # shuffle the rows so that they are sorted by country codes, then total at the end
     ccols = df.index.tolist()
     is_economic = False
     if ccols.count('TotalExposure'):
@@ -105,7 +105,7 @@ def pandify_exposure(exposure, human_readable=False):
     df = df.reindex(ccols)
     
     if human_readable:
-        locale.setlocale(locale.LC_ALL, '') #set the locale to that specified by the system
+        locale.setlocale(locale.LC_ALL, '')  # set the locale to that specified by the system
         sep = locale.localeconv()['thousands_sep']
         fmt = '{:%sd}' % sep
         for mmicol in mmi:
@@ -143,14 +143,14 @@ def pandify_losses(lossdict, losstype='fatality', human_readable=False):
         rows[losscol].append(lossvalue)
     df = pd.DataFrame(rows, columns=columns, dtype=np.uint64)
     df = df.set_index('Country Code')
-    #shuffle the rows so that they are sorted by country codes, then total at the end
+    # shuffle the rows so that they are sorted by country codes, then total at the end
     ccols = df.index.tolist()
     ccols.remove(totalrow)
     ccols.sort()
     ccols += [totalrow]
     df = df.reindex(ccols)
     if human_readable:
-        locale.setlocale(locale.LC_ALL, '') #set the locale to that specified by the system
+        locale.setlocale(locale.LC_ALL, '')  # set the locale to that specified by the system
         sep = locale.localeconv()['thousands_sep']
         fmt = '{:%sd}' % sep
         df[losscol] = df[losscol].map(fmt.format)
@@ -159,12 +159,12 @@ def pandify_losses(lossdict, losstype='fatality', human_readable=False):
                 
 
 def main(pargs, config):
-    #Make sure grid.xml file exists
+    # Make sure grid.xml file exists
     if not os.path.isfile(pargs.gridfile):
         print('ShakeMap Grid file %s does not exist.' % pargs.gridfile)
         sys.exit(1)
     
-    #get all the basic event information and print it, if requested
+    # get all the basic event information and print it, if requested
     shake_tuple = getHeaderData(pargs.gridfile)
     etime = shake_tuple[1]['event_timestamp']
     elat = shake_tuple[1]['lat']
@@ -183,10 +183,10 @@ def main(pargs, config):
         print('Magnitude : %.1f' % emag)
         print('Event ID : %s' % eid)
     
-    #get the year of the event
+    # get the year of the event
     event_year = shake_tuple[1]['event_timestamp'].year
     
-    #find the population data collected most closely to the event_year
+    # find the population data collected most closely to the event_year
     pop_year = None
     tmin = 10000000
     popfile = None
@@ -205,7 +205,7 @@ def main(pargs, config):
         sys.stderr.write('Population year: %i Population file: %s\n' % (pop_year, popfile))
 
         
-    #Get exposure results
+    # Get exposure results
     isofile = config['model_data']['country_grid']
     expomodel = Exposure(popfile, pop_year, isofile)
     try:
@@ -218,7 +218,7 @@ def main(pargs, config):
     print(expdf)
     print()
     
-    #get fatality results, if requested
+    # get fatality results, if requested
     if pargs.fatalities:
         fatmodel = EmpiricalLoss.fromDefaultFatality()
         fatdict = fatmodel.getLosses(exposure)
@@ -227,7 +227,7 @@ def main(pargs, config):
         print(fatdf)
         print()
     
-    #get economic results, if requested
+    # get economic results, if requested
     if pargs.econloss:
         econexpmodel = EconExposure(popfile, popyear, isofile)
         ecomodel = EmpiricalLoss.fromDefaultEconomic()
@@ -240,7 +240,7 @@ def main(pargs, config):
         print('Dollar Losses Due to Shaking:\n')
         print(ecodf)
 
-    #Get semi-empirical losses, if requested
+    # Get semi-empirical losses, if requested
     if pargs.semiloss:
         urbanfile = config['model_data']['urban_rural_grid']
         if not os.path.isfile(urbanfile):
@@ -350,10 +350,10 @@ if __name__ == '__main__':
     pd.set_option('display.width', 1000)
     pd.set_option('precision', 2)
 
-    #read config file
+    # read config file
     config = read_config()
     
-    #Make sure model_data section exists
+    # Make sure model_data section exists
     try:
         config['model_data']['population_data'][0]['population_year']
         config['model_data']['population_data'][0]['population_grid']

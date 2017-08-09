@@ -1,7 +1,7 @@
-#stdlib imports
+# stdlib imports
 import os.path
 
-#third-party imports
+# third-party imports
 from impactutils.comcat.query import ComCatInfo
 
 def get_event_folder(eventid, outfolder):
@@ -11,7 +11,7 @@ def get_event_folder(eventid, outfolder):
     else:
         try:
             ccinfo = ComCatInfo(eventid)
-            #try to get all the possible event ids before failing
+            # try to get all the possible event ids before failing
             authid, allids = ccinfo.getAssociatedIds()
             allids.append(authid)
             for eid in allids:

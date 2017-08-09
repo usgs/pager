@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-#stdlib imports
+# stdlib imports
 import argparse
 import sys
 import configparser
@@ -14,14 +14,14 @@ import re
 from operator import attrgetter
 from calendar import monthrange
 
-#local imports
+# local imports
 from losspager.utils.config import read_config, read_mail_config, write_config, get_mail_config_file
 from losspager.io.pagerdata import PagerData
 from losspager.utils.admin import PagerAdmin, RemoteAdmin, transfer, unset_pending, get_id_and_source
 from losspager.utils.exception import PagerException
 
 
-#third party imports
+# third party imports
 from impactutils.io.cmd import get_command_output
 from impactutils.textformat.text import pop_round_short, dollar_round, round_to_nearest, commify
 from impactutils.comcat.query import ComCatInfo
@@ -30,8 +30,8 @@ import pandas as pd
 DATEFMT = '%Y-%m-%d'
 DATETIMEFMT = '%Y-%m-%d %H:%M:%S'
 NDAYS = 7
-MAX_DAYS = 300*365 #maximum number of days to do queries for events
-PAGER_SCRIPT = 'runpager.py' #this is a system call hack until I can refactor runpager to export a run function
+MAX_DAYS = 300*365  # maximum number of days to do queries for events
+PAGER_SCRIPT = 'runpager.py'  # this is a system call hack until I can refactor runpager to export a run function
 TIMEFMT = '%Y-%m-%d %H:%M:%S'
 HDRDICT = collections.OrderedDict([('ID', '%-10s'),
                                   ('Ver', '%-3s'),
@@ -149,7 +149,7 @@ def do_archive(archive_info, archive_threshold, admin):
     return (narchived, nerrors)
 
 def do_release(eventid, admin, config):
-    #find the most recent version of PAGER for this event
+    # find the most recent version of PAGER for this event
     event_folder = admin.getEventFolder(eventid)
     release_file = os.path.join(event_folder, 'release')
     f = open(release_file, 'wt')
@@ -179,7 +179,7 @@ def do_release(eventid, admin, config):
     return (True, msg)
 
 def do_force(eventid, admin, config, mailconfig):
-    #find the most recent version of PAGER for this event
+    # find the most recent version of PAGER for this event
     event_folder = admin.getEventFolder(eventid)
     if event_folder is None:
         print('No event %s found.  Exiting.' % eventid)
@@ -217,7 +217,7 @@ def do_force(eventid, admin, config, mailconfig):
     
 
 def do_renotify(eventid, admin, config):
-    #find the most recent version of PAGER for this event
+    # find the most recent version of PAGER for this event
     event_folder = admin.getEventFolder(eventid)
     if event_folder is None:
         print('No event %s found.  Exiting.' % eventid)
@@ -240,7 +240,7 @@ def do_renotify(eventid, admin, config):
     return (True, msg)
 
 def do_status(status, admin):
-    #check the pager config first
+    # check the pager config first
     current_status = admin.getStatus()
     if status == 'check':
         if current_status == 'primary':
@@ -258,7 +258,7 @@ def do_status(status, admin):
                 fmt = 'PAGER status changed to %s - this system is now configured to NOT transfer products.'
             msg = fmt % new_status
 
-    #if the mail config file exists on this system, do the same actions on that file
+    # if the mail config file exists on this system, do the same actions on that file
     if get_mail_config_file() is not None:
         current_mail_status = admin.getMailStatus()
         if status == 'check':
@@ -290,7 +290,7 @@ def do_stats(stats, admin, config):
     tnow = datetime.datetime.utcnow()
     this_month = tnow.month
     if stats[0] == 'month':
-        #go get the last full month's worth of pager results.
+        # go get the last full month's worth of pager results.
         query_month = this_month - 1
         query_year = tnow.year
         if query_month == 0:
@@ -342,7 +342,7 @@ def do_query(query, output, admin):
     pd.set_option('display.width', 1000)
     pd.set_option('display.max_rows', 1000)
     start_date = get_date(query[0])
-    end_date = datetime.datetime(3000, 1, 1) #some scenarios are in the future.  Sigh.
+    end_date = datetime.datetime(3000, 1, 1)  # some scenarios are in the future.  Sigh.
     mag_threshold = 0.0
     alert_threshold = 'green'
     version = 'last'
@@ -400,20 +400,20 @@ def do_query(query, output, admin):
     return (res, msg)
 
 def main(args):
-    #Get config file loaded
+    # Get config file loaded
     config = read_config()
     
-    #figure out where the output data goes
+    # figure out where the output data goes
     pager_folder = config['output_folder']
 
-    #figure out where the archive folder is
+    # figure out where the archive folder is
     archive_folder = config['archive_folder']
 
-    #figure out auto archive threshold
+    # figure out auto archive threshold
     archive_threshold_days = config['archive_older_than']
     archive_threshold = datetime.datetime.utcnow() - datetime.timedelta(days=archive_threshold_days)
 
-    #if we're on a laptop, then status should not be set in the config at all
+    # if we're on a laptop, then status should not be set in the config at all
     if 'status' not in config:
         if 'pdl' in config:
             admin = RemoteAdmin(config['pdl'])
@@ -539,7 +539,7 @@ def main(args):
         if args.tsunami[1] not in ['on', 'off']:
             print('Tsunami syntax: adminpager --tsunami EVENT on/off')
             sys.exit(1)
-        #toggling re-runs PAGER, including whatever transfer may happen
+        # toggling re-runs PAGER, including whatever transfer may happen
         result, stdout, stderr = admin.toggleTsunami(args.tsunami[0], args.tsunami[1])
         print('Tsunami status has been set to %s for event %s' % (args.tsunami[1], args.tsunami[0]))
         if result:

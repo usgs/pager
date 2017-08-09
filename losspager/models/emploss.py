@@ -1,22 +1,22 @@
 #!/usr/bin/env python
 
-#stdlib imports
+# stdlib imports
 from xml.dom import minidom
 from collections import OrderedDict
 import os.path
 
-#third party imports
+# third party imports
 import numpy as np
 from scipy.special import erfc
 import shapely
 from mapio.grid2d import Grid2D
 
-#local imports
+# local imports
 from losspager.utils.country import Country
 from losspager.utils.probs import calcEmpiricalProbFromRange
 from losspager.utils.exception import PagerException
 
-#TODO: What should these values be?  Mean loss rates for all countries?
+# TODO: What should these values be?  Mean loss rates for all countries?
 DEFAULT_THETA = 16.0
 DEFAULT_BETA = 0.15
 DEFAULT_L2G = 1.0
@@ -296,8 +296,8 @@ class EmpiricalLoss(object):
         self._model_dict = {}
         for model in model_list:
             self._model_dict[model.name] = model
-        self._country = Country() #object that can translate between different ISO country representations.
-        self._overrides = {} #dictionary of manually set rates (not necessarily lognormal)
+        self._country = Country()  # object that can translate between different ISO country representations.
+        self._overrides = {}  # dictionary of manually set rates (not necessarily lognormal)
 
     def getModel(self, ccode):
         """Return the LognormalModel associated with given country code, 
@@ -317,13 +317,13 @@ class EmpiricalLoss(object):
 
     @classmethod
     def fromDefaultFatality(cls):
-        homedir = os.path.dirname(os.path.abspath(__file__)) #where is this module?
+        homedir = os.path.dirname(os.path.abspath(__file__))  # where is this module?
         fatxml = os.path.join(homedir, '..', 'data', 'fatality.xml')
         return cls.fromXML(fatxml)
 
     @classmethod
     def fromDefaultEconomic(cls):
-        homedir = os.path.dirname(os.path.abspath(__file__)) #where is this module?
+        homedir = os.path.dirname(os.path.abspath(__file__))  # where is this module?
         econxml = os.path.join(homedir, '..', 'data', 'economy.xml')
         return cls.fromXML(econxml)
         
@@ -366,7 +366,7 @@ class EmpiricalLoss(object):
             if model.hasAttribute('alpha'):
                 alpha = float(model.getAttribute('alpha'))
             else:
-                alpha = 1.0 #what is the appropriate default value for this?
+                alpha = 1.0  # what is the appropriate default value for this?
             model_list.append(LognormalModel(key, theta, beta, l2g, alpha=alpha))
         root.unlink()
 
@@ -382,7 +382,7 @@ class EmpiricalLoss(object):
         :returns:
           Rates from LognormalModel associated with ccode, or default model (see getModel()).
         """
-        #mmirange is mmi value, not index
+        # mmirange is mmi value, not index
         model = self.getModel(ccode)
         yy = model.getLossRates(mmirange)
         return yy
@@ -397,13 +397,13 @@ class EmpiricalLoss(object):
         :returns:
           Dictionary containing country code keys and integer population estimations of loss.
         """
-        #Get a loss dictionary
+        # Get a loss dictionary
         fatdict = {}
         for ccode, exparray in exposure_dict.items():
-            #exposure array will now also have a row of Total Exposure to shaking.
+            # exposure array will now also have a row of Total Exposure to shaking.
             if ccode.find('Total') > -1 or ccode.find('maximum') > -1: 
                 continue
-            if ccode == 'UK': #unknown
+            if ccode == 'UK':  # unknown
                 continue
             mmirange = np.arange(5, 10)
             model = self.getModel(ccode)
@@ -414,11 +414,11 @@ class EmpiricalLoss(object):
 
             expo = exparray[:]
             expo[8] += expo[9]
-            expo = expo[4:9] #should now be the same size as rates array
+            expo = expo[4:9]  # should now be the same size as rates array
             losses = model.getLosses(expo, mmirange, rates=rates)
-            fatdict[ccode] = int(losses) #TODO: int or round, or neither?
+            fatdict[ccode] = int(losses)  # TODO: int or round, or neither?
 
-        #now go through the whole list, and get the total number of losses.
+        # now go through the whole list, and get the total number of losses.
         total = sum(list(fatdict.values()))
         if self._loss_type == 'fatality':
             fatdict['TotalFatalities'] = total
@@ -435,8 +435,8 @@ class EmpiricalLoss(object):
         :returns:
           sqrt(sum(l2g^2)) for array of all l2g values from countries that had non-zero losses.
         """
-        #combine g norm values from all countries that contributed to losses, or if NO losses in
-        #any countries, then the combined G from all of them.
+        # combine g norm values from all countries that contributed to losses, or if NO losses in
+        # any countries, then the combined G from all of them.
         g = []
         has_loss = np.sum(list(lossdict.values())) > 0
         for ccode, loss in lossdict.items():
@@ -480,7 +480,7 @@ class EmpiricalLoss(object):
         
         if self._loss_type == 'economic':
             expected = lossdict['TotalDollars']
-            expected = expected / 1e6 #turn USD into millions of USD
+            expected = expected / 1e6  # turn USD into millions of USD
         else:
             expected = lossdict['TotalFatalities']
         for rangekey, value in ranges.items():
@@ -490,8 +490,8 @@ class EmpiricalLoss(object):
                 rmax = int(rparts[0])
             else:
                 rmax = int(rparts[1])
-                #the high end of the highest red range should be a very large number (ideally infinity).
-                #one trillion should do it. 
+                # the high end of the highest red range should be a very large number (ideally infinity).
+                # one trillion should do it. 
                 if rmax == 10000000:
                     rmax = 1e12
             prob = calcEmpiricalProbFromRange(G, expected, (rmin, rmax))
@@ -515,7 +515,7 @@ class EmpiricalLoss(object):
             lossmax, thislevel = levels[i]
             if total < lossmax:
                 return thislevel
-        return 'red' #we should never get here, unless we have 1e18 USD in losses!
+        return 'red'  # we should never get here, unless we have 1e18 USD in losses!
     
     def overrideModel(self, ccode, rates):
         """Override the rates determined from theta,beta values with these hard-coded ones.
@@ -564,7 +564,7 @@ class EmpiricalLoss(object):
         """
         ucodes = np.unique(isodata)
         fatgrid = np.zeros_like(mmidata)
-        #we treat MMI 10 as MMI 9 for modeling purposes...
+        # we treat MMI 10 as MMI 9 for modeling purposes...
         mmidata[mmidata > 9.5] = 9.0
         
         for isocode in ucodes:
@@ -622,11 +622,11 @@ class EmpiricalLoss(object):
             fieldname = 'dollars_lost'
         for polyrec in shapes:
             polygon = shapely.geometry.shape(polyrec['geometry'])
-            #overlay the polygon on top of a grid, turn polygon pixels to 1, non-polygon pixels to 0.
+            # overlay the polygon on top of a grid, turn polygon pixels to 1, non-polygon pixels to 0.
             tgrid = Grid2D.rasterizeFromGeometry([polygon], geodict, fillValue=0, burnValue=1.0, attribute='value', mustContainCenter=True)
-            #get the indices of the polygon cells
+            # get the indices of the polygon cells
             shapeidx = tgrid.getData() == 1.0
-            #get the sum of those cells in the loss grid
+            # get the sum of those cells in the loss grid
             losses = np.nansum(lossgrid[shapeidx])
             polyrec['properties'][fieldname] = int(losses)
             polyshapes.append(polyrec)

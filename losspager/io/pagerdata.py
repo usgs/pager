@@ -1,10 +1,10 @@
-#stdlib imports
+# stdlib imports
 from collections import OrderedDict
 from datetime import datetime
 import os.path
 import json
 
-#third party libraries
+# third party libraries
 from lxml import etree
 import numpy as np
 from impactutils.time.timeutils import LocalTime, ElapsedTime
@@ -12,7 +12,7 @@ from impactutils.textformat.text import dec_to_roman, pop_round_short
 from mapio.city import Cities
 import pandas as pd
 
-#local imports
+# local imports
 from losspager.utils.expocat import ExpoCat
 from losspager.onepager.pagercity import PagerCities
 from losspager.utils.exception import PagerException
@@ -20,9 +20,9 @@ from losspager.utils.country import Country
 
 DATETIMEFMT = '%Y-%m-%d %H:%M:%S'
 TIMEFMT = '%H:%M:%S'
-MINEXP = 1000 #minimum population required to declare maxmmi at a given intensity
-SOFTWARE_VERSION = '2.0b' #THIS SHOULD GET REPLACED WITH SOMETHING SET BY VERSIONEER
-EVENT_RADIUS = 400 #distance around epicenter to search for similar historical earthquakes
+MINEXP = 1000  # minimum population required to declare maxmmi at a given intensity
+SOFTWARE_VERSION = '2.0b'  # THIS SHOULD GET REPLACED WITH SOMETHING SET BY VERSIONEER
+EVENT_RADIUS = 400  # distance around epicenter to search for similar historical earthquakes
 MINS_PER_DAY = 60*24
 SECS_PER_MIN = 60
 
@@ -119,7 +119,7 @@ class PagerData(object):
           Dictionary will contain an additional key 'Total', with value of exposure across all countries.
         """
         self._maxmmi, nmmi = self._get_maxmmi(exposure)
-        #convert all numpy integers to python integers
+        # convert all numpy integers to python integers
         new_exposure = {}
         for key, value in exposure.items():
             new_exposure[key] = value.tolist()
@@ -584,7 +584,7 @@ class PagerData(object):
         if not self._is_validated:
             raise PagerException('PagerData object has not yet been validated.')
 
-        #one file to contain event summary, pager summary, and shakemap summary info
+        # one file to contain event summary, pager summary, and shakemap summary info
         event_info_file = os.path.join(jsonfolder, 'event.json')
         f = open(event_info_file, 'wt')
         infodict = {'event': self._pagerdict['event_info'],
@@ -593,13 +593,13 @@ class PagerData(object):
         json_dump_nonan(infodict, f)
         f.close()
 
-        #one file for alert information
+        # one file for alert information
         alert_info_file = os.path.join(jsonfolder, 'alerts.json')
         f = open(alert_info_file, 'wt')
         json_dump_nonan(self._pagerdict['alerts'], f)
         f.close()
 
-        #one file for exposure information (population and economic)
+        # one file for exposure information (population and economic)
         exposure_info_file = os.path.join(jsonfolder, 'exposures.json')
         f = open(exposure_info_file, 'wt')
         expdict = {'population_exposure': self._pagerdict['population_exposure'],
@@ -607,25 +607,25 @@ class PagerData(object):
         json_dump_nonan(expdict, f)
         f.close()
 
-        #one file for loss model results
+        # one file for loss model results
         loss_info_file = os.path.join(jsonfolder, 'losses.json')
         f = open(loss_info_file, 'wt')
         json_dump_nonan(self._pagerdict['model_results'], f)
         f.close()
 
-        #one file for the table of affected cities
+        # one file for the table of affected cities
         city_file = os.path.join(jsonfolder, 'cities.json')
         f = open(city_file, 'wt')
         self._pagerdict['city_table'].to_json(f, orient='records')
         f.close()
 
-        #one file for the table of historical earthquakes (if any)
+        # one file for the table of historical earthquakes (if any)
         historical_info_file = os.path.join(jsonfolder, 'historical_earthquakes.json')
         f = open(historical_info_file, 'wt')
         json_dump_nonan(self._pagerdict['historical_earthquakes'], f)
         f.close()
 
-        #one file for all comments
+        # one file for all comments
         comment_file = os.path.join(jsonfolder, 'comments.json')
         f = open(comment_file, 'wt')
         json_dump_nonan(self._pagerdict['comments'], f)
@@ -713,8 +713,8 @@ class PagerData(object):
 
     def __renderCities(self, pager):
         #<city name="Kirakira" lat="-10.454420" lon="161.920450" population="1122" mmi="3.500000" iscapital="0"/>
-        #The javascript that renders this draws nothing if the number of cities is 11 or less, so let's add a dummy city
-        #at the end that will be ignored.
+        # The javascript that renders this draws nothing if the number of cities is 11 or less, so let's add a dummy city
+        # at the end that will be ignored.
         dummy_row = pd.Series({'iscap': 0,
                                'lat': 0.0,
                                'lon': 0.0,
@@ -866,7 +866,7 @@ class PagerData(object):
             fmt = 'Could not load PagerData from %s: Missing required files %s'
             raise PagerException(fmt % (jsonfolder, str(missing)))
 
-        #load event, shakemap, and pager basic information
+        # load event, shakemap, and pager basic information
         f = open(os.path.join(jsonfolder, 'event.json'), 'rt')
         event = json.load(f)
         f.close()
@@ -879,37 +879,37 @@ class PagerData(object):
             
         self._pagerdict['shake_info'] = event['shakemap'].copy()
 
-        #set the maxmmi property
+        # set the maxmmi property
         self._maxmmi = self._pagerdict['pager']['maxmmi']
 
-        #load the information about the alerts
+        # load the information about the alerts
         f = open(os.path.join(jsonfolder, 'alerts.json'), 'rt')
         self._pagerdict['alerts'] = json.load(f)
         f.close()
 
-        #load the information about the exposures
+        # load the information about the exposures
         f = open(os.path.join(jsonfolder, 'exposures.json'), 'rt')
         expo = json.load(f)
         f.close()
         self._pagerdict['population_exposure'] = expo['population_exposure']
         self._pagerdict['economic_exposure'] = expo['economic_exposure']
 
-        #load the information about the losses
+        # load the information about the losses
         f = open(os.path.join(jsonfolder, 'losses.json'), 'rt')
         self._pagerdict['model_results'] = json.load(f)
         f.close()
 
-        #load in the information about affected cities
+        # load in the information about affected cities
         f = open(os.path.join(jsonfolder, 'cities.json'), 'rt')
         self._pagerdict['city_table'] = pd.read_json(f)
         f.close()
 
-        #load in the information about historical earthquakes
+        # load in the information about historical earthquakes
         f = open(os.path.join(jsonfolder, 'historical_earthquakes.json'), 'rt')
         self._pagerdict['historical_earthquakes'] = json.load(f)
         f.close()
 
-        #load in the information about comments
+        # load in the information about comments
         f = open(os.path.join(jsonfolder, 'comments.json'), 'rt')
         self._pagerdict['comments'] = json.load(f)
         f.close()
@@ -1000,7 +1000,7 @@ class PagerData(object):
         shakeinfo['shake_processing_time'] = self._shake_dict['process_timestamp'].strftime(DATETIMEFMT)
         shakeinfo['shake_source'] = self._shake_dict['shakemap_originator']
         shakeinfo['shake_id'] = self._shake_dict['shakemap_id']
-        shakeinfo['shake_type'] = self._shake_dict['shakemap_event_type'] #SCENARIO or ACTUAL
+        shakeinfo['shake_type'] = self._shake_dict['shakemap_event_type']  # SCENARIO or ACTUAL
         return shakeinfo
 
     def _setAlerts(self):
@@ -1027,7 +1027,7 @@ class PagerData(object):
         is_fat_summary = rleveldict[leveldict[fatlevel]] > rleveldict[leveldict[ecolevel]]
         is_eco_summary = not is_fat_summary
         
-        #Create the fatality alert level
+        # Create the fatality alert level
         fat_gvalue = self._fatmodel.getCombinedG(self._fatmodel_results)
         fatality = OrderedDict([('type', 'fatality'),
                                 ('units', 'fatalities'),
@@ -1048,7 +1048,7 @@ class PagerData(object):
         fatality['bins'] = bins
         alerts['fatality'] = fatality
 
-        #Create the economic alert level
+        # Create the economic alert level
         eco_gvalue = self._ecomodel.getCombinedG(self._ecomodel_results)
         economic = OrderedDict([('type', 'economic'),
                                 ('units', 'USD'),
@@ -1105,7 +1105,7 @@ class PagerData(object):
     def _setModelResults(self):
         model_results = OrderedDict()
 
-        #organize the empirical fatality model results
+        # organize the empirical fatality model results
         empfat = OrderedDict()
         empfat['total_fatalities'] = self._fatmodel_results['TotalFatalities']
         country_deaths = []
@@ -1120,7 +1120,7 @@ class PagerData(object):
         empfat['country_fatalities'] = country_deaths
         model_results['empirical_fatality'] = empfat
 
-        #organize the empirical economic model results
+        # organize the empirical economic model results
         empeco = OrderedDict()
         empeco['total_dollars'] = self._ecomodel_results['TotalDollars']
         country_dollars = []
@@ -1135,7 +1135,7 @@ class PagerData(object):
         empeco['country_dollars'] = country_dollars
         model_results['empirical_economic'] = empeco
 
-        #organize the semi-empirical model results
+        # organize the semi-empirical model results
         semimodel = OrderedDict()
         semimodel['fatalities'] = self._semi_loss
         semimodel['residental_fatalities'] = self._res_fat
@@ -1146,7 +1146,7 @@ class PagerData(object):
 
     def _getHistoricalEarthquakes(self):
         expocat = ExpoCat.fromDefault()
-        #if we're re-running an older event, don't include more recent events than that in the table.
+        # if we're re-running an older event, don't include more recent events than that in the table.
         expocat.excludeFutureEvents(self.time)
         clat, clon = self._event_dict['lat'], self._event_dict['lon']
         print('Select events by radius.')

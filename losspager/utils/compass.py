@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-#third party imports
+# third party imports
 import numpy as np
 from openquake.hazardlib.geo import geodetic
 

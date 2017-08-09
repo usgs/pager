@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 
-#stdlib imports
+# stdlib imports
 import os.path
 
-#third party imports
+# third party imports
 import pandas as pd
 
 class Country(object):
     def __init__(self):
-        homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
+        homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
         excelfile = os.path.abspath(os.path.join(homedir, '..', 'data', 'countries.xlsx'))
         self._loadFromExcel(excelfile)        
     

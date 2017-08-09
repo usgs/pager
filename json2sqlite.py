@@ -22,7 +22,7 @@ if __name__ == '__main__':
     print('There are %i users in this new database.' % nusers)
     session.close()
 
-    #do a quick test of the new database that we created...
+    # do a quick test of the new database that we created...
     session = emailschema.get_session(fileurl)
     nusers = session.query(emailschema.User).count()
     print('There are %i users in this new database.' % nusers)

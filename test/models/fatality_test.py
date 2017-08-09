@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-#stdlib imports
+# stdlib imports
 import urllib.request as request
 import tempfile
 import os.path
@@ -8,12 +8,12 @@ import sys
 from datetime import datetime
 from collections import OrderedDict
 
-#hack the path so that I can debug these functions if I need to
-homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
+# hack the path so that I can debug these functions if I need to
+homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
 pagerdir = os.path.abspath(os.path.join(homedir, '..', '..'))
-sys.path.insert(0, pagerdir) #put this at the front of the system path, ignoring any installed shakemap stuff
+sys.path.insert(0, pagerdir)  # put this at the front of the system path, ignoring any installed shakemap stuff
 
-#third party imports 
+# third party imports 
 import numpy as np
 from mapio.geodict import GeoDict
 from mapio.gmt import GMTGrid
@@ -21,7 +21,7 @@ from mapio.grid2d import Grid2D
 from mapio.shake import ShakeGrid
 import fiona
 
-#local imports
+# local imports
 from losspager.models.emploss import EmpiricalLoss, LognormalModel
 from losspager.models.exposure import Exposure
 from losspager.models.growth import PopulationGrowth
@@ -122,14 +122,14 @@ def basic_test():
                  LognormalModel('CN', 10.328811, 0.100058, 1.0)]
     fatmodel = EmpiricalLoss(modeldict)
 
-    #for the purposes of this test, let's override the rates
-    #for Afghanistan and China with simpler numbers.
+    # for the purposes of this test, let's override the rates
+    # for Afghanistan and China with simpler numbers.
     fatmodel.overrideModel('AF', np.array([0, 0, 0, 0, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 0], dtype=np.float32))
     fatmodel.overrideModel('CN', np.array([0, 0, 0, 0, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 0], dtype=np.float32))
 
     print('Testing very basic fatality calculation...')
     fatdict = fatmodel.getLosses(expdict)
-    #strictly speaking, the afghanistant fatalities should be 462,000 but floating point precision dictates otherwise.
+    # strictly speaking, the afghanistant fatalities should be 462,000 but floating point precision dictates otherwise.
     testdict = {'CN': 46111,
                 'AF': 461999,
                 'TotalFatalities': 508110}
@@ -146,12 +146,12 @@ def basic_test():
     assert np.nansum(fatgrid) == 508111
     print('Passed grid fatality calculations...')
 
-    #Testing modifying rates and stuffing them back in...
+    # Testing modifying rates and stuffing them back in...
     chile = LognormalModel('CL', 19.786773, 0.259531, 0.0)
     rates = chile.getLossRates(np.arange(5, 10))
-    modrates = rates * 2 #does this make event twice as deadly?
+    modrates = rates * 2  # does this make event twice as deadly?
 
-    #roughly the exposures from 2015-9-16 CL event
+    # roughly the exposures from 2015-9-16 CL event
     expo_pop = np.array([0, 0, 0, 1047000, 7314000, 1789000, 699000, 158000, 0, 0])
     mmirange = np.arange(5, 10)
     chile_deaths = chile.getLosses(expo_pop[4:9], mmirange)
@@ -161,7 +161,7 @@ def basic_test():
     
 
 def test():
-    homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
+    homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
     xmlfile = os.path.join(homedir, '..', 'data', 'fatality.xml')
     ratefile = os.path.join(homedir, '..', 'data', 'WPP2015_POP_F02_POPULATION_GROWTH_RATE.xls')
     event = 'northridge'
@@ -179,7 +179,7 @@ def test():
     assert fatmodel.getAlertLevel({'TotalFatalities': 5}) == 'yellow'
     assert fatmodel.getAlertLevel({'TotalFatalities': 100}) == 'orange'
     assert fatmodel.getAlertLevel({'TotalFatalities': 1000}) == 'red'
-    assert fatmodel.getAlertLevel({'TotalFatalities': 1e13}) == 'red' #1000 times Earth's population
+    assert fatmodel.getAlertLevel({'TotalFatalities': 1e13}) == 'red'  # 1000 times Earth's population
     print('Passed getting alert level from various losses.')
     
     print('Test retrieving fatality model data from XML file...')
@@ -244,7 +244,7 @@ def test():
     fatshapes, totfat = fatmodel.getLossByShapes(mmidata, popdata, isodata, shapes, popdict)
     fatalities = 12
     for shape in fatshapes:
-        if shape['id'] == '312': #Los Angeles
+        if shape['id'] == '312':  # Los Angeles
             cname = shape['properties']['CITY_NAME']
             lalosses = shape['properties']['fatalities']
             assert lalosses == fatalities

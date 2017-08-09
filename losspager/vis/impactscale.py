@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
-#stdlib imports
+# stdlib imports
 from collections import OrderedDict
 
-#third party imports
+# third party imports
 import matplotlib
 
-#this allows us to have a non-interactive backend - essential on systems without a display
+# this allows us to have a non-interactive backend - essential on systems without a display
 matplotlib.use('Agg')
 
 import matplotlib.pyplot as plt
@@ -14,13 +14,13 @@ import numpy as np
 from matplotlib.patches import Rectangle, Ellipse
 
 
-#local imports
+# local imports
 from losspager.utils.exception import PagerException
 from losspager.models.emploss import EmpiricalLoss
 
-ASPECT = 390/187 #width of old impact scale/height
-WIDTH = 8.0 #desired width in inches of new impact scale (doesn't matter much as it's a vector, and we'll scale
-#up or down as necessary
+ASPECT = 390/187  # width of old impact scale/height
+WIDTH = 8.0  # desired width in inches of new impact scale (doesn't matter much as it's a vector, and we'll scale
+# up or down as necessary
 
 GREEN = '#00B04F'
 YELLOW = '#FFFF00'
@@ -31,15 +31,15 @@ RED = '#FF0000'
 
 def _find_renderer(fig):
     if hasattr(fig.canvas, "get_renderer"):
-        #Some backends, such as TkAgg, have the get_renderer method, which 
-        #makes this easy.
+        # Some backends, such as TkAgg, have the get_renderer method, which 
+        # makes this easy.
         renderer = fig.canvas.get_renderer()
     else:
-        #Other backends do not have the get_renderer method, so we have a work 
-        #around to find the renderer.  Print the figure to a temporary file 
-        #object, and then grab the renderer that was used.
+        # Other backends do not have the get_renderer method, so we have a work 
+        # around to find the renderer.  Print the figure to a temporary file 
+        # object, and then grab the renderer that was used.
         #(I stole this trick from the matplotlib backend_bases.py 
-        #print_figure() method.)
+        # print_figure() method.)
         import io
         fig.canvas.print_pdf(io.BytesIO())
         renderer = fig._cachedRenderer
@@ -81,7 +81,7 @@ def drawImpactScale(lossdict, ranges, losstype, debug=False):
     plt.axis([0, 1, 0, 1])
     if not debug:
         plt.axis('off')
-    #reserve the left edge of the figure for the "sponge ball" - colored circle indicating most likely alert level.
+    # reserve the left edge of the figure for the "sponge ball" - colored circle indicating most likely alert level.
     starting_left_edge = 11/63
     bottom_edge = 7/23
     bottom_bar_height = 3/23
@@ -103,7 +103,7 @@ def drawImpactScale(lossdict, ranges, losstype, debug=False):
         text_widths.append((format(ticklabel, ",d"), dataxmax-dataxmin))
         t.remove()
 
-    #draw the bottom bars indicating where the alert levels are
+    # draw the bottom bars indicating where the alert levels are
     for barcolor in barcolors:
         left_edge = starting_left_edge + bar_width*wfactor
         rect = Rectangle((left_edge, bottom_edge), bar_width, bottom_bar_height, fc=barcolor, ec='k')
@@ -116,7 +116,7 @@ def drawImpactScale(lossdict, ranges, losstype, debug=False):
             plt.text(left_edge+(bar_width)-(twidth/2.0), bottom_edge-(ticklen+0.07), ticklabel, weight='normal', size=12)
         wfactor += 1
 
-    #now draw the top bars
+    # now draw the top bars
     bottom_edge_bar_top = 10.5/23
     total_height = (23-10.5)/23
     wfactor = 0
@@ -146,10 +146,10 @@ def drawImpactScale(lossdict, ranges, losstype, debug=False):
         plt.text(left_edge+bar_width/2.7, bottom_edge_bar_top+bar_height+0.02, ptext, fontdict=fdict)
         wfactor += 1
 
-    #now draw the sponge ball on the left
+    # now draw the sponge ball on the left
     cx = 0.105
     cy = 0.6
-    #because our axes is not equal, assuming a circle will be drawn as a circle doesn't work.
+    # because our axes is not equal, assuming a circle will be drawn as a circle doesn't work.
     x0, y0 = ax.transAxes.transform((0, 0)) # lower left in pixels
     x1, y1 = ax.transAxes.transform((1, 1)) # upper right in pixes
     dx = x1 - x0
@@ -158,7 +158,7 @@ def drawImpactScale(lossdict, ranges, losstype, debug=False):
     width = .11 * maxd / dx
     height = .11 * maxd / dy
 
-    #choose the spongeball color based on the expected total losses from lossdict
+    # choose the spongeball color based on the expected total losses from lossdict
     sponge_dict = {'green': GREEN,
                    'yellow': YELLOW,
                    'orange': ORANGE,
@@ -177,7 +177,7 @@ def drawImpactScale(lossdict, ranges, losstype, debug=False):
     ax.add_patch(spongeball)
     font = {'style': 'italic'}
 
-    #draw units at bottom
+    # draw units at bottom
     if losstype == 'fatality':
         plt.text(0.5, 0.07, 'Fatalities', fontdict=font)
     if losstype == 'economic':

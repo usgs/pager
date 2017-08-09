@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-#stdlib imports
+# stdlib imports
 import os.path
 
-#third party imports
+# third party imports
 import pandas as pd
 
 class PagerRegions(object):
@@ -14,7 +14,7 @@ class PagerRegions(object):
 
         The data for this class lives in the PAGER code repository.
         """
-        homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
+        homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
         excelfile = os.path.abspath(os.path.join(homedir, '..', 'data', 'pager_regions.xlsx'))
         self._loadFromExcel(excelfile)
 

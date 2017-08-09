@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-#stdlib imports
+# stdlib imports
 import urllib.request as request
 import tempfile
 import os.path
@@ -8,19 +8,19 @@ import sys
 from datetime import datetime
 from collections import OrderedDict
 
-#hack the path so that I can debug these functions if I need to
-homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
+# hack the path so that I can debug these functions if I need to
+homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
 pagerdir = os.path.abspath(os.path.join(homedir, '..', '..'))
-sys.path.insert(0, pagerdir) #put this at the front of the system path, ignoring any installed shakemap stuff
+sys.path.insert(0, pagerdir)  # put this at the front of the system path, ignoring any installed shakemap stuff
 
-#third party imports 
+# third party imports 
 import numpy as np
 import pandas as pd
 from mapio.gmt import GMTGrid
 from mapio.geodict import GeoDict
 from mapio.shake import ShakeGrid
 
-#local imports
+# local imports
 from losspager.models.semimodel import get_time_of_day, pop_dist, SemiEmpiricalFatality, URBAN, RURAL, make_test_semi_model
 
 def test_times():
@@ -62,9 +62,9 @@ def test_work():
 
     
 def test_model_real():
-    #test with real data
+    # test with real data
     popyear = 2012
-    homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
+    homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
     invfile = os.path.join(homedir, '..', 'data', 'semi_inventory.hdf')
     colfile = os.path.join(homedir, '..', 'data', 'semi_collapse_mmi.hdf')
     fatfile = os.path.join(homedir, '..', 'data', 'semi_casualty.hdf')
@@ -86,7 +86,7 @@ def test_model_real():
 
 
 def test_manual_calcs():
-    homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
+    homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
     invfile = os.path.join(homedir, '..', 'data', 'semi_inventory.hdf')
     colfile = os.path.join(homedir, '..', 'data', 'semi_collapse_mmi.hdf')
     fatfile = os.path.join(homedir, '..', 'data', 'semi_casualty.hdf')
@@ -104,7 +104,7 @@ def test_manual_calcs():
     semi = SemiEmpiricalFatality.fromDefault()
     semi.setGlobalFiles(popfile, popyear, urbfile, isofile)
 
-    #let's do the calculations "manually" by getting all of the data and doing our own multiplications
+    # let's do the calculations "manually" by getting all of the data and doing our own multiplications
     workforce = semi.getWorkforce(ccode)
     res, nonres, outside = pop_dist(pop, workforce, timeofday, density)
     resinv, nonresinv = semi.getInventories(ccode, density)
@@ -114,8 +114,8 @@ def test_manual_calcs():
     nonres_fat_rates = semi.getFatalityRates(ccode, timeofday, nonresinv)
     res_fats = res * resinv * res_collapse * res_fat_rates
     nonres_fats = nonres * nonresinv * nonres_collapse * nonres_fat_rates
-    #print(res_fats)
-    #print(nonres_fats)
+    # print(res_fats)
+    # print(nonres_fats)
     fatsum = int(res_fats.sum()+nonres_fats.sum())
     print('Testing that "manual" calculations achieve tested result...')
     assert fatsum == 383
@@ -125,6 +125,6 @@ if __name__ == '__main__':
     test_times()
     test_work()
     test_manual_calcs()
-    #test_model_single()
+    # test_model_single()
     test_model_real()
     

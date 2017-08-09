@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-#stdlib imports
+# stdlib imports
 import logging
 from logging.handlers import SMTPHandler
 import sys
@@ -116,7 +116,7 @@ class PagerLogger:
         #h = NullHandler()
         self.redirected = False
         logger = logging.getLogger('PagerLog')
-        #logger.addHandler(h)
+        # logger.addHandler(h)
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
         #formatter = logging.Formatter(fmt='${levelname} ${asctime} ${message}')
         self.PagerLogHandler = logging.FileHandler(pagerlogfile)
@@ -129,8 +129,8 @@ class PagerLogger:
         if redirect:
             self.enableRedirect()
 
-        #check to verify that we are connected to a network.  If not, email handler
-        #can't be added later
+        # check to verify that we are connected to a network.  If not, email handler
+        # can't be added later
         self.isOnline = True
         if socket.gethostbyname(socket.gethostname()) == '127.0.0.1':
             self.isOnline = False
@@ -177,12 +177,12 @@ class PagerLogger:
         :param eventlogfile: 
           Desired full path to event log file.
         """
-        #add the event file handler 
+        # add the event file handler 
         self.EventLogHandler = logging.FileHandler(eventlogfile)
         self.EventLogHandler.setFormatter(self.Formatter)
         self.Logger.addHandler(self.EventLogHandler)
 
-        #remove the pager log handler
+        # remove the pager log handler
         self.Logger.removeHandler(self.PagerLogHandler)
 
     def addEmailHandler(self, emails):
@@ -206,16 +206,16 @@ class PagerLogger:
             return
         self.MailHandler = None
         print('Creating SMTP handler with %s,%s,%s,%s' % (self.MailHosts, self.FromAddress, emails, self.Subject))
-        #we supply a list of smtp hosts, just in case some of them are off-line... here we find the first 
-        #one that seems to be responsive.
+        # we supply a list of smtp hosts, just in case some of them are off-line... here we find the first 
+        # one that seems to be responsive.
         try:
             subject = self.Subject + ': %s' % datetime.utcnow().strftime('%b %d %Y %H:%M:%S')
             smtphost = None
             for host in self.MailHosts:
                 with smtplib.SMTP(host) as smtp:
-                    #if I can connect, and send this noop message, then this server
-                    #should be good to go.  Various sources indicate that calling noop() too many
-                    #times can be interpreted as a form of DOS attack, so use with caution.
+                    # if I can connect, and send this noop message, then this server
+                    # should be good to go.  Various sources indicate that calling noop() too many
+                    # times can be interpreted as a form of DOS attack, so use with caution.
                     res = smtp.noop() 
                     smtp.close()
                     if res[0] == 250:

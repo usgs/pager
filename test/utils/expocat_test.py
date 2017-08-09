@@ -1,21 +1,21 @@
 #!/usr/bin/env python
 
-#stdlib imports
+# stdlib imports
 import urllib.request as request
 import tempfile
 import os.path
 import sys
 from datetime import datetime
 
-#hack the path so that I can debug these functions if I need to
-homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
+# hack the path so that I can debug these functions if I need to
+homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
 pagerdir = os.path.abspath(os.path.join(homedir, '..', '..'))
-sys.path.insert(0, pagerdir) #put this at the front of the system path, ignoring any installed pager stuff
+sys.path.insert(0, pagerdir)  # put this at the front of the system path, ignoring any installed pager stuff
 
-#third party imports 
+# third party imports 
 import numpy as np
 
-#local imports
+# local imports
 from losspager.utils.expocat import ExpoCat
 
 def commify(value):
@@ -30,7 +30,7 @@ def get_max_mmi(tdict, minimum=1000):
     return (imax+1, exparray[imax])
 
 def test():
-    homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
+    homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
     expocat = ExpoCat.fromDefault()
     clat = 0.37
     clon = -79.94
@@ -59,7 +59,7 @@ def test():
     assert liquefaction._dataframe['Liquefaction'].sum() == len(liquefaction)
     assert landslide._dataframe['Landslide'].sum() == len(landslide)
 
-    #test exclusion method
+    # test exclusion method
     test_time = datetime(1994, 1, 1)
     expocat.excludeFutureEvents(test_time)
     assert expocat._dataframe['Time'].max() < test_time

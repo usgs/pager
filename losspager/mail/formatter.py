@@ -1,8 +1,8 @@
-#stdlib imports
+# stdlib imports
 from datetime import datetime
 from textwrap import dedent, wrap
 
-#third party imports
+# third party imports
 from impactutils.textformat.text import pop_round, dec_to_roman, pop_round_short, commify, round_to_nearest
 import numpy as np
 
@@ -52,10 +52,10 @@ def strip_leading_spaces(string):
 def format_exposure(exposures, format, max_border_mmi):
     expstr_hold = 'Estimated Population Exposure\n'
     if format == 'short':
-        #get the three highest exposures with 1,000 people or greater
-        #format them as:
-        #I6=19,000
-        #I5=1,034,000
+        # get the three highest exposures with 1,000 people or greater
+        # format them as:
+        # I6=19,000
+        # I5=1,034,000
         expstr = 'No population exposure'
         if len(exposures):
             expstr = ''
@@ -74,10 +74,10 @@ def format_exposure(exposures, format, max_border_mmi):
                     popstr = pop_round(pop)
                     expstr += 'I%i=%s\n' % (mmi, popstr)
     else:
-        #get the all  highest exposures with 1,000 people or greater
-        #format them as:
-        #MMI6 19,000
-        #MMI5 1,034,000
+        # get the all  highest exposures with 1,000 people or greater
+        # format them as:
+        # MMI6 19,000
+        # MMI5 1,034,000
         expstr = expstr_hold+'\tIntensity Population\n'
         if len(exposures):
             expohold = 0
@@ -139,7 +139,7 @@ def format_city_table(cities):
     return city_table
 
 def format_earthquakes(histquakes):
-    #distance,date,magnitude,maxmmi,maxmmiexp,deaths
+    # distance,date,magnitude,maxmmi,maxmmiexp,deaths
     default = 'There were no earthquakes with significant population exposure to shaking within a 400 km radius of this event.'
     if histquakes[0] is None:
         return default
@@ -171,7 +171,7 @@ def format_earthquakes(histquakes):
     return tablestr
 
 def format_short(version, expstr):
-    #using python string .format() method with brackets
+    # using python string .format() method with brackets
     alerts = ['green', 'yellow', 'orange', 'red']
     alert_level = alerts[version.summarylevel]
     if not version.released:
@@ -210,13 +210,13 @@ def format_long(version, pdata, expstr, event_url, past_email_deadline=False):
     else:
         impact_comment = 'The following event is currently being reviewed by seismologists. You will receive a second notification once the potential impact of this earthquake has been determined.'
 
-    #wrap the impact comment to be max 80 chars wide
+    # wrap the impact comment to be max 80 chars wide
     impact_comment = '\n'.join(wrap(impact_comment, width=MAX_STRUCT_COMMENT_WIDTH))
         
-    #get the structure comment and wrap it to be 80 characters wide
+    # get the structure comment and wrap it to be 80 characters wide
     struct_comment = '\n'.join(wrap(pdata.getStructureComment(), width=MAX_STRUCT_COMMENT_WIDTH))
 
-    #figure out if we're past the normal limit for sending emails
+    # figure out if we're past the normal limit for sending emails
     past_deadline_msg = 'This PAGER notification is for an earthquake that occurred more than 8 hours ago.'
     prequel = ''
     if past_email_deadline:
@@ -277,7 +277,7 @@ def format_msg(version, pdata, format, event_url, past_email_deadline=False):
     :returns:
       email text formatted for SMS (short) or email (long) messages. 
     """
-    #TODO - expose this in pagerdata somehow so we're not reaching into its guts
+    # TODO - expose this in pagerdata somehow so we're not reaching into its guts
     max_border_mmi = pdata._pagerdict['population_exposure']['maximum_border_mmi']
     expstr = format_exposure(pdata.getTotalExposure(), format, max_border_mmi)
     if format == 'short':

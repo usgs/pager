@@ -1,14 +1,14 @@
-#stdlib imports
+# stdlib imports
 import re
 
-#third party imports
+# third party imports
 from scipy.special import erf
 import numpy as np
 import pandas as pd
 from impactutils.textformat.text import set_num_precision, commify, round_to_nearest
 from openquake.hazardlib.geo.geodetic import geodetic_distance
 
-#local imports
+# local imports
 from losspager.models.emploss import EmpiricalLoss
 from losspager.models.econexposure import GDP
 from losspager.utils.country import Country
@@ -61,8 +61,8 @@ YELLOW_ECON_EQUAL = '[GDPCOMMENT]'
 ORANGE_ECON_EQUAL = '[GDPCOMMENT]'
 RED_ECON_EQUAL = '[GDPCOMMENT]'
 
-EPS = 1e-12 #if expected value is zero, take the log of this instead
-SEARCH_RADIUS = 400 #kilometer radius to search for historical earthquakes
+EPS = 1e-12  # if expected value is zero, take the log of this instead
+SEARCH_RADIUS = 400  # kilometer radius to search for historical earthquakes
 
 def get_gdp_comment(ecodict, ecomodel, econexposure, event_year, epicode):
     """Create a comment on the GDP impact of a given event in the most impacted country.
@@ -82,10 +82,10 @@ def get_gdp_comment(ecodict, ecomodel, econexposure, event_year, epicode):
     :returns:
       A string which indicates what fraction of the country's GDP the losses represent.
     """
-    #get the gdp comment
-    #get the G value for the economic losses
+    # get the gdp comment
+    # get the G value for the economic losses
     eco_gvalue = ecomodel.getCombinedG(ecodict)
-    #get the country code of the country with the highest losses
+    # get the country code of the country with the highest losses
     dccode = ''
     dmax = 0
     expected = ecodict['TotalDollars']/1e6
@@ -97,8 +97,8 @@ def get_gdp_comment(ecodict, ecomodel, econexposure, event_year, epicode):
                 dmax = value
                 dccode = ccode
     else:
-        #how do I compare economic exposure between countries?
-        #do I want to compare that, or just grab the country of epicenter?
+        # how do I compare economic exposure between countries?
+        # do I want to compare that, or just grab the country of epicenter?
         for ccode, value in ecodict.items():
             if ccode == 'TotalDollars':
                 continue
@@ -174,7 +174,7 @@ def get_impact_comments(fatdict, ecodict, econexposure, event_year, ccode):
       A tuple of two strings which describe the economic and human impacts.  The most impactful
       of these will be the first string.  Under certain situations, the second comment could be blank.
     """
-    #first, figure out what the alert levels are for each loss result
+    # first, figure out what the alert levels are for each loss result
     
     fatmodel = EmpiricalLoss.fromDefaultFatality()
     ecomodel = EmpiricalLoss.fromDefaultEconomic()
@@ -258,7 +258,7 @@ def _add_dicts(d1, d2):
     :returns:
       Pandas Series object with summed losses per building type.
     """
-    #operating under assumption that both d1 and d2 have the same keys
+    # operating under assumption that both d1 and d2 have the same keys
     df1 = pd.DataFrame(d1, index=['fats'])
     df2 = pd.DataFrame(d2, index=['fats'])
     df3 = df1 + df2
@@ -292,8 +292,8 @@ def get_structure_comment(resfat, nonresfat, semimodel):
             maxfat = fatsum
             maxccode = ccode
 
-    #get a pandas Series of all the unique building types in the 
-    #country of greatest impact, sorted by losses (high to low).
+    # get a pandas Series of all the unique building types in the 
+    # country of greatest impact, sorted by losses (high to low).
     stypes = _add_dicts(resfat[maxccode], nonresfat[maxccode])
         
     pregions = PagerRegions()
@@ -344,7 +344,7 @@ def get_secondary_hazards(expocat, mag):
     liquidevents = expocat.selectByHazard('liquefaction')
     slideevents = expocat.selectByHazard('landslide')
     waveevents = expocat.selectByHazard('tsunami')
-    #get numbers of each type of secondary event
+    # get numbers of each type of secondary event
     nwaves = len(waveevents)
     nslides = len(slideevents)
     nfires = len(fireevents)
@@ -406,7 +406,7 @@ def get_historical_comment(lat, lon, mag, expodict, fatdict):
 
     df = expocat.getDataFrame()
 
-    #sort df by totaldeaths (inverse), then by maxmmmi, then by nmaxmmi.
+    # sort df by totaldeaths (inverse), then by maxmmmi, then by nmaxmmi.
     df = df.sort_values(['TotalDeaths', 'MaxMMI', 'NumMaxMMI'], ascending=False)
     
     if len(df) == 0:
@@ -418,11 +418,11 @@ def get_historical_comment(lat, lon, mag, expodict, fatdict):
 
 def get_quake_desc(event, lat, lon, isMainEvent):
     ndeaths = event['TotalDeaths']
-    #summarize the exposure values
+    # summarize the exposure values
     exposures = np.array([event['MMI1'], event['MMI2'], event['MMI3'], event['MMI4'], event['MMI5'],
                          event['MMI6'], event['MMI7'], event['MMI8'], event['MMI9+']])
     exposures = np.array([round_to_nearest(exp, 1000) for exp in exposures])
-    #get the highest two exposures greater than zero
+    # get the highest two exposures greater than zero
     iexp = np.where(exposures > 0)[0][::-1]
 
     romans = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX or greater']
@@ -435,7 +435,7 @@ def get_quake_desc(event, lat, lon, isMainEvent):
     else:
         exptxt = ''
 
-    #create string describing this most impactful event
+    # create string describing this most impactful event
     dfmt = 'A magnitude %.1f earthquake %i km %s of this event struck %s on %s (UTC)%s'
 
     mag = event['Magnitude']
@@ -443,7 +443,7 @@ def get_quake_desc(event, lat, lon, isMainEvent):
     etime = re.sub(' 0', ' ', etime)
     country = Country()
     if pd.isnull(event['Name']):
-        if event['CountryCode'] == 'UM' and event['Lat'] > 40: #hack for persistent error in expocat
+        if event['CountryCode'] == 'UM' and event['Lat'] > 40:  # hack for persistent error in expocat
             cdict = country.getCountry('US')
         else:
             cdict = country.getCountry(event['CountryCode'])

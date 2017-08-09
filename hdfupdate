@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-#stdlib imports
+# stdlib imports
 import sys
 import os.path
 import re
@@ -8,7 +8,7 @@ import argparse
 import subprocess
 import glob
 
-#third party imports
+# third party imports
 import pandas as pd
 from impactutils.io.cmd import get_command_output
 
@@ -40,7 +40,7 @@ def load_panel_from_excel(excelfile):
     return panel
 
 def main(args):
-    homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
+    homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
     excelfiles = glob.glob(os.path.join(homedir, 'losspager', 'data', 'semi_*.xlsx'))
     hdffiles = glob.glob(os.path.join(homedir, 'losspager', 'data', 'semi_*.hdf'))
     if args.undo:

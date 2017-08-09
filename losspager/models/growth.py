@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 
-#stdlib imports
+# stdlib imports
 import re
 import os.path
 
-#third party imports
+# third party imports
 import pandas as pd
 import numpy as np
 
-#local imports
+# local imports
 from losspager.utils.exception import PagerException
 from losspager.utils.country import Country
 
@@ -50,7 +50,7 @@ class PopulationGrowth(object):
         :param default_rate:
           Value to be used for growth rate when input country codes are not found in ratedict.
         """
-        #check the fields in the ratedict
+        # check the fields in the ratedict
         for key, value in ratedict.items():
             if 'start' not in value or 'end' not in value or 'rate' not in value:
                 raise PagerException('All country rate dictionaries must contain keys "start","end","rate"')
@@ -62,7 +62,7 @@ class PopulationGrowth(object):
 
     @classmethod
     def fromDefault(cls):
-        homedir = os.path.dirname(os.path.abspath(__file__)) #where is this module?
+        homedir = os.path.dirname(os.path.abspath(__file__))  # where is this module?
         excelfile = os.path.join(homedir, '..', 'data', 'WPP2015_POP_F02_POPULATION_GROWTH_RATE.xls')
         return cls.fromUNSpreadsheet(excelfile)
         
@@ -102,7 +102,7 @@ class PopulationGrowth(object):
                 continue
             ratedict[key] = {'start': starts[:], 'end': ends[:], 'rate': rates}
 
-        #we have three non-standard "country" codes for California, eastern US, and western US.
+        # we have three non-standard "country" codes for California, eastern US, and western US.
         ratedict[902] = {'start': starts[:], 'end': ends[:], 'rate': usrates}
         ratedict[903] = {'start': starts[:], 'end': ends[:], 'rate': usrates}
         ratedict[904] = {'start': starts[:], 'end': ends[:], 'rate': usrates}

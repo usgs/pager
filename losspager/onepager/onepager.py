@@ -1,9 +1,9 @@
-#stdlib imports
+# stdlib imports
 import os
 from datetime import datetime
 from collections import OrderedDict
 
-#third party imports
+# third party imports
 from impactutils.textformat.text import pop_round_short, round_to_nearest
 from impactutils.textformat.text import dec_to_roman
 from impactutils.colors.cpalette import ColorPalette
@@ -146,7 +146,7 @@ def create_onepager(pdata, version_dir, debug = False):
     template = template.replace("[ALERTFILL]",
                                 pdata.summary_alert)
 
-    #fill in exposure values
+    # fill in exposure values
     max_border_mmi = pdata._pagerdict['population_exposure']['maximum_border_mmi']
     explist = pdata.getTotalExposure()
     pophold = 0
@@ -262,8 +262,8 @@ def create_onepager(pdata, version_dir, debug = False):
 
     eventid = edict['eventid']
 
-    #query ComCat for information about this event
-    #fill in the url, if we can find it
+    # query ComCat for information about this event
+    # fill in the url, if we can find it
     try:
         ccinfo = ComCatInfo(eventid)
         eventid, allids = ccinfo.getAssociatedIds()

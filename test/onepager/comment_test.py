@@ -1,26 +1,26 @@
 #!/usr/bin/env python
 
-#stdlib imports
+# stdlib imports
 import os.path
 import sys
 
-#hack the path so that I can debug these functions if I need to
-homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
+# hack the path so that I can debug these functions if I need to
+homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
 pagerdir = os.path.abspath(os.path.join(homedir, '..', '..'))
-sys.path.insert(0, pagerdir) #put this at the front of the system path, ignoring any installed shakemap stuff
+sys.path.insert(0, pagerdir)  # put this at the front of the system path, ignoring any installed shakemap stuff
 
-#third party imports 
+# third party imports 
 import numpy as np
 from impactutils.textformat.text import commify
 
-#local imports
+# local imports
 from losspager.models.semimodel import SemiEmpiricalFatality
 from losspager.utils.expocat import ExpoCat
 from losspager.onepager.comment import get_impact_comments, get_structure_comment, get_secondary_hazards
 from losspager.onepager.comment import get_historical_comment, get_secondary_comment, SEARCH_RADIUS
 
 def test_impact():
-    #both impacts are green
+    # both impacts are green
     tz_exp = np.array([0, 0, 0, 102302926316, 13976446978, 9127080479, 7567231, 0, 0, 0])
     ug_exp = np.array([0, 0, 240215309, 255785480321, 33062696103, 1965288263, 0, 0, 0, 0])
     econexp = {'TZ': tz_exp,
@@ -38,7 +38,7 @@ def test_impact():
     assert impact1 == impact1_c1
     assert impact2 == ''
 
-    #fatalities are yellow
+    # fatalities are yellow
     fatdict = {'TZ': 0,
                'UG': 1,
                'TotalFatalities': 1}
@@ -51,7 +51,7 @@ def test_impact():
     assert impact1 == impact1_c2
     assert impact2 == impact2_c2
 
-    #fatalities are orange
+    # fatalities are orange
     fatdict = {'TZ': 0,
                'UG': 101,
                'TotalFatalities': 101}
@@ -64,7 +64,7 @@ def test_impact():
     assert impact1 == impact1_c3
     assert impact2 == impact2_c3
 
-    #fatalities are red
+    # fatalities are red
     fatdict = {'TZ': 0,
                'UG': 1001,
                'TotalFatalities': 1001}
@@ -77,7 +77,7 @@ def test_impact():
     assert impact1 == impact1_c4
     assert impact2 == impact2_c4
 
-    #econ losses are yellow
+    # econ losses are yellow
     fatdict = {'TZ': 0,
                'UG': 0,
                'TotalFatalities': 0}
@@ -90,7 +90,7 @@ def test_impact():
     assert impact1 == impact1_c5
     assert impact2 == impact2_c5
 
-    #econ losses are orange
+    # econ losses are orange
     fatdict = {'TZ': 0,
                'UG': 0,
                'TotalFatalities': 0}
@@ -103,7 +103,7 @@ def test_impact():
     assert impact1 == impact1_c5
     assert impact2 == impact2_c5
 
-    #econ losses are red
+    # econ losses are red
     fatdict = {'TZ': 0,
                'UG': 0,
                'TotalFatalities': 0}
@@ -116,7 +116,7 @@ def test_impact():
     assert impact1 == impact1_c5
     assert impact2 == impact2_c5
 
-    #econ losses are REALLY red
+    # econ losses are REALLY red
     fatdict = {'TZ': 0,
                'UG': 0,
                'TotalFatalities': 0}
@@ -129,7 +129,7 @@ def test_impact():
     assert impact1 == impact1_c5
     assert impact2 == impact2_c5
 
-    #both alerts are yellow
+    # both alerts are yellow
     fatdict = {'TZ': 0,
                'UG': 1,
                'TotalFatalities': 1}
@@ -142,7 +142,7 @@ def test_impact():
     assert impact1 == impact1_c5
     assert impact2 == impact2_c5
 
-    #both alerts are orange
+    # both alerts are orange
     fatdict = {'TZ': 0,
                'UG': 101,
                'TotalFatalities': 101}
@@ -155,7 +155,7 @@ def test_impact():
     assert impact1 == impact1_c5
     assert impact2 == impact2_c5
 
-    #both alerts are red
+    # both alerts are red
     fatdict = {'TZ': 0,
                'UG': 1001,
                'TotalFatalities': 1001}

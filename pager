@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-#stdlib imports
+# stdlib imports
 import argparse
 import configparser
 import os.path
@@ -21,10 +21,10 @@ import tempfile
 import warnings
 import socket
 
-#third party imports
+# third party imports
 import matplotlib
 
-#this allows us to have a non-interactive backend - essential on systems without a display
+# this allows us to have a non-interactive backend - essential on systems without a display
 matplotlib.use('Agg')
 
 import pandas as pd
@@ -33,7 +33,7 @@ from mapio.shake import getHeaderData
 from impactutils.comcat.query import ComCatInfo
 from impactutils.transfer.emailsender import EmailSender
 
-#local imports
+# local imports
 from losspager.models.exposure import Exposure
 from losspager.models.econexposure import EconExposure
 from losspager.models.emploss import EmpiricalLoss
@@ -108,39 +108,39 @@ def _get_release_status(pargs, config,
                         fatmodel, fatdict,
                         ecomodel, ecodict,
                         shake_tuple, event_folder):
-    #if we're not primary, it's released by default.
-    #if our summary alert is green or yellow, it's released by default.
-    #if the processing time is >= event time + 8(24?) hours, it's released by default.
-    #if there is a "release" file in the event folder, it is released.
-    #if the command line argument --release has been set, it is released.
+    # if we're not primary, it's released by default.
+    # if our summary alert is green or yellow, it's released by default.
+    # if the processing time is >= event time + 8(24?) hours, it's released by default.
+    # if there is a "release" file in the event folder, it is released.
+    # if the command line argument --release has been set, it is released.
     is_released = False
 
-    #are we primary or secondary?
+    # are we primary or secondary?
     if 'status' not in config:
         is_released = True
     else:
          if config['status'] == 'secondary':
              is_released = True
 
-    #Are we at green or yellow
+    # Are we at green or yellow
     fat_level = fatmodel.getAlertLevel(fatdict)
     eco_level = fatmodel.getAlertLevel(ecodict)
     if fat_level in ('green', 'yellow') and eco_level in ('green', 'yellow'):
         is_released = True
 
-    #Are we past the release threshold?
+    # Are we past the release threshold?
     event_time = shake_tuple[1]['event_timestamp']
     threshold_hours = datetime.timedelta(seconds=config['release_threshold']*3600)
     time_threshold = event_time + threshold_hours
     if datetime.datetime.utcnow() > time_threshold:
         is_released = True
 
-    #Is there a "release" file in the event folder?
+    # Is there a "release" file in the event folder?
     release_file = os.path.join(event_folder, 'release')
     if os.path.isfile(release_file):
         is_released = True
 
-    #Has the release option been set?
+    # Has the release option been set?
     if pargs.release:
         is_released = True
 
@@ -155,14 +155,14 @@ def message_pager(config, onepager_pdf, doc):
             subject = '%s INTERNAL alert: %s' % (doc.summary_alert.capitalize(), doc.location)
             msg = '''This is an INTERNAL message notifying you of this %s alert.  You will receive a second message with the pending alert.''' % doc.summary_alert
 
-            #create a string with exposure information
+            # create a string with exposure information
             exparray = doc.getTotalExposure()
             max_border_mmi = doc._pagerdict['population_exposure']['maximum_border_mmi']
             expstr = format_exposure(exparray, 'long', max_border_mmi)
 
             msg += '\n' + expstr
 
-            #remove unnecessary whitespace
+            # remove unnecessary whitespace
             msg = textwrap.dedent(msg)
             
             props = {'recipients': users,
@@ -248,7 +248,7 @@ def _cancel(eventid, config):
                     params = config['transfer'][method]
                     if 'remote_directory' in params:
                         vpath, vfolder = os.path.split(version_folder)
-                        #append the event id and version folder to our pre-specified output directory
+                        # append the event id and version folder to our pre-specified output directory
                         params['remote_directory'] = os.path.join(params['remote_directory'], authid, vfolder)
                     params['code'] = eventid
                     params['eventsource'] = event_source
@@ -275,18 +275,18 @@ def _cancel(eventid, config):
     return msg
 
 def main(pargs, config):
-    #get the users home directory
+    # get the users home directory
     homedir = os.path.expanduser('~')
-    script_dir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
+    script_dir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
 
-    #handle cancel messages
+    # handle cancel messages
     if pargs.cancel:
-        #we presume that pargs.gridfile in this context is an event ID.
+        # we presume that pargs.gridfile in this context is an event ID.
         msg = _cancel(pargs.gridfile, config)
         print(msg)
         sys.exit(0)
      
-    #what kind of thing is gridfile?
+    # what kind of thing is gridfile?
     is_file = os.path.isfile(pargs.gridfile)
     is_url, url_gridfile = _is_url(pargs.gridfile)
     is_pdl, pdl_gridfile = _check_pdl(pargs.gridfile, config)
@@ -308,10 +308,10 @@ def main(pargs, config):
     
     plog = None
 
-    #TODO: figure out how may make the stdout/stderr redirect functionality
-    #work again.  Turned off for now.
+    # TODO: figure out how may make the stdout/stderr redirect functionality
+    # work again.  Turned off for now.
     if not pargs.debug:
-        #stdout will now be logged as INFO, stderr will be logged as WARNING
+        # stdout will now be logged as INFO, stderr will be logged as WARNING
         mail_hosts = config['mail_hosts']
         mail_from = config['mail_from']
         logfile = os.path.join(pager_folder, 'pager.log')
@@ -319,12 +319,12 @@ def main(pargs, config):
         plog = PagerLogger(logfile, redirect=False,
                            from_address=mail_from,
                            mail_hosts=mail_hosts)
-        plog.addEmailHandler(config['developers']) #failover email alert system
+        plog.addEmailHandler(config['developers'])  # failover email alert system
 
     try:
         eid = None
         pager_version = None
-        #get all the basic event information and print it, if requested
+        # get all the basic event information and print it, if requested
         shake_tuple = getHeaderData(gridfile)
         eid = shake_tuple[1]['event_id']
         etime = shake_tuple[1]['event_timestamp']
@@ -337,28 +337,28 @@ def main(pargs, config):
             eid = network + eid
         
 
-        #Create a ComcatInfo object to hopefully tell us a number of things about this event
+        # Create a ComcatInfo object to hopefully tell us a number of things about this event
         try:
             ccinfo = ComCatInfo(eid)
             location = ccinfo.getLocation()
             tsunami = ccinfo.getTsunami()
             authid, allids = ccinfo.getAssociatedIds()
             authsource, othersources = ccinfo.getAssociatedSources()
-        except: #fail over to what we can determine locally
+        except:  # fail over to what we can determine locally
             location = shake_tuple[1]['event_description']
             tsunami = shake_tuple[1]['magnitude'] >= TSUNAMI_MAG_THRESH
             authid = eid
             authsource = network
             allids = []
 
-        #Check to see if user wanted to override default tsunami criteria
+        # Check to see if user wanted to override default tsunami criteria
         if pargs.tsunami != 'auto':
             if pargs.tsunami == 'on':
                 tsunami = True
             else:
                 tsunami = False
             
-        #check to see if this event is a scenario
+        # check to see if this event is a scenario
         is_scenario = False
         shakemap_type = shake_tuple[0]['shakemap_event_type']
         if shakemap_type == 'SCENARIO':
@@ -366,11 +366,11 @@ def main(pargs, config):
             if re.search('scenario', location.lower()) is None:
                 location = 'Scenario '+location
             
-        #create the event directory (if it does not exist), and start logging there
+        # create the event directory (if it does not exist), and start logging there
         _print_message(plog, 'Creating event directory')
         event_folder = admin.createEventFolder(authid, etime)
 
-        #Stop processing if there is a "stop" file in the event folder
+        # Stop processing if there is a "stop" file in the event folder
         stopfile = os.path.join(event_folder, 'stop')
         if os.path.isfile(stopfile):
             _print_message(plog, '"stop" file found in %s.  Stopping processing, returning with 1.' % (event_folder))
@@ -384,18 +384,18 @@ def main(pargs, config):
         if plog is not None:
             plog.switchToEventFileHandler(event_logfile)
 
-        #Copy the grid.xml file to the version folder
-        #sometimes (usu when testing) the input grid isn't called grid.xml.  Rename it here.
+        # Copy the grid.xml file to the version folder
+        # sometimes (usu when testing) the input grid isn't called grid.xml.  Rename it here.
         version_grid = os.path.join(version_folder, 'grid.xml')
         shutil.copyfile(gridfile, version_grid)
 
-        #Check to see if the tsunami flag has been previously set
+        # Check to see if the tsunami flag has been previously set
         tsunami_toggle = {'on': 1, 'off': 0}
         tsunami_file = os.path.join(event_folder, 'tsunami')
         if os.path.isfile(tsunami_file):
             tsunami = tsunami_toggle[open(tsunami_file, 'rt').read().strip()]
             
-        #get the rest of the event info
+        # get the rest of the event info
         etime = shake_tuple[1]['event_timestamp']
         elat = shake_tuple[1]['lat']
         elon = shake_tuple[1]['lon']
@@ -403,21 +403,21 @@ def main(pargs, config):
         emag = shake_tuple[1]['magnitude']
         
 
-        #get the year of the event
+        # get the year of the event
         event_year = shake_tuple[1]['event_timestamp'].year
 
-        #find the population data collected most closely to the event_year
+        # find the population data collected most closely to the event_year
         pop_year, popfile = _get_pop_year(event_year, config['model_data']['population_data'])
         _print_message(plog, 'Population year: %i Population file: %s\n' % (pop_year, popfile))
 
-        #Get exposure results
+        # Get exposure results
         _print_message(plog, 'Calculating population exposure.')
         isofile = config['model_data']['country_grid']
         expomodel = Exposure(popfile, pop_year, isofile)
         exposure = None
         exposure = expomodel.calcExposure(gridfile)
 
-        #incidentally grab the country code of the epicenter
+        # incidentally grab the country code of the epicenter
         numcode = expomodel._isogrid.getValue(elat, elon)
         cdict = Country().getCountry(int(numcode))
         if cdict is None:
@@ -427,12 +427,12 @@ def main(pargs, config):
 
         _print_message(plog, 'Country code at epicenter is %s' % ccode)
 
-        #get fatality results, if requested
+        # get fatality results, if requested
         _print_message(plog, 'Calculating empirical fatalities.')
         fatmodel = EmpiricalLoss.fromDefaultFatality()
         fatdict = fatmodel.getLosses(exposure)
 
-        #get economic results, if requested
+        # get economic results, if requested
         _print_message(plog, 'Calculating economic exposure.')
         econexpmodel = EconExposure(popfile, pop_year, isofile)
         ecomodel = EmpiricalLoss.fromDefaultEconomic()
@@ -440,7 +440,7 @@ def main(pargs, config):
         ecodict = ecomodel.getLosses(econexposure)
         shakegrid = econexpmodel.getShakeGrid()
 
-        #Get semi-empirical losses
+        # Get semi-empirical losses
         _print_message(plog, 'Calculating semi-empirical fatalities.')
         urbanfile = config['model_data']['urban_rural_grid']
         if not os.path.isfile(urbanfile):
@@ -450,24 +450,24 @@ def main(pargs, config):
         semi.setGlobalFiles(popfile, pop_year, urbanfile, isofile)
         semiloss, resfat, nonresfat = semi.getLosses(gridfile)
 
-        #get all of the other components of PAGER
+        # get all of the other components of PAGER
         _print_message(plog, 'Getting all comments.')
-        #get the fatality and economic comments
+        # get the fatality and economic comments
         impact1, impact2 = get_impact_comments(fatdict, ecodict, econexposure, event_year, ccode)
-        #get comment describing vulnerable structures in the region.
+        # get comment describing vulnerable structures in the region.
         struct_comment = get_structure_comment(resfat, nonresfat, semi)
-        #get the comment describing historic secondary hazards
+        # get the comment describing historic secondary hazards
         secondary_comment = get_secondary_comment(elat, elon, emag)
-        #get the comment describing historical comments in the region
+        # get the comment describing historical comments in the region
         historical_comment = get_historical_comment(elat, elon, emag, exposure, fatdict)
 
-        #generate the probability plots
+        # generate the probability plots
         _print_message(plog, 'Drawing probability plots.')
         fat_probs_file, eco_probs_file = _draw_probs(fatmodel, fatdict,
                                                     ecomodel, ecodict,
                                                     version_folder)
 
-        #generate the exposure map
+        # generate the exposure map
         exposure_base = os.path.join(version_folder, 'exposure')
         _print_message(plog, 'Generating exposure map...')
         oceanfile = config['model_data']['ocean_vectors']
@@ -479,7 +479,7 @@ def main(pargs, config):
                                          exposure_base, borderfile, is_scenario=is_scenario)
         _print_message(plog, 'Generated exposure map %s' % pdf_file)
 
-        #figure out whether this event has been "released".
+        # figure out whether this event has been "released".
         is_released = _get_release_status(pargs, config,
                                           fatmodel, fatdict,
                                           ecomodel, ecodict,
@@ -487,8 +487,8 @@ def main(pargs, config):
         
         
         
-        #Create a data object to encapsulate everything we know about the PAGER
-        #results, and then serialize that to disk in the form of a number of JSON files.
+        # Create a data object to encapsulate everything we know about the PAGER
+        # results, and then serialize that to disk in the form of a number of JSON files.
         _print_message(plog, 'Making PAGER Data object.')
         doc = PagerData()
         timezone_file = config['model_data']['timezones_file']
@@ -519,22 +519,22 @@ def main(pargs, config):
         if onepager_pdf is None:
             raise PagerException('Could not create onePAGER output: \n%s' % error)
 
-        #copy the contents.xml file to the version folder
+        # copy the contents.xml file to the version folder
         contentsfile = get_data_path('contents.xml')
         if contentsfile is None:
             raise PagerException('Could not find contents.xml file.')
         shutil.copy(contentsfile, version_folder)
 
-        #send pdf as attachment to internal team of PAGER users
+        # send pdf as attachment to internal team of PAGER users
         if not is_released:
             message_pager(config, onepager_pdf, doc)
         
-        #run transfer, as appropriate and as specified by config
+        # run transfer, as appropriate and as specified by config
         res, msg = transfer(config, doc, authid, authsource, version_folder)
         _print_message(plog, msg)
         if not res:
             pass
-            #TODO: figure out what's broken with logging, send log email here
+            # TODO: figure out what's broken with logging, send log email here
 
         if plog is not None:
             plog.stopLogging()
@@ -613,10 +613,10 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
 
-    #read in the config - should be in a predictable place - this will error out if not.
+    # read in the config - should be in a predictable place - this will error out if not.
     config = read_config()
     
-    #Make sure model_data section exists
+    # Make sure model_data section exists
     try:
         config['model_data']['population_data'][0]['population_year']
         config['model_data']['population_data'][0]['population_grid']

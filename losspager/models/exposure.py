@@ -1,20 +1,20 @@
 #!/usr/bin/env python
 
-#stdlib
+# stdlib
 import warnings
 
-#third party
+# third party
 import numpy as np
 from mapio.shake import ShakeGrid
 
-#local imports
+# local imports
 from losspager.utils.exception import PagerException
 from losspager.utils.country import Country
 from losspager.utils.ftype import get_file_type
 from .growth import PopulationGrowth
 
-SCENARIO_WARNING = 10 #number of years after date of population data to issue a warning
-SCENARIO_ERROR = 20 #number of years after date of population data to raise an exception
+SCENARIO_WARNING = 10  # number of years after date of population data to issue a warning
+SCENARIO_ERROR = 20  # number of years after date of population data to raise an exception
 
 def calc_exposure(mmidata, popdata, isodata):
     """Calculate population exposure to shaking per country.
@@ -85,23 +85,23 @@ class Exposure(object):
           Dictionary will also contain a field "maximum_border_mmi" which indicates the maximum MMI value along
           any edge of the ShakeMap.
         """
-        #get shakemap geodict
+        # get shakemap geodict
         shakedict = ShakeGrid.getFileGeoDict(shakefile, adjust='res')
             
-        #get population geodict
+        # get population geodict
         popdict, t = self._pop_class.getFileGeoDict(self._popfile)
 
-        #get country code geodict
+        # get country code geodict
         isodict, t = self._iso_class.getFileGeoDict(self._isofile)
 
-        #special case for very high latitude events that may be outside the bounds
-        #of our population data...
+        # special case for very high latitude events that may be outside the bounds
+        # of our population data...
         if not popdict.intersects(shakedict):
             expdict = {'UK': np.zeros((10,)), 'TotalExposure': np.zeros((10,))}
             return expdict
         
         if popdict == shakedict == isodict:
-            #special case, probably for testing...
+            # special case, probably for testing...
             self._shakegrid = ShakeGrid.load(shakefile, adjust='res')
             self._popgrid = self._pop_class.load(self._popfile)
             self._isogrid = self._iso_class.load(self._isofile)
@@ -120,9 +120,9 @@ class Exposure(object):
 
         eventyear = self._shakegrid.getEventDict()['event_timestamp'].year
 
-        #in order to avoid crazy far-future scenarios where PAGER models are probably invalid,
-        #check to see if the time gap between the date of population data collection and event year
-        #reaches either of a couple of different thresholds.
+        # in order to avoid crazy far-future scenarios where PAGER models are probably invalid,
+        # check to see if the time gap between the date of population data collection and event year
+        # reaches either of a couple of different thresholds.
         if eventyear > self._popyear:
             tdiff = (eventyear - self._popyear)
             if tdiff > SCENARIO_WARNING and tdiff < SCENARIO_ERROR:
@@ -141,7 +141,7 @@ class Exposure(object):
         
         exposure_dict = calc_exposure(mmidata, popdata, isodata)
         newdict = {}
-        #Get rolled up exposures
+        # Get rolled up exposures
         total = np.zeros((10,), dtype=np.uint32)
         for isocode, value in exposure_dict.items():
             cdict = self._country.getCountry(int(isocode))
@@ -154,7 +154,7 @@ class Exposure(object):
 
         newdict['TotalExposure'] = total
 
-        #get the maximum MMI value along any of the four map edges
+        # get the maximum MMI value along any of the four map edges
         nrows, ncols = mmidata.shape
         top = mmidata[0, 0:ncols].max()
         bottom = mmidata[nrows-1, 0:ncols].max()

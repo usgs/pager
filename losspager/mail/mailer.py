@@ -1,5 +1,5 @@
 
-#stdlib imports
+# stdlib imports
 import os.path
 import smtplib
 import mimetypes
@@ -13,7 +13,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 import email.utils 
 
-#local imports
+# local imports
 from losspager.utils.exception import PagerException
     
 def send_message(address, subject, text, sender, smtp_servers, attachment=None, bcc=None):
@@ -51,10 +51,10 @@ def send_message(address, subject, text, sender, smtp_servers, attachment=None, 
 
     messageSent = False
     errormsg = []
-    #let's try all of the email servers we know about before
-    #admitting defeat...
+    # let's try all of the email servers we know about before
+    # admitting defeat...
     for server in smtp_servers:
-        #print 'Trying server %s' % (server)
+        # print 'Trying server %s' % (server)
         try:
             session = smtplib.SMTP(server)
             code, servername = session.helo()
@@ -99,7 +99,7 @@ def __get_encoded_message(address, subject, text, sender, attachment, bcc=None):
     if bcc is not None:
         outer['Bcc'] = ', '.join(bcc)
 
-    #insert the text into the email as a MIMEText part...
+    # insert the text into the email as a MIMEText part...
     firstSubMsg=Message()
     firstSubMsg["Content-type"]="text/plain"
     firstSubMsg["Content-transfer-encoding"]="7bit"
@@ -136,7 +136,7 @@ def __get_encoded_message(address, subject, text, sender, attachment, bcc=None):
         msg = MIMEBase(maintype, subtype)
         msg.set_payload(fp.read())
         fp.close()
-        #Encode the payload using Base64
+        # Encode the payload using Base64
         encoders.encode_base64(msg)
 
     msg.add_header('Content-Disposition', 'attachment', filename=os.path.basename(attachment))

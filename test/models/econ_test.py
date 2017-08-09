@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-#stdlib imports
+# stdlib imports
 import urllib.request as request
 import tempfile
 import os.path
@@ -8,12 +8,12 @@ import sys
 from datetime import datetime
 from collections import OrderedDict
 
-#hack the path so that I can debug these functions if I need to
-homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
+# hack the path so that I can debug these functions if I need to
+homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
 pagerdir = os.path.abspath(os.path.join(homedir, '..', '..'))
-sys.path.insert(0, pagerdir) #put this at the front of the system path, ignoring any installed shakemap stuff
+sys.path.insert(0, pagerdir)  # put this at the front of the system path, ignoring any installed shakemap stuff
 
-#third party imports 
+# third party imports 
 import numpy as np
 from mapio.geodict import GeoDict
 from mapio.gmt import GMTGrid
@@ -21,14 +21,14 @@ from mapio.grid2d import Grid2D
 from mapio.shake import ShakeGrid, getHeaderData
 import fiona
 
-#local imports
+# local imports
 from losspager.models.emploss import EmpiricalLoss, LognormalModel
 from losspager.models.econexposure import EconExposure, GDP
 from losspager.models.growth import PopulationGrowth
 
 def test():
     event = 'northridge'
-    homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
+    homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
     xmlfile = os.path.join(homedir, '..', 'data', 'economy.xml')
     growthfile = os.path.join(homedir, '..', 'data', 'WPP2015_POP_F02_POPULATION_GROWTH_RATE.xls')
     gdpfile = os.path.join(homedir, '..', 'data', 'API_NY.GDP.PCAP.CD_DS2_en_excel_v2.xls')
@@ -104,7 +104,7 @@ def test():
     ecoshapes = sorted(ecoshapes, key=lambda shape: shape['properties']['dollars_lost'], reverse=True)
     lalosses = 17323352577
     for shape in ecoshapes:
-        if shape['id'] == '312': #Los Angeles
+        if shape['id'] == '312':  # Los Angeles
             cname = shape['properties']['CITY_NAME']
             dollars = shape['properties']['dollars_lost']
             assert lalosses == dollars

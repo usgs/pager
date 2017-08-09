@@ -74,7 +74,7 @@ def readPolyKML(polystr):
     return x, y
 
 def getRegions(cursor):
-    polydict = {} #dictionary of {'code':(x,y)} where x and y are NaN separated arrays denoting multi-part polygons
+    polydict = {}  # dictionary of {'code':(x,y)} where x and y are NaN separated arrays denoting multi-part polygons
     cursor.execute('SELECT code,polykml,regiongroup_id FROM region')
     rows = cursor.fetchall()
     for row in rows:
@@ -82,7 +82,7 @@ def getRegions(cursor):
         polystr = row[1]
         groupid = row[2]
 
-        #get the group name
+        # get the group name
         cursor.execute('SELECT groupname FROM regiongroup WHERE id="%i"' % groupid)
         groupname = cursor.fetchone()[0]
 
@@ -155,7 +155,7 @@ def getUsers(cursor, wordlist, orgs, anonymize=False, nusers=None):
             profiles = []
             for prow in profile_rows:
                 pid, formatid = prow
-                #get the regions for this profile
+                # get the regions for this profile
                 regionidquery = 'SELECT region_id FROM profile_region_bridge WHERE profile_id=%i' % pid
                 cursor.execute(regionidquery)
                 regionid_rows = cursor.fetchall()
@@ -169,7 +169,7 @@ def getUsers(cursor, wordlist, orgs, anonymize=False, nusers=None):
                     groupname = getGroupName(cursor, groupid)
                     regioncode = groupname.strip().replace(' ', '_') + '-' + code
                     regioncodes.append({'name': regioncode})
-                #get the threshold(s) for this profile
+                # get the threshold(s) for this profile
                 threshquery = 'SELECT alertscheme_id,value FROM threshold WHERE profile_id=%i' % pid
                 cursor.execute(threshquery)
                 threshrows = cursor.fetchall()
@@ -180,7 +180,7 @@ def getUsers(cursor, wordlist, orgs, anonymize=False, nusers=None):
                     cursor.execute(schemequery)
                     scheme = cursor.fetchone()[0]
                     thresholds.append({'alertscheme': scheme, 'value': threshold})
-                #get the format for this profile
+                # get the format for this profile
                 formatquery = 'SELECT name FROM format WHERE id=%i' % formatid
                 cursor.execute(formatquery)
                 emailformat = cursor.fetchone()[0]
@@ -260,14 +260,14 @@ def main(args):
     events = getEvents(cursor)
     bridge = getVersionAddress(cursor)
 
-    #write out a file containing user information
+    # write out a file containing user information
     userfile = args.basefile + '_users.json'
     f = open(userfile, 'wt')
     jstr = json.dumps(users, indent=2)
     f.write(jstr)
     f.close()
 
-    #write out a file containing organization information
+    # write out a file containing organization information
     orgfile = args.basefile + '_orgs.json'
     f = open(orgfile, 'wt')
     jstr = json.dumps(orgs, indent=2)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-#stdlib imports
+# stdlib imports
 import urllib.request as request
 import tempfile
 import os.path
@@ -9,17 +9,17 @@ import json
 from datetime import datetime
 import shutil
 
-#hack the path so that I can debug these functions if I need to
-homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
+# hack the path so that I can debug these functions if I need to
+homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
 pagerdir = os.path.abspath(os.path.join(homedir, '..', '..'))
-sys.path.insert(0, pagerdir) #put this at the front of the system path, ignoring any installed shakemap stuff
+sys.path.insert(0, pagerdir)  # put this at the front of the system path, ignoring any installed shakemap stuff
 
-#third party imports 
+# third party imports 
 import numpy as np
 import matplotlib.pyplot as plt
 from shapely.geometry.point import Point
 
-#local imports
+# local imports
 import sqlalchemy
 from losspager.schema import emailschema
 from losspager.utils.datapath import get_data_path
@@ -30,7 +30,7 @@ DATEFMT = '%Y-%m-%d %H:%M:%S'
 
 def test_create_db(userfile=None, orgfile=None):
     memurl = 'sqlite://'
-    #create a user in a dictionary
+    # create a user in a dictionary
     threshold = {'alertscheme': 'eis',
                  'value': 'red'}
     region = {'name': 'UNSOUEU'}
@@ -97,7 +97,7 @@ def test_user_serialization():
     schemadir = get_data_path('schema')
     session = emailschema.create_db(memurl, schemadir)
 
-    #create a user in a dictionary
+    # create a user in a dictionary
     threshold = {'alertscheme': 'eis',
                  'value': 'red'}
     region = {'name': 'UN_Regions-UNSOUEU'}
@@ -115,13 +115,13 @@ def test_user_serialization():
                 'addresses': [address]}
     
     user = emailschema.User()
-    #inflate the user from the dictionary
+    # inflate the user from the dictionary
     user.fromDict(session, userdict)
 
-    #deflate the user into a dictionary
+    # deflate the user into a dictionary
     userdict2 = user.toDict()
 
-    #make sure the input/output dictionaries have the same content
+    # make sure the input/output dictionaries have the same content
     assert userdict['lastname'] == userdict2['lastname']
     assert userdict['firstname'] == userdict2['firstname']
     assert userdict['createdon'] == userdict2['createdon']
@@ -216,7 +216,7 @@ def test_delete_cascade():
     schemadir = get_data_path('schema')
     session = emailschema.create_db(memurl, schemadir)
 
-    #create a user in a dictionary
+    # create a user in a dictionary
     threshold = {'alertscheme': 'eis',
                  'value': 'red'}
     region = {'name': 'UN_Regions-UNSOUEU'}
@@ -240,7 +240,7 @@ def test_delete_cascade():
     assert addresses_before_add == 0
     print('No users before insert.')
     user = emailschema.User()
-    #inflate the user from the dictionary
+    # inflate the user from the dictionary
     user.fromDict(session, userdict)
     session.add(user)
     users_after_add = session.query(emailschema.User).count()
@@ -257,7 +257,7 @@ def test_delete_cascade():
     print('No users, no addresses after deleting user.')
 
 
-    #test deleting cascades with events
+    # test deleting cascades with events
     event = emailschema.Event(eventcode='us2017abcd')
     version = emailschema.Version(versioncode='us2017abcd',
                                   time=datetime.utcnow(),
