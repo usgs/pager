@@ -14,7 +14,7 @@ from losspager.utils.country import Country
 
 DEFAULT_RATE = 1.17/100.0
 
-def adjust_pop(population,tpop,tevent,rate):
+def adjust_pop(population, tpop, tevent, rate):
     """Adjust input population between two input years given growth rate.
 
     :param population:
@@ -29,11 +29,11 @@ def adjust_pop(population,tpop,tevent,rate):
       Adjusted population value at time *tevent*.
     """
     T = tpop - tevent
-    adjpop = np.round(population * np.power((1 + rate),(-1*T)))
+    adjpop = np.round(population * np.power((1 + rate), (-1*T)))
     return adjpop
 
 class PopulationGrowth(object):
-    def __init__(self,ratedict,default_rate=DEFAULT_RATE):
+    def __init__(self, ratedict, default_rate=DEFAULT_RATE):
         """Initialize Population growth with dictionary containing rates over given time 
         spans, per country.  
 
@@ -51,7 +51,7 @@ class PopulationGrowth(object):
           Value to be used for growth rate when input country codes are not found in ratedict.
         """
         #check the fields in the ratedict
-        for key,value in ratedict.items():
+        for key, value in ratedict.items():
             if 'start' not in value or 'end' not in value or 'rate' not in value:
                 raise PagerException('All country rate dictionaries must contain keys "start","end","rate"')
             if not (len(value['start']) == len(value['end']) == len(value['rate'])):
@@ -63,11 +63,11 @@ class PopulationGrowth(object):
     @classmethod
     def fromDefault(cls):
         homedir = os.path.dirname(os.path.abspath(__file__)) #where is this module?
-        excelfile = os.path.join(homedir,'..','data','WPP2015_POP_F02_POPULATION_GROWTH_RATE.xls')
+        excelfile = os.path.join(homedir, '..', 'data', 'WPP2015_POP_F02_POPULATION_GROWTH_RATE.xls')
         return cls.fromUNSpreadsheet(excelfile)
         
     @classmethod
-    def fromUNSpreadsheet(cls,excelfile,default_rate=DEFAULT_RATE):
+    def fromUNSpreadsheet(cls, excelfile, default_rate=DEFAULT_RATE):
         """Instantiate population growth rates from UN global spreadsheet.
         http://esa.un.org/unpd/wpp/Download/Standard/Population/
 
@@ -79,12 +79,12 @@ class PopulationGrowth(object):
           PopulationGrowth instance.
         """
         re_year = '[0-9]*'
-        df = pd.read_excel(excelfile,header=16)
+        df = pd.read_excel(excelfile, header=16)
         ratedict = {}
         starts = []
         ends = []
         for col in df.columns:
-            matches = re.findall(re_year,col)
+            matches = re.findall(re_year, col)
             if len(matches) and len(matches[0]):
                 starts.append(int(matches[0]))
                 ends.append(int(matches[2]))
@@ -93,23 +93,23 @@ class PopulationGrowth(object):
         uscode = 840
         usrates = None
         country = Country()
-        for idx,row in df.iterrows():
+        for idx, row in df.iterrows():
             key = row['Country code']
             rates = row.iloc[ccode_idx+1:].as_matrix()/100.0
             if key == uscode:
                 usrates = rates.copy()
             if country.getCountry(key) is None:
                 continue
-            ratedict[key] = {'start':starts[:],'end':ends[:],'rate':rates}
+            ratedict[key] = {'start': starts[:], 'end': ends[:], 'rate': rates}
 
         #we have three non-standard "country" codes for California, eastern US, and western US.
-        ratedict[902] = {'start':starts[:],'end':ends[:],'rate':usrates}
-        ratedict[903] = {'start':starts[:],'end':ends[:],'rate':usrates}
-        ratedict[904] = {'start':starts[:],'end':ends[:],'rate':usrates}
+        ratedict[902] = {'start': starts[:], 'end': ends[:], 'rate': usrates}
+        ratedict[903] = {'start': starts[:], 'end': ends[:], 'rate': usrates}
+        ratedict[904] = {'start': starts[:], 'end': ends[:], 'rate': usrates}
             
-        return cls(ratedict,default_rate=default_rate)
+        return cls(ratedict, default_rate=default_rate)
 
-    def getRate(self,ccode,year):
+    def getRate(self, ccode, year):
         """Return population growth rate(s) for a given country code and year.
 
         :param ccode:
@@ -126,7 +126,7 @@ class PopulationGrowth(object):
         ends = np.array(self._dataframe[ccode]['end'])
         rates = np.array(self._dataframe[ccode]['rate'])
         if year is None:
-            return dict(list(zip(starts,rates)))
+            return dict(list(zip(starts, rates)))
         if year < starts.min():
             rate = rates[0]
         elif year > ends.max():
@@ -136,7 +136,7 @@ class PopulationGrowth(object):
             rate = rates[idx]
         return rate
 
-    def getRates(self,ccode):
+    def getRates(self, ccode):
         """Return population growth rates for a given country code.
 
         :param ccode:
@@ -151,9 +151,9 @@ class PopulationGrowth(object):
             raise PagerException('Country %s not found in PopulationGrowth data structure.' % ccode)
         starts = np.array(self._dataframe[ccode]['start'])
         rates = np.array(self._dataframe[ccode]['rate'])
-        return (starts,rates)
+        return (starts, rates)
 
-    def adjustPopulation(self,population,ccode,tpop,tevent):
+    def adjustPopulation(self, population, ccode, tpop, tevent):
         """Adjust population based on growth rates.
 
         :param population:
@@ -174,10 +174,10 @@ class PopulationGrowth(object):
         else:
             interval = -1
         newpop = population
-        for startpop in np.arange(tpop,tevent,interval):
+        for startpop in np.arange(tpop, tevent, interval):
             endpop = startpop + interval
-            rate = self.getRate(ccode,startpop)
-            newpop = adjust_pop(newpop,startpop,endpop,rate)
+            rate = self.getRate(ccode, startpop)
+            newpop = adjust_pop(newpop, startpop, endpop, rate)
 
         return newpop
         

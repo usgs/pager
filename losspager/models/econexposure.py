@@ -18,7 +18,7 @@ from losspager.utils.country import Country
 GLOBAL_GDP = 16100 #from https://en.wikipedia.org/wiki/Gross_world_product
 
 class GDP(object):
-    def __init__(self,dataframe):
+    def __init__(self, dataframe):
         """Create an instance of a GDP object with a dataframe of countries/GDP values over time.
         
         :param dataframe:
@@ -35,11 +35,11 @@ class GDP(object):
     @classmethod
     def fromDefault(cls):
         homedir = os.path.dirname(os.path.abspath(__file__)) #where is this module?
-        excelfile = os.path.join(homedir,'..','data','API_NY.GDP.PCAP.CD_DS2_en_excel_v2.xls')
+        excelfile = os.path.join(homedir, '..', 'data', 'API_NY.GDP.PCAP.CD_DS2_en_excel_v2.xls')
         return cls.fromWorldBank(excelfile)
         
     @classmethod
-    def fromWorldBank(cls,excelfile):
+    def fromWorldBank(cls, excelfile):
         """Read in Excel data from the World Bank containing per capita GDP values for all countries in the world.
         Taken from: http://data.worldbank.org/indicator/NY.GDP.PCAP.CD
         
@@ -48,10 +48,10 @@ class GDP(object):
         :returns:
           GDP instance.
         """
-        df = pd.read_excel(excelfile,sheetname='Data',header=3)
+        df = pd.read_excel(excelfile, sheetname='Data', header=3)
         return cls(df)
 
-    def getGDP(self,ccode,year):
+    def getGDP(self, ccode, year):
         """Get the GDP value for a given country code and a particular year.
 
         :param ccode:
@@ -71,8 +71,8 @@ class GDP(object):
         #first make sure the ccode is valid...
         countrydict = self._country.getCountry(ccode)
         if countrydict is None:
-            return (GLOBAL_GDP,None)
-        if countrydict['ISO2'] in ['XF','EU','WU']:
+            return (GLOBAL_GDP, None)
+        if countrydict['ISO2'] in ['XF', 'EU', 'WU']:
             ccode = 'USA'
             outccode = 'US'
         else:
@@ -82,7 +82,7 @@ class GDP(object):
         try:
             row = self._dataframe[self._dataframe['Country Code'] == ccode].iloc[0]
         except:
-            return (GLOBAL_GDP,None)
+            return (GLOBAL_GDP, None)
         
         if yearstr in row:
             gdp = row[yearstr]
@@ -91,12 +91,12 @@ class GDP(object):
             columns = row.index.tolist()
             years = []
             for c in columns:
-                res = re.search('[0-9]{4}',c)
+                res = re.search('[0-9]{4}', c)
                 if res is not None:
                     years.append(res.group())
 
             if not len(years):
-                return (GLOBAL_GDP,None)
+                return (GLOBAL_GDP, None)
             if yearstr < min(years):
                 #assume that the years in the dataframe are sequential and increasing to the right
                 #get the first non-null GDP value
@@ -111,11 +111,11 @@ class GDP(object):
                 else:
                     gdp = row[max(years)]
 
-        return (gdp,outccode)
+        return (gdp, outccode)
         
 
 class EconExposure(Exposure):
-    def __init__(self,popfile,popyear,isofile):
+    def __init__(self, popfile, popyear, isofile):
         """Create instance of EconExposure class (subclass of Exposure, and shares methods of that class.)
 
         :param popfile:
@@ -129,7 +129,7 @@ class EconExposure(Exposure):
         self._gdp = GDP.fromDefault()
         self._econpopgrid = None
         popgrowth = PopulationGrowth.fromDefault()
-        super(EconExposure,self).__init__(popfile,popyear,isofile)
+        super(EconExposure, self).__init__(popfile, popyear, isofile)
 
     def getEconPopulationGrid(self):
         """Return the internal economic exposure population grid, created during calcExposure().
@@ -141,7 +141,7 @@ class EconExposure(Exposure):
             raise PagerException('Must call calcExposure() before calling getEconPopulationGrid().')
         return self._econpopgrid
         
-    def calcExposure(self,shakefile):
+    def calcExposure(self, shakefile):
         """Calculate population exposure to shaking.
 
         Calculate population exposure to shaking, per country, multiplied by event-year per-capita GDP and 
@@ -156,19 +156,19 @@ class EconExposure(Exposure):
           Dictionary will contain an additional key 'Total', with value of exposure across all countries.
         """
         #create a copy of population grid to hold population * gdp * alpha
-        expdict = super(EconExposure,self).calcExposure(shakefile)
+        expdict = super(EconExposure, self).calcExposure(shakefile)
         self._econpopgrid = Grid2D.copyFromGrid(self._popgrid)
         econdict = {}
         isodata = self._isogrid.getData()
         eventyear = self.getShakeGrid().getEventDict()['event_timestamp'].year
         total = np.zeros((10,))
-        for ccode,exparray in expdict.items():
+        for ccode, exparray in expdict.items():
             if ccode.find('Total') > -1 or ccode.find('maximum') > -1:
                 continue
             if ccode == 'UK': #unknown
                 continue
             lossmodel = self._emploss.getModel(ccode)
-            gdp,outccode = self._gdp.getGDP(ccode,eventyear)
+            gdp, outccode = self._gdp.getGDP(ccode, eventyear)
             isocode = self._country.getCountry(ccode)['ISON']
             alpha = lossmodel.alpha
             econarray = exparray * gdp * alpha

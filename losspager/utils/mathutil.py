@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.special import erfc,erfcinv
+from scipy.special import erfc, erfcinv
     
 def phi(input):
     """Phi function.

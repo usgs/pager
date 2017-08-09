@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 import os.path
 
 #local imports
-from losspager.utils.config import read_mail_config,get_mail_config_file
+from losspager.utils.config import read_mail_config, get_mail_config_file
 
 #third party imports
 from impactutils.io.cmd import get_command_output
@@ -31,13 +31,13 @@ if __name__ == '__main__':
     schema_url = config['email']['database']['url']
     parts = urlparse(schema_url)
     schema_file = parts.path
-    remote_path,tmp = os.path.split(schema_file)
+    remote_path, tmp = os.path.split(schema_file)
     errors = []
     for other_pager in other_pagers:
-        scp_cmd = 'scp %s pager@%s:%s' % (schema_file,other_pager,remote_path)
-        res,stdout,stderr = get_command_output(scp_cmd)
+        scp_cmd = 'scp %s pager@%s:%s' % (schema_file, other_pager, remote_path)
+        res, stdout, stderr = get_command_output(scp_cmd)
         if not res:
-            tpl = (other_pager,stderr)
+            tpl = (other_pager, stderr)
             errstr = 'Cannot connect to other PAGER server %s, error "%s".' % tpl
             errors.append(errstr)
     if len(errors):

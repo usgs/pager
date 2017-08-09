@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #stdlib imports
-from datetime import datetime,timedelta
+from datetime import datetime, timedelta
 import os.path
 import tempfile
 
@@ -41,11 +41,11 @@ CALIFORNIA_US_CCODE = 902
 US_CCODE = 840
 
 #time of day columns in casualty spreadsheets
-TIMES = {'day':'CasualtyDay',
-         'transit':'CasualtyDay',
-         'night':'CasualtyNight'}
+TIMES = {'day': 'CasualtyDay',
+         'transit': 'CasualtyDay',
+         'night': 'CasualtyNight'}
 
-def add_dicts(dict1,dict2):
+def add_dicts(dict1, dict2):
     """Sum the values of two dictionaries.
 
     :param dict1:
@@ -61,19 +61,19 @@ def add_dicts(dict1,dict2):
         add_dicts(dict1,dict2) => {'W1':100.0,'W2':100.0,'W3':100.0}
     """
     result = {}
-    for key,value in dict1.items():
+    for key, value in dict1.items():
         if key not in result:
             result[key] = value
         else:
             result[key] += value
-    for key,value in dict2.items():
+    for key, value in dict2.items():
         if key not in result:
             result[key] = value
         else:
             result[key] += value
     return result
 
-def pop_dist(popi,workforce,time,dclass):
+def pop_dist(popi, workforce, time, dclass):
     """
     Calculate population distribution (residential, non-residential, and outdoor).
     :param popi: 
@@ -221,7 +221,7 @@ def pop_dist(popi,workforce,time,dclass):
     respop = np.atleast_1d(np.squeeze(respop))
     nrpop = np.atleast_1d(np.squeeze(nrpop))
     outpop = np.atleast_1d(np.squeeze(outpop))
-    return (respop,nrpop,outpop)
+    return (respop, nrpop, outpop)
 
 def load_panel_from_excel(excelfile):
     """Load a pandas Panel object by reading it from an Excel spreadsheet.
@@ -234,12 +234,12 @@ def load_panel_from_excel(excelfile):
     paneldict = {}
     xl = pd.ExcelFile(excelfile)
     for sheet in xl.sheet_names:
-        frame = pd.read_excel(excelfile,sheet_name=sheet)
+        frame = pd.read_excel(excelfile, sheet_name=sheet)
         paneldict[sheet] = frame
     panel = pd.Panel(paneldict)
     return panel
 
-def get_time_of_day(dtime,lon):
+def get_time_of_day(dtime, lon):
     """Determine time of day (one of 'day','night', or 'transit'), and event year and hour.
 
     :param dtime:
@@ -251,7 +251,7 @@ def get_time_of_day(dtime,lon):
     """
     #inputs datetime in utc, and local longitude
     toffset = lon/15
-    event_time = dtime + timedelta(0,toffset*3600)
+    event_time = dtime + timedelta(0, toffset*3600)
     event_year = event_time.year
     event_hour = event_time.hour
     timeofday = None
@@ -267,9 +267,9 @@ def get_time_of_day(dtime,lon):
     night2 = (event_hour >= NIGHT_START_HOUR_MORNING and event_hour <= NIGHT_END_HOUR_MORNING)
     if night1 or night2:
         timeofday = 'night'
-    return (timeofday,event_year,event_hour)
+    return (timeofday, event_year, event_hour)
 
-def make_test_semi_model(ccode,timeofday,density,popvalue,mmi):
+def make_test_semi_model(ccode, timeofday, density, popvalue, mmi):
     """Run the semi-empirical model for a single value of input.  Intended for testing purposes.
 
     :param ccode:
@@ -291,54 +291,54 @@ def make_test_semi_model(ccode,timeofday,density,popvalue,mmi):
     country = Country()
     cdict = country.getCountry(ccode)
     ucode = cdict['ISON']
-    geodict = GeoDict({'xmin':0.5,'xmax':4.5,'ymin':0.5,'ymax':4.5,'dx':1.0,'dy':1.0,'nx':5,'ny':5})
+    geodict = GeoDict({'xmin': 0.5, 'xmax': 4.5, 'ymin': 0.5, 'ymax': 4.5, 'dx': 1.0, 'dy': 1.0, 'nx': 5, 'ny': 5})
     if timeofday == 'day':
-        etime = datetime(2016,1,1,12,0,0) #noon
+        etime = datetime(2016, 1, 1, 12, 0, 0) #noon
     elif timeofday == 'transit':
-        etime = datetime(2016,1,1,18,0,0) #6 pm
+        etime = datetime(2016, 1, 1, 18, 0, 0) #6 pm
     else:
-        etime = datetime(2016,1,1,0,0,0) #midnight
-    eventdict = {'event_id':'1234',
-                 'magnitude':7.5,
-                 'lat':0.0,
-                 'lon':0.0,
-                 'depth':10.0,
-                 'event_timestamp':etime,
-                 'event_description':'test data',
-                 'event_network':'us'}
-    shakedict = {'event_id':'1234',
-                 'shakemap_id':'1234',
-                 'shakemap_version':1,
-                 'code_version':'1.0',
-                 'process_timestamp':datetime.utcnow(),
-                 'shakemap_originator':'us',
-                 'map_status':'RELEASED',
-                 'shakemap_event_type':'SCENARIO'}
-    uncdict = {'mmi':(1.0,1)}
-    popdata = np.ones((2,2),dtype=np.float32)*(popvalue)/4
-    isodata = np.ones((2,2),dtype=np.int16)*ucode
-    urbdata = np.ones((2,2),dtype=np.int16)*density
-    mmidata = np.ones((2,2),dtype=np.float32)*mmi
-    geodict = GeoDict({'xmin':0.5,'xmax':1.5,'ymin':0.5,'ymax':1.5,'dx':1.0,'dy':1.0,'nx':2,'ny':2})
-    popgrid = GMTGrid(popdata,geodict)
-    isogrid = GMTGrid(isodata,geodict)
-    urbgrid = GMTGrid(urbdata,geodict)
+        etime = datetime(2016, 1, 1, 0, 0, 0) #midnight
+    eventdict = {'event_id': '1234',
+                 'magnitude': 7.5,
+                 'lat': 0.0,
+                 'lon': 0.0,
+                 'depth': 10.0,
+                 'event_timestamp': etime,
+                 'event_description': 'test data',
+                 'event_network': 'us'}
+    shakedict = {'event_id': '1234',
+                 'shakemap_id': '1234',
+                 'shakemap_version': 1,
+                 'code_version': '1.0',
+                 'process_timestamp': datetime.utcnow(),
+                 'shakemap_originator': 'us',
+                 'map_status': 'RELEASED',
+                 'shakemap_event_type': 'SCENARIO'}
+    uncdict = {'mmi': (1.0, 1)}
+    popdata = np.ones((2, 2), dtype=np.float32)*(popvalue)/4
+    isodata = np.ones((2, 2), dtype=np.int16)*ucode
+    urbdata = np.ones((2, 2), dtype=np.int16)*density
+    mmidata = np.ones((2, 2), dtype=np.float32)*mmi
+    geodict = GeoDict({'xmin': 0.5, 'xmax': 1.5, 'ymin': 0.5, 'ymax': 1.5, 'dx': 1.0, 'dy': 1.0, 'nx': 2, 'ny': 2})
+    popgrid = GMTGrid(popdata, geodict)
+    isogrid = GMTGrid(isodata, geodict)
+    urbgrid = GMTGrid(urbdata, geodict)
     popyear = 2016
-    layers = {'mmi':mmidata}
-    mmigrid = ShakeGrid(layers,geodict,eventdict,shakedict,uncdict)
+    layers = {'mmi': mmidata}
+    mmigrid = ShakeGrid(layers, geodict, eventdict, shakedict, uncdict)
     popfile = isofile = urbfile = shakefile = ''
     popsum = None
     newresfat = None
     newnresfat = None
     try:
         #make some temporary files
-        f,popfile = tempfile.mkstemp()
+        f, popfile = tempfile.mkstemp()
         os.close(f)
-        f,isofile = tempfile.mkstemp()
+        f, isofile = tempfile.mkstemp()
         os.close(f)
-        f,urbfile = tempfile.mkstemp()
+        f, urbfile = tempfile.mkstemp()
         os.close(f)
-        f,shakefile = tempfile.mkstemp()
+        f, shakefile = tempfile.mkstemp()
         os.close(f)
         
         popgrid.save(popfile)
@@ -347,31 +347,31 @@ def make_test_semi_model(ccode,timeofday,density,popvalue,mmi):
         mmigrid.save(shakefile)
         
         semi = SemiEmpiricalFatality.fromDefault()
-        semi.setGlobalFiles(popfile,popyear,urbfile,isofile)
-        t,resfat,nonresfat = semi.getLosses(shakefile)
+        semi.setGlobalFiles(popfile, popyear, urbfile, isofile)
+        t, resfat, nonresfat = semi.getLosses(shakefile)
         popsum = 0
-        newresfat = {ccode:{}}
-        newnonresfat = {ccode:{}}
-        for key,value in resfat[ccode].items():
+        newresfat = {ccode: {}}
+        newnonresfat = {ccode: {}}
+        for key, value in resfat[ccode].items():
             if value < 1:
                 value = np.floor(value)
             newresfat[ccode][key] = value/4.0
             popsum += value/4.0
-        for key,value in nonresfat[ccode].items():
+        for key, value in nonresfat[ccode].items():
             newnonresfat[ccode][key] = value/4.0
             if value < 1:
                 value = np.floor(value)
             popsum += value/4.0
         popsum = int(popsum)
     finally:
-        files = [popfile,isofile,urbfile,shakefile]
+        files = [popfile, isofile, urbfile, shakefile]
         for fname in files:
             if os.path.isfile(fname):
                 os.remove(fname)
-    return (popsum,newresfat,newnonresfat)
+    return (popsum, newresfat, newnonresfat)
 
 class SemiEmpiricalFatality(object):
-    def __init__(self,inventory,collapse,casualty,workforce,growth):
+    def __init__(self, inventory, collapse, casualty, workforce, growth):
         """Create Semi-Empirical Fatality Model object.
 
         :param inventory:
@@ -425,14 +425,14 @@ class SemiEmpiricalFatality(object):
     @classmethod
     def fromDefault(cls):
         homedir = os.path.dirname(os.path.abspath(__file__)) #where is this module?
-        inventory_file = os.path.join(homedir,'..','data','semi_inventory.hdf')
-        collapse_file = os.path.join(homedir,'..','data','semi_collapse_mmi.hdf')
-        casualty_file = os.path.join(homedir,'..','data','semi_casualty.hdf')
-        workforce_file = os.path.join(homedir,'..','data','semi_workforce.hdf')
-        return cls.fromFiles(inventory_file,collapse_file,casualty_file,workforce_file)
+        inventory_file = os.path.join(homedir, '..', 'data', 'semi_inventory.hdf')
+        collapse_file = os.path.join(homedir, '..', 'data', 'semi_collapse_mmi.hdf')
+        casualty_file = os.path.join(homedir, '..', 'data', 'semi_casualty.hdf')
+        workforce_file = os.path.join(homedir, '..', 'data', 'semi_workforce.hdf')
+        return cls.fromFiles(inventory_file, collapse_file, casualty_file, workforce_file)
     
     @classmethod
-    def fromFiles(cls,inventory_file,collapse_file,casualty_file,workforce_file):
+    def fromFiles(cls, inventory_file, collapse_file, casualty_file, workforce_file):
         """Create SemiEmpiricalFatality object from a number of input files.
 
         :param inventory_file:
@@ -458,9 +458,9 @@ class SemiEmpiricalFatality(object):
         #read the growth spreadsheet into a PopulationGrowth object...
         popgrowth = PopulationGrowth.fromDefault()
 
-        return cls(inventory,collapse,casualty,workforce,popgrowth)
+        return cls(inventory, collapse, casualty, workforce, popgrowth)
 
-    def setGlobalFiles(self,popfile,popyear,urbanfile,isofile):
+    def setGlobalFiles(self, popfile, popyear, urbanfile, isofile):
         """Set the global data files (population,urban/rural, country code) for use of model with ShakeMaps.
 
         :param popfile:
@@ -482,7 +482,7 @@ class SemiEmpiricalFatality(object):
         self._iso_class = get_file_type(isofile)
         self._urban_class = get_file_type(urbanfile)
 
-    def getBuildingDesc(self,btype,desctype='short'):
+    def getBuildingDesc(self, btype, desctype='short'):
         """Get a building description given a short building type code.
 
         :param btype:
@@ -507,7 +507,7 @@ class SemiEmpiricalFatality(object):
         return None
             
         
-    def getWorkforce(self,ccode):
+    def getWorkforce(self, ccode):
         """Get the workforce data corresponding to a given country code.
         :param ccode:
           Two letter ISO country code.
@@ -521,7 +521,7 @@ class SemiEmpiricalFatality(object):
             wforce = None
         return wforce
         
-    def getCollapse(self,ccode,mmi,inventory):
+    def getCollapse(self, ccode, mmi, inventory):
         """Return the collapse rates for a given country,intensity, and inventory.
 
         :param ccode:
@@ -538,7 +538,7 @@ class SemiEmpiricalFatality(object):
         collapse = collapse_frame[mmicol]
         return collapse
 
-    def getFatalityRates(self,ccode,timeofday,inventory):
+    def getFatalityRates(self, ccode, timeofday, inventory):
         """Return fatality rates for a given country, time of day, and inventory.
 
         :param ccode:
@@ -555,7 +555,7 @@ class SemiEmpiricalFatality(object):
         fatrates = fatalframe.loc[inventory.index][timecol]
         return fatrates
         
-    def getInventories(self,ccode,density):
+    def getInventories(self, ccode, density):
         """Return two pandas Series objects corresponding to the urban or rural inventory for given country.
 
         :param ccode:
@@ -575,9 +575,9 @@ class SemiEmpiricalFatality(object):
         nresrow = nresinv.loc[ccode] #pandas series of non-residential inventory
         #remove the indices that aren't building type codes - these are present because 
         #Panels have the same columns in every dataframe
-        resrow = resrow.drop(['ShortDescription','OperationalDescription','LongDescription',
+        resrow = resrow.drop(['ShortDescription', 'OperationalDescription', 'LongDescription',
                               'CountryName'])
-        nresrow = nresrow.drop(['ShortDescription','OperationalDescription','LongDescription',
+        nresrow = nresrow.drop(['ShortDescription', 'OperationalDescription', 'LongDescription',
                                 'CountryName'])
 
         #now trim down the series to only include finite and non-zero values
@@ -586,11 +586,11 @@ class SemiEmpiricalFatality(object):
         nresrow = nresrow[nresrow.notnull()]
         nresrow = nresrow[nresrow > 0]
 
-        return (resrow,nresrow)
+        return (resrow, nresrow)
 
     
     
-    def getLosses(self,shakefile):
+    def getLosses(self, shakefile):
         """Calculate number of fatalities using semi-empirical approach.
 
         :param shakefile:
@@ -602,35 +602,35 @@ class SemiEmpiricalFatality(object):
             3) Dictionary of non-residential fatalities per building type, per country.
         """
         #get shakemap geodict
-        shakedict = ShakeGrid.getFileGeoDict(shakefile,adjust='res')
+        shakedict = ShakeGrid.getFileGeoDict(shakefile, adjust='res')
         #get population geodict
-        popdict,t = self._pop_class.getFileGeoDict(self._popfile)
+        popdict, t = self._pop_class.getFileGeoDict(self._popfile)
 
         #get country code geodict
-        isodict,t = self._iso_class.getFileGeoDict(self._isofile)
+        isodict, t = self._iso_class.getFileGeoDict(self._isofile)
 
         #get urban grid geodict
-        urbdict,t = self._urban_class.getFileGeoDict(self._urbanfile)
+        urbdict, t = self._urban_class.getFileGeoDict(self._urbanfile)
 
         #load all of the grids we need
         if popdict == shakedict == isodict == urbdict:
             #special case, probably for testing...
-            shakegrid = ShakeGrid.load(shakefile,adjust='res')
+            shakegrid = ShakeGrid.load(shakefile, adjust='res')
             popgrid = self._pop_class.load(self._popfile)
             isogrid = self._iso_class.load(self._isofile)
             urbgrid = self._urban_class.load(self._urbanfile)
         else:
             sampledict = popdict.getBoundsWithin(shakedict)
-            shakegrid = ShakeGrid.load(shakefile,samplegeodict=sampledict,resample=True,method='linear',adjust='res')
-            popgrid = self._pop_class.load(self._popfile,samplegeodict=sampledict,resample=False)
-            isogrid = self._iso_class.load(self._isofile,samplegeodict=sampledict,resample=True,method='nearest')
-            urbgrid = self._urban_class.load(self._urbanfile,samplegeodict=sampledict,resample=True,method='nearest',doPadding=True,padValue=RURAL)
+            shakegrid = ShakeGrid.load(shakefile, samplegeodict=sampledict, resample=True, method='linear', adjust='res')
+            popgrid = self._pop_class.load(self._popfile, samplegeodict=sampledict, resample=False)
+            isogrid = self._iso_class.load(self._isofile, samplegeodict=sampledict, resample=True, method='nearest')
+            urbgrid = self._urban_class.load(self._urbanfile, samplegeodict=sampledict, resample=True, method='nearest', doPadding=True, padValue=RURAL)
         
         #determine the local apparent time of day (based on longitude)
         edict = shakegrid.getEventDict()
         etime = edict['event_timestamp']
         elon = edict['lon']
-        time_of_day,event_year,event_hour = get_time_of_day(etime,elon)
+        time_of_day, event_year, event_hour = get_time_of_day(etime, elon)
 
         #round off our MMI data to nearest 0.5 (5.5 should stay 5.5, 5.4 
         #should become 5.5, 5.24 should become 5.0, etc.)
@@ -647,7 +647,7 @@ class SemiEmpiricalFatality(object):
         ucodes = np.unique(isodata)
         for ccode in ucodes:
             cidx = (isodata == ccode)
-            popdata[cidx] = self._popgrowth.adjustPopulation(popdata[cidx],ccode,self._popyear,event_year)
+            popdata[cidx] = self._popgrowth.adjustPopulation(popdata[cidx], ccode, self._popyear, event_year)
 
         #create a dictionary containing indoor populations by building type (in cells where MMI >= 6) 
         #popbystruct = get_indoor_pop(mmidata,popdata,urbdata,isodata,time_of_day)
@@ -679,29 +679,29 @@ class SemiEmpiricalFatality(object):
                 continue
             
             #loop over MMI values 6-9
-            for mmi in np.arange(6,9.5,0.5):
+            for mmi in np.arange(6, 9.5, 0.5):
                 c1 = (mmidata == mmi)
                 c2 = (isodata == ucode)
                 if ucode > 900 and ucode != CALIFORNIA_US_CCODE:
                     ucode = US_CCODE
-                for dclass in [URBAN,RURAL]:
+                for dclass in [URBAN, RURAL]:
                     c3 = (urbdata == dclass)
 
                     #get the population data in those cells at MMI, in country, and density class
                     popcells = popdata[c1 & c2 & c3] #I think I want an AND condition here
 
                     #get the population distribution across residential, non-residential, and outdoor.
-                    res,nonres,outside = pop_dist(popcells,wforce,time_of_day,dclass)
+                    res, nonres, outside = pop_dist(popcells, wforce, time_of_day, dclass)
 
                     #get the inventory for urban residential
-                    resrow,nresrow = self.getInventories(ccode,dclass)
+                    resrow, nresrow = self.getInventories(ccode, dclass)
                     #now multiply the residential/non-residential population through the inventory data
                     numres = len(resrow)
                     numnonres = len(nresrow)
-                    resmat = np.reshape(resrow.as_matrix(),(numres,1)).astype(np.float32)
-                    nresmat = np.reshape(nresrow.as_matrix(),(numnonres,1)).astype(np.float32)
-                    popres = np.tile(res,(numres,1))
-                    popnonres = np.tile(nonres,(numnonres,1))
+                    resmat = np.reshape(resrow.as_matrix(), (numres, 1)).astype(np.float32)
+                    nresmat = np.reshape(nresrow.as_matrix(), (numnonres, 1)).astype(np.float32)
+                    popres = np.tile(res, (numres, 1))
+                    popnonres = np.tile(nonres, (numnonres, 1))
                     popresbuilding = (popres * resmat)
                     popnonresbuilding = (popnonres * nresmat)
 
@@ -712,41 +712,41 @@ class SemiEmpiricalFatality(object):
 
                     #next, we get the collapse rates for these buildings
                     #and multiply them by the population by building.
-                    collapse_res = self.getCollapse(ccode,mmi,resrow)
-                    collapse_nonres = self.getCollapse(ccode,mmi,nresrow)
-                    resrates = np.reshape(collapse_res.as_matrix().astype(np.float32),(numres,1))
-                    nonresrates = np.reshape(collapse_nonres.as_matrix().astype(np.float32),(numnonres,1))
+                    collapse_res = self.getCollapse(ccode, mmi, resrow)
+                    collapse_nonres = self.getCollapse(ccode, mmi, nresrow)
+                    resrates = np.reshape(collapse_res.as_matrix().astype(np.float32), (numres, 1))
+                    nonresrates = np.reshape(collapse_nonres.as_matrix().astype(np.float32), (numnonres, 1))
                     rescollapse = popresbuilding * resrates
                     nonrescollapse = popnonresbuilding * nonresrates
 
                     #get the fatality rates given collapse by building type and 
                     #multiply through the result of collapse*population per building
-                    resfatalcol = self.getFatalityRates(ccode,time_of_day,resrow)
-                    nonresfatalcol = self.getFatalityRates(ccode,time_of_day,nresrow)
-                    resfatal = np.reshape(resfatalcol.as_matrix().astype(np.float32),(numres,1))
-                    nonresfatal = np.reshape(nonresfatalcol.as_matrix().astype(np.float32),(numnonres,1))
+                    resfatalcol = self.getFatalityRates(ccode, time_of_day, resrow)
+                    nonresfatalcol = self.getFatalityRates(ccode, time_of_day, nresrow)
+                    resfatal = np.reshape(resfatalcol.as_matrix().astype(np.float32), (numres, 1))
+                    nonresfatal = np.reshape(nonresfatalcol.as_matrix().astype(np.float32), (numnonres, 1))
                     resfat = rescollapse * resfatal
                     nonresfat = nonrescollapse * nonresfatal
 
                     #zero out the cells where fatalities are less than 1 or nan
                     try:
                         if len(resfat) and len(resfat[0]):
-                            resfat[np.ma.masked_less(resfat,1).mask] = 0.0
+                            resfat[np.ma.masked_less(resfat, 1).mask] = 0.0
                     except:
                         resfat[np.isnan(resfat)] = 0.0
                     try:
                         if len(nonresfat) and len(nonresfat[0]):
-                            nonresfat[np.ma.masked_less(nonresfat,1).mask] = 0.0
+                            nonresfat[np.ma.masked_less(nonresfat, 1).mask] = 0.0
                     except:
                         nonresfat[np.isnan(nonresfat)] = 0.0
 
                     #sum the fatalities per building through all cells
-                    resfatbybuilding = np.nansum(resfat,axis=1)
-                    nonresfatbybuilding = np.nansum(nonresfat,axis=1)
-                    resfdict = dict(zip(resrow.index,resfatbybuilding.tolist()))
-                    nonresfdict = dict(zip(nresrow.index,nonresfatbybuilding.tolist()))
-                    res_fatal_by_btype = add_dicts(res_fatal_by_btype,resfdict)
-                    nonres_fatal_by_btype = add_dicts(nonres_fatal_by_btype,nonresfdict)
+                    resfatbybuilding = np.nansum(resfat, axis=1)
+                    nonresfatbybuilding = np.nansum(nonresfat, axis=1)
+                    resfdict = dict(zip(resrow.index, resfatbybuilding.tolist()))
+                    nonresfdict = dict(zip(nresrow.index, nonresfatbybuilding.tolist()))
+                    res_fatal_by_btype = add_dicts(res_fatal_by_btype, resfdict)
+                    nonres_fatal_by_btype = add_dicts(nonres_fatal_by_btype, nonresfdict)
 
             #add the fatalities by building type to the dictionary containing fatalities by country
             res_fatal_by_ccode[ccode] = res_fatal_by_btype.copy()
@@ -755,7 +755,7 @@ class SemiEmpiricalFatality(object):
             #increment the total number of fatalities
             ntotal += int(sum(res_fatal_by_btype.values()) + sum(nonres_fatal_by_btype.values()))
                 
-        return (ntotal,res_fatal_by_ccode,nonres_fatal_by_ccode)
+        return (ntotal, res_fatal_by_ccode, nonres_fatal_by_ccode)
                     
                     
                     

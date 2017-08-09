@@ -4,7 +4,7 @@ from datetime import datetime
 from collections import OrderedDict
 
 #third party imports
-from impactutils.textformat.text import pop_round_short,round_to_nearest
+from impactutils.textformat.text import pop_round_short, round_to_nearest
 from impactutils.textformat.text import dec_to_roman
 from impactutils.colors.cpalette import ColorPalette
 from impactutils.comcat.query import ComCatInfo
@@ -13,27 +13,27 @@ import numpy as np
 
 LATEX_TO_PDF_BIN = 'pdflatex'
 
-LATEX_SPECIAL_CHARACTERS = OrderedDict([('\\','\\textbackslash{}'),
-                                        ('{','\{'),
-                                        ('}','\}'),
-                                        ('#','\#'),
-                                        ('$','\$'),
-                                        ('%','\%'),
-                                        ('&','\&'),
-                                        ('^','\\textasciicircum{}'),
-                                        ('_','\_'),
-                                        ('~','\textasciitilde{}')])
+LATEX_SPECIAL_CHARACTERS = OrderedDict([('\\', '\\textbackslash{}'),
+                                        ('{', '\{'),
+                                        ('}', '\}'),
+                                        ('#', '\#'),
+                                        ('$', '\$'),
+                                        ('%', '\%'),
+                                        ('&', '\&'),
+                                        ('^', '\\textasciicircum{}'),
+                                        ('_', '\_'),
+                                        ('~', '\textasciitilde{}')])
 
 DEFAULT_PAGER_URL = 'http://earthquake.usgs.gov/data/pager/'
 MIN_DISPLAY_POP = 1000
 
 def texify(text):
     newtext = text
-    for original,replacement in LATEX_SPECIAL_CHARACTERS.items():
-        newtext = newtext.replace(original,replacement)
+    for original, replacement in LATEX_SPECIAL_CHARACTERS.items():
+        newtext = newtext.replace(original, replacement)
     return newtext
 
-def create_onepager(pdata,version_dir, debug = False):
+def create_onepager(pdata, version_dir, debug = False):
     """
     :param pdata:
       PagerData object.
@@ -95,7 +95,7 @@ def create_onepager(pdata,version_dir, debug = False):
     template = template.replace("[HOMEDIR]", root_dir)
 
     # Magnitude location string under USGS logo
-    magloc = 'M %.1f, %s' % (edict['mag'],texify(edict['location']))
+    magloc = 'M %.1f, %s' % (edict['mag'], texify(edict['location']))
     template = template.replace("[MAGLOC]", magloc)
 
     # Pager version
@@ -150,7 +150,7 @@ def create_onepager(pdata,version_dir, debug = False):
     max_border_mmi = pdata._pagerdict['population_exposure']['maximum_border_mmi']
     explist = pdata.getTotalExposure()
     pophold = 0
-    for mmi in range(1,11):
+    for mmi in range(1, 11):
         iexp = mmi-1
         if mmi == 2:
             pophold += explist[iexp]
@@ -162,17 +162,17 @@ def create_onepager(pdata,version_dir, debug = False):
             pop = explist[iexp]
             macro = '[MMI%i]' % mmi
         if pop < 1000:
-            pop = round_to_nearest(pop,round_value=1000)
+            pop = round_to_nearest(pop, round_value=1000)
         if max_border_mmi > mmi and mmi <= 4:
             if pop == 0:
                 popstr = '--*'
             else:
                 if pop < 1000:
-                    pop = round_to_nearest(pop,round_value=1000)
+                    pop = round_to_nearest(pop, round_value=1000)
                 popstr = pop_round_short(pop)+'*'
         else:
             popstr = pop_round_short(pop)
-        template = template.replace(macro,popstr)
+        template = template.replace(macro, popstr)
             
 
 
@@ -239,7 +239,7 @@ def create_onepager(pdata,version_dir, debug = False):
             pop = '$<$1k'
         else:
             if ctab['pop'].iloc[i] < 1000:
-                popnum = round_to_nearest(ctab['pop'].iloc[i],round_value=1000)
+                popnum = round_to_nearest(ctab['pop'].iloc[i], round_value=1000)
             else:
                 popnum = ctab['pop'].iloc[i]
             pop = pop_round_short(popnum)
@@ -266,7 +266,7 @@ def create_onepager(pdata,version_dir, debug = False):
     #fill in the url, if we can find it
     try:
         ccinfo = ComCatInfo(eventid)
-        eventid,allids = ccinfo.getAssociatedIds()
+        eventid, allids = ccinfo.getAssociatedIds()
         event_url = ccinfo.getURL()+'#pager'
     except:
         event_url = DEFAULT_PAGER_URL
@@ -285,19 +285,19 @@ def create_onepager(pdata,version_dir, debug = False):
     try:
         cwd = os.getcwd()
         os.chdir(version_dir)
-        cmd = '%s -interaction nonstopmode --output-directory %s %s' % (LATEX_TO_PDF_BIN,version_dir,tex_output)
+        cmd = '%s -interaction nonstopmode --output-directory %s %s' % (LATEX_TO_PDF_BIN, version_dir, tex_output)
         print('Running %s...' % cmd)
-        res,stdout,stderr = get_command_output(cmd)
+        res, stdout, stderr = get_command_output(cmd)
         os.chdir(cwd)
         if not res:
-            return (None,stderr)
+            return (None, stderr)
         else:
             if os.path.isfile(pdf_output):
-                return (pdf_output,stderr)
+                return (pdf_output, stderr)
             else:
                 pass
     except Exception as e:
         pass
     finally:
         os.chdir(cwd)
-    return (None,stderr)
+    return (None, stderr)

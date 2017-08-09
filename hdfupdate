@@ -13,20 +13,20 @@ import pandas as pd
 from impactutils.io.cmd import get_command_output
 
 
-sheets = {'BuildingTypes':'Code',
-          'RuralNonResidential':'CountryCode',
-          'RuralResidential':'CountryCode',
-          'UrbanNonResidential':'CountryCode',
-          'UrbanResidential':'CountryCode',
-          'Workforce':'CountryCode'}
-files = {'collapse':'BuildingCode',
-         'casualty':'BuildingCode'}
+sheets = {'BuildingTypes': 'Code',
+          'RuralNonResidential': 'CountryCode',
+          'RuralResidential': 'CountryCode',
+          'UrbanNonResidential': 'CountryCode',
+          'UrbanResidential': 'CountryCode',
+          'Workforce': 'CountryCode'}
+files = {'collapse': 'BuildingCode',
+         'casualty': 'BuildingCode'}
 
 def load_panel_from_excel(excelfile):
     paneldict = {}
     xl = pd.ExcelFile(excelfile)
     for sheet in xl.sheet_names:
-        frame = pd.read_excel(excelfile,sheetname=sheet)
+        frame = pd.read_excel(excelfile, sheetname=sheet)
         if sheet in sheets:
             frame = frame.set_index(sheets[sheet])
         else:
@@ -41,13 +41,13 @@ def load_panel_from_excel(excelfile):
 
 def main(args):
     homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
-    excelfiles = glob.glob(os.path.join(homedir,'losspager','data','semi_*.xlsx'))
-    hdffiles = glob.glob(os.path.join(homedir,'losspager','data','semi_*.hdf'))
+    excelfiles = glob.glob(os.path.join(homedir, 'losspager', 'data', 'semi_*.xlsx'))
+    hdffiles = glob.glob(os.path.join(homedir, 'losspager', 'data', 'semi_*.hdf'))
     if args.undo:
         cmd = 'git checkout %s' % (' '.join(hdffiles))
-        res,stdout,stderr = get_command_output(cmd)
+        res, stdout, stderr = get_command_output(cmd)
         if not res:
-            print('Checkout failed with errors: "%s" "%s"' % (stderr,stdout))
+            print('Checkout failed with errors: "%s" "%s"' % (stderr, stdout))
             sys.exit(1)
         else:
             print('HDF files have been reverted back to their previous state.')
@@ -55,13 +55,13 @@ def main(args):
                 
     if args.convert:
         for excelfile in excelfiles:
-            fpath,fname = os.path.split(excelfile)
-            fbase,fext = os.path.splitext(fname)
-            outfile = os.path.join(fpath,fbase+'.hdf')
+            fpath, fname = os.path.split(excelfile)
+            fbase, fext = os.path.splitext(fname)
+            outfile = os.path.join(fpath, fbase+'.hdf')
             print('Loading data from %s...' % fname)
             panel = load_panel_from_excel(excelfile)
-            print('Updating %s to %s' % (fname,fbase+'hdf'))
-            panel.to_hdf(outfile,fbase,mode='w')
+            print('Updating %s to %s' % (fname, fbase+'hdf'))
+            panel.to_hdf(outfile, fbase, mode='w')
         print('Done.  Do not forget to commit these changes.')
         sys.exit(0)
 
@@ -78,9 +78,9 @@ if __name__ == '__main__':
     '''
     parser = argparse.ArgumentParser(description=desc)
     undohelp = 'Undo the changes to the HDF files.  NB: Only works if changes have not been committed.'
-    parser.add_argument('-u','--undo', action='store_true',
+    parser.add_argument('-u', '--undo', action='store_true',
                         help=undohelp)
-    parser.add_argument('-c','--convert', action='store_true',
+    parser.add_argument('-c', '--convert', action='store_true',
                         help='Convert Excel spreadhsheets to HDF.')
     pargs = parser.parse_args()
     if not pargs.convert and not pargs.undo:

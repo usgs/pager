@@ -42,7 +42,7 @@ from losspager.models.growth import PopulationGrowth
 from losspager.utils.country import Country
 from losspager.utils.eventpath import get_event_folder
 from losspager.utils.logger import PagerLogger
-from losspager.utils.admin import PagerAdmin,split_event,transfer
+from losspager.utils.admin import PagerAdmin, split_event, transfer
 from losspager.utils.exception import PagerException
 from losspager.utils.datapath import get_data_path
 from losspager.onepager.comment import get_impact_comments
@@ -60,7 +60,7 @@ COUNTRY = Country()
 TIMEFMT = '%Y-%m-%d %H:%M:%S'
 TSUNAMI_MAG_THRESH = 7.3
 
-def _print_message(plog,message):
+def _print_message(plog, message):
     if plog is not None:
         plog.Logger.info(message)
     else:
@@ -70,21 +70,21 @@ def _is_url(gridfile):
     try:
         fh = request.urlopen(gridfile)
         tdir = tempfile.mkdtemp()
-        grid_file = os.path.join(tdir,'grid.xml')
+        grid_file = os.path.join(tdir, 'grid.xml')
         data = fh.read().decode('utf-8')
         fh.close()
-        f = open(grid_file,'wt')
+        f = open(grid_file, 'wt')
         f.write(data)
         f.close()
-        return (True,grid_file)
+        return (True, grid_file)
     except:
-        return (False,None)
+        return (False, None)
     
-def _check_pdl(gridfile,config):
+def _check_pdl(gridfile, config):
     try:
         configfile = config['transfer']['pdl']['configfile']
-        configbase,configname = os.path.split(configfile)
-        lines = open(configfile,'rt').readlines()
+        configbase, configname = os.path.split(configfile)
+        lines = open(configfile, 'rt').readlines()
         index_on = False
         for line in lines:
             if line.find('[indexer_listener_exec_storage]') > -1:
@@ -95,19 +95,19 @@ def _check_pdl(gridfile,config):
                     parts = line.split('=')
                     storage_dir = parts[1].strip()
                     storage_parts = storage_dir.split(os.path.sep)
-                    grid_file = os.path.join(configbase,storage_parts,'shakemap',gridfile,'download','grid.xml')
+                    grid_file = os.path.join(configbase, storage_parts, 'shakemap', gridfile, 'download', 'grid.xml')
                     if not os.path.isfile(grid_file):
-                        return (False,None)
-                    return (True,grid_file)
-        return (False,None)
+                        return (False, None)
+                    return (True, grid_file)
+        return (False, None)
     except:
-        return (False,None)
+        return (False, None)
     
     
-def _get_release_status(pargs,config,
-                        fatmodel,fatdict,
-                        ecomodel,ecodict,
-                        shake_tuple,event_folder):
+def _get_release_status(pargs, config,
+                        fatmodel, fatdict,
+                        ecomodel, ecodict,
+                        shake_tuple, event_folder):
     #if we're not primary, it's released by default.
     #if our summary alert is green or yellow, it's released by default.
     #if the processing time is >= event time + 8(24?) hours, it's released by default.
@@ -125,7 +125,7 @@ def _get_release_status(pargs,config,
     #Are we at green or yellow
     fat_level = fatmodel.getAlertLevel(fatdict)
     eco_level = fatmodel.getAlertLevel(ecodict)
-    if fat_level in ('green','yellow') and eco_level in ('green','yellow'):
+    if fat_level in ('green', 'yellow') and eco_level in ('green', 'yellow'):
         is_released = True
 
     #Are we past the release threshold?
@@ -136,7 +136,7 @@ def _get_release_status(pargs,config,
         is_released = True
 
     #Is there a "release" file in the event folder?
-    release_file = os.path.join(event_folder,'release')
+    release_file = os.path.join(event_folder, 'release')
     if os.path.isfile(release_file):
         is_released = True
 
@@ -146,35 +146,35 @@ def _get_release_status(pargs,config,
 
     return is_released
 
-def message_pager(config,onepager_pdf,doc):
+def message_pager(config, onepager_pdf, doc):
     if 'transfer' in config:
         if 'status' in config and config['status'] == 'primary':
             users = config['pager_team']
             sender = config['mail_from']
             hosts = config['mail_hosts']
-            subject = '%s INTERNAL alert: %s' % (doc.summary_alert.capitalize(),doc.location)
+            subject = '%s INTERNAL alert: %s' % (doc.summary_alert.capitalize(), doc.location)
             msg = '''This is an INTERNAL message notifying you of this %s alert.  You will receive a second message with the pending alert.''' % doc.summary_alert
 
             #create a string with exposure information
             exparray = doc.getTotalExposure()
             max_border_mmi = doc._pagerdict['population_exposure']['maximum_border_mmi']
-            expstr = format_exposure(exparray,'long',max_border_mmi)
+            expstr = format_exposure(exparray, 'long', max_border_mmi)
 
             msg += '\n' + expstr
 
             #remove unnecessary whitespace
             msg = textwrap.dedent(msg)
             
-            props = {'recipients':users,
-                     'subject':subject,
-                     'sender':sender,
-                     'message':msg,
-                     'smtp_servers':hosts}
-            sender = EmailSender(props,local_files=[onepager_pdf])
+            props = {'recipients': users,
+                     'subject': subject,
+                     'sender': sender,
+                     'message': msg,
+                     'smtp_servers': hosts}
+            sender = EmailSender(props, local_files=[onepager_pdf])
             sender.send()
             
 
-def _get_pop_year(event_year,popyears):
+def _get_pop_year(event_year, popyears):
     pop_year = None
     tmin = 10000000
     popfile = None
@@ -188,7 +188,7 @@ def _get_pop_year(event_year,popyears):
             tmin = abs(popyear-event_year)
             pop_year = popyear
             popfile = popgrid
-    return (pop_year,popfile)
+    return (pop_year, popfile)
 
 def get_pager_version(eventfolder):
     pager_version = 1
@@ -196,47 +196,47 @@ def get_pager_version(eventfolder):
         os.makedirs(eventfolder)
         last_version = 0
     else:
-        allfolders = glob.glob(os.path.join(eventfolder,'version.*'))
+        allfolders = glob.glob(os.path.join(eventfolder, 'version.*'))
         allfolders.sort()
         if len(allfolders):
-            base,last_folder = os.path.split(allfolders[-1])
-            last_version = int(re.findall('\d+',last_folder)[0])
+            base, last_folder = os.path.split(allfolders[-1])
+            last_version = int(re.findall('\d+', last_folder)[0])
         else:
             last_version = 0
     return last_version + 1
 
-def _draw_probs(fatmodel,fatdict,ecomodel,ecodict,version_folder):
+def _draw_probs(fatmodel, fatdict, ecomodel, ecodict, version_folder):
     fatG = fatmodel.getCombinedG(fatdict)
-    fat_probs = fatmodel.getProbabilities(fatdict,fatG)
-    fat_figure = drawImpactScale(fatdict,fat_probs,'fatality')
+    fat_probs = fatmodel.getProbabilities(fatdict, fatG)
+    fat_figure = drawImpactScale(fatdict, fat_probs, 'fatality')
 
     ecoG = ecomodel.getCombinedG(ecodict)
-    eco_probs = ecomodel.getProbabilities(ecodict,ecoG)
-    eco_figure = drawImpactScale(ecodict,eco_probs,'economic')
+    eco_probs = ecomodel.getProbabilities(ecodict, ecoG)
+    eco_figure = drawImpactScale(ecodict, eco_probs, 'economic')
 
-    fat_probs_file = os.path.join(version_folder,'alertfatal.pdf')
-    fat_probs_file_png = os.path.join(version_folder,'alertfatal.png')
-    fat_probs_file_small = os.path.join(version_folder,'alertfatal_small.png')
-    fat_probs_file_smaller = os.path.join(version_folder,'alertfatal_smaller.png')
+    fat_probs_file = os.path.join(version_folder, 'alertfatal.pdf')
+    fat_probs_file_png = os.path.join(version_folder, 'alertfatal.png')
+    fat_probs_file_small = os.path.join(version_folder, 'alertfatal_small.png')
+    fat_probs_file_smaller = os.path.join(version_folder, 'alertfatal_smaller.png')
     
-    eco_probs_file = os.path.join(version_folder,'alertecon.pdf')
-    eco_probs_file_png = os.path.join(version_folder,'alertecon.png')
-    eco_probs_file_small = os.path.join(version_folder,'alertecon_small.png')
-    eco_probs_file_smaller = os.path.join(version_folder,'alertecon_smaller.png')
+    eco_probs_file = os.path.join(version_folder, 'alertecon.pdf')
+    eco_probs_file_png = os.path.join(version_folder, 'alertecon.png')
+    eco_probs_file_small = os.path.join(version_folder, 'alertecon_small.png')
+    eco_probs_file_smaller = os.path.join(version_folder, 'alertecon_smaller.png')
     
-    fat_figure.savefig(fat_probs_file,bbox_inches='tight')
-    fat_figure.savefig(fat_probs_file_png,bbox_inches='tight')
-    fat_figure.savefig(fat_probs_file_small,bbox_inches='tight',dpi=57)
-    fat_figure.savefig(fat_probs_file_smaller,bbox_inches='tight',dpi=35)
+    fat_figure.savefig(fat_probs_file, bbox_inches='tight')
+    fat_figure.savefig(fat_probs_file_png, bbox_inches='tight')
+    fat_figure.savefig(fat_probs_file_small, bbox_inches='tight', dpi=57)
+    fat_figure.savefig(fat_probs_file_smaller, bbox_inches='tight', dpi=35)
     
-    eco_figure.savefig(eco_probs_file,bbox_inches='tight')
-    eco_figure.savefig(eco_probs_file_png,bbox_inches='tight')
-    eco_figure.savefig(eco_probs_file_small,bbox_inches='tight',dpi=57)
-    eco_figure.savefig(eco_probs_file_smaller,bbox_inches='tight',dpi=35)
-    return (fat_probs_file,eco_probs_file)
+    eco_figure.savefig(eco_probs_file, bbox_inches='tight')
+    eco_figure.savefig(eco_probs_file_png, bbox_inches='tight')
+    eco_figure.savefig(eco_probs_file_small, bbox_inches='tight', dpi=57)
+    eco_figure.savefig(eco_probs_file_smaller, bbox_inches='tight', dpi=35)
+    return (fat_probs_file, eco_probs_file)
 
-def _cancel(eventid,config):
-    event_source,event_source_code = split_event(eventid)
+def _cancel(eventid, config):
+    event_source, event_source_code = split_event(eventid)
     msg = ''
     if 'status' in config and config['status'] == 'primary':
         if 'transfer' in config:
@@ -247,9 +247,9 @@ def _cancel(eventid,config):
                         continue
                     params = config['transfer'][method]
                     if 'remote_directory' in params:
-                        vpath,vfolder = os.path.split(version_folder)
+                        vpath, vfolder = os.path.split(version_folder)
                         #append the event id and version folder to our pre-specified output directory
-                        params['remote_directory'] = os.path.join(params['remote_directory'],authid,vfolder)
+                        params['remote_directory'] = os.path.join(params['remote_directory'], authid, vfolder)
                     params['code'] = eventid
                     params['eventsource'] = event_source
                     params['eventsourcecode'] = event_source_code
@@ -261,20 +261,20 @@ def _cancel(eventid,config):
                     sender_class = get_sender_class(method)
                     try:
                         if method == 'pdl':
-                            sender = sender_class(properties=params,local_directory=version_folder,
+                            sender = sender_class(properties=params, local_directory=version_folder,
                                                   product_properties=product_params)
                         else:
-                            sender = sender_class(properties=params,local_directory=version_folder)
+                            sender = sender_class(properties=params, local_directory=version_folder)
                         try:
                             msg += sender.cancel()
                         except Exception as e:
                             msg += 'Failed to send products via PDL: %s' % str(e)
                     except Exception as e:
-                        msg += 'Could not send products via %s method - error "%s"' % (method,str(e))
+                        msg += 'Could not send products via %s method - error "%s"' % (method, str(e))
                         
     return msg
 
-def main(pargs,config):
+def main(pargs, config):
     #get the users home directory
     homedir = os.path.expanduser('~')
     script_dir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
@@ -282,14 +282,14 @@ def main(pargs,config):
     #handle cancel messages
     if pargs.cancel:
         #we presume that pargs.gridfile in this context is an event ID.
-        msg = _cancel(pargs.gridfile,config)
+        msg = _cancel(pargs.gridfile, config)
         print(msg)
         sys.exit(0)
      
     #what kind of thing is gridfile?
     is_file = os.path.isfile(pargs.gridfile)
-    is_url,url_gridfile = _is_url(pargs.gridfile)
-    is_pdl,pdl_gridfile = _check_pdl(pargs.gridfile,config)
+    is_url, url_gridfile = _is_url(pargs.gridfile)
+    is_pdl, pdl_gridfile = _check_pdl(pargs.gridfile, config)
     if is_file:
         gridfile = pargs.gridfile
     elif is_url:
@@ -301,10 +301,10 @@ def main(pargs,config):
         sys.exit(1)
         
     
-    pager_folder = os.path.join(homedir,config['output_folder'])
-    pager_archive = os.path.join(homedir,config['archive_folder'])
+    pager_folder = os.path.join(homedir, config['output_folder'])
+    pager_archive = os.path.join(homedir, config['archive_folder'])
     
-    admin = PagerAdmin(pager_folder,pager_archive)
+    admin = PagerAdmin(pager_folder, pager_archive)
     
     plog = None
 
@@ -314,9 +314,9 @@ def main(pargs,config):
         #stdout will now be logged as INFO, stderr will be logged as WARNING
         mail_hosts = config['mail_hosts']
         mail_from = config['mail_from']
-        logfile = os.path.join(pager_folder,'pager.log')
+        logfile = os.path.join(pager_folder, 'pager.log')
         #print('Writing content to %s' % logfile)
-        plog = PagerLogger(logfile,redirect=False,
+        plog = PagerLogger(logfile, redirect=False,
                            from_address=mail_from,
                            mail_hosts=mail_hosts)
         plog.addEmailHandler(config['developers']) #failover email alert system
@@ -342,8 +342,8 @@ def main(pargs,config):
             ccinfo = ComCatInfo(eid)
             location = ccinfo.getLocation()
             tsunami = ccinfo.getTsunami()
-            authid,allids = ccinfo.getAssociatedIds()
-            authsource,othersources = ccinfo.getAssociatedSources()
+            authid, allids = ccinfo.getAssociatedIds()
+            authsource, othersources = ccinfo.getAssociatedSources()
         except: #fail over to what we can determine locally
             location = shake_tuple[1]['event_description']
             tsunami = shake_tuple[1]['magnitude'] >= TSUNAMI_MAG_THRESH
@@ -363,37 +363,37 @@ def main(pargs,config):
         shakemap_type = shake_tuple[0]['shakemap_event_type']
         if shakemap_type == 'SCENARIO':
             is_scenario = True
-            if re.search('scenario',location.lower()) is None:
+            if re.search('scenario', location.lower()) is None:
                 location = 'Scenario '+location
             
         #create the event directory (if it does not exist), and start logging there
-        _print_message(plog,'Creating event directory')
-        event_folder = admin.createEventFolder(authid,etime)
+        _print_message(plog, 'Creating event directory')
+        event_folder = admin.createEventFolder(authid, etime)
 
         #Stop processing if there is a "stop" file in the event folder
-        stopfile = os.path.join(event_folder,'stop')
+        stopfile = os.path.join(event_folder, 'stop')
         if os.path.isfile(stopfile):
-            _print_message(plog,'"stop" file found in %s.  Stopping processing, returning with 1.' % (event_folder))
+            _print_message(plog, '"stop" file found in %s.  Stopping processing, returning with 1.' % (event_folder))
             print('"stop" file found in %s.  Stopping processing, returning with 1.' % (event_folder))
             sys.exit(1)
         
         pager_version = get_pager_version(event_folder)
-        version_folder = os.path.join(event_folder,'version.%03d' % pager_version)
+        version_folder = os.path.join(event_folder, 'version.%03d' % pager_version)
         os.makedirs(version_folder)
-        event_logfile = os.path.join(version_folder,'event.log')
+        event_logfile = os.path.join(version_folder, 'event.log')
         if plog is not None:
             plog.switchToEventFileHandler(event_logfile)
 
         #Copy the grid.xml file to the version folder
         #sometimes (usu when testing) the input grid isn't called grid.xml.  Rename it here.
-        version_grid = os.path.join(version_folder,'grid.xml')
-        shutil.copyfile(gridfile,version_grid)
+        version_grid = os.path.join(version_folder, 'grid.xml')
+        shutil.copyfile(gridfile, version_grid)
 
         #Check to see if the tsunami flag has been previously set
-        tsunami_toggle = {'on':1,'off':0}
-        tsunami_file = os.path.join(event_folder,'tsunami')
+        tsunami_toggle = {'on': 1, 'off': 0}
+        tsunami_file = os.path.join(event_folder, 'tsunami')
         if os.path.isfile(tsunami_file):
-            tsunami = tsunami_toggle[open(tsunami_file,'rt').read().strip()]
+            tsunami = tsunami_toggle[open(tsunami_file, 'rt').read().strip()]
             
         #get the rest of the event info
         etime = shake_tuple[1]['event_timestamp']
@@ -407,115 +407,115 @@ def main(pargs,config):
         event_year = shake_tuple[1]['event_timestamp'].year
 
         #find the population data collected most closely to the event_year
-        pop_year,popfile = _get_pop_year(event_year,config['model_data']['population_data'])
-        _print_message(plog,'Population year: %i Population file: %s\n' % (pop_year,popfile))
+        pop_year, popfile = _get_pop_year(event_year, config['model_data']['population_data'])
+        _print_message(plog, 'Population year: %i Population file: %s\n' % (pop_year, popfile))
 
         #Get exposure results
-        _print_message(plog,'Calculating population exposure.')
+        _print_message(plog, 'Calculating population exposure.')
         isofile = config['model_data']['country_grid']
-        expomodel = Exposure(popfile,pop_year,isofile)
+        expomodel = Exposure(popfile, pop_year, isofile)
         exposure = None
         exposure = expomodel.calcExposure(gridfile)
 
         #incidentally grab the country code of the epicenter
-        numcode = expomodel._isogrid.getValue(elat,elon)
+        numcode = expomodel._isogrid.getValue(elat, elon)
         cdict = Country().getCountry(int(numcode))
         if cdict is None:
             ccode = 'UK'
         else:
             ccode = cdict['ISO2']
 
-        _print_message(plog,'Country code at epicenter is %s' % ccode)
+        _print_message(plog, 'Country code at epicenter is %s' % ccode)
 
         #get fatality results, if requested
-        _print_message(plog,'Calculating empirical fatalities.')
+        _print_message(plog, 'Calculating empirical fatalities.')
         fatmodel = EmpiricalLoss.fromDefaultFatality()
         fatdict = fatmodel.getLosses(exposure)
 
         #get economic results, if requested
-        _print_message(plog,'Calculating economic exposure.')
-        econexpmodel = EconExposure(popfile,pop_year,isofile)
+        _print_message(plog, 'Calculating economic exposure.')
+        econexpmodel = EconExposure(popfile, pop_year, isofile)
         ecomodel = EmpiricalLoss.fromDefaultEconomic()
         econexposure = econexpmodel.calcExposure(gridfile)
         ecodict = ecomodel.getLosses(econexposure)
         shakegrid = econexpmodel.getShakeGrid()
 
         #Get semi-empirical losses
-        _print_message(plog,'Calculating semi-empirical fatalities.')
+        _print_message(plog, 'Calculating semi-empirical fatalities.')
         urbanfile = config['model_data']['urban_rural_grid']
         if not os.path.isfile(urbanfile):
             raise PagerException('Urban-rural grid file %s does not exist.' % urbanfile)
 
         semi = SemiEmpiricalFatality.fromDefault()
-        semi.setGlobalFiles(popfile,pop_year,urbanfile,isofile)
-        semiloss,resfat,nonresfat = semi.getLosses(gridfile)
+        semi.setGlobalFiles(popfile, pop_year, urbanfile, isofile)
+        semiloss, resfat, nonresfat = semi.getLosses(gridfile)
 
         #get all of the other components of PAGER
-        _print_message(plog,'Getting all comments.')
+        _print_message(plog, 'Getting all comments.')
         #get the fatality and economic comments
-        impact1,impact2 = get_impact_comments(fatdict,ecodict,econexposure,event_year,ccode)
+        impact1, impact2 = get_impact_comments(fatdict, ecodict, econexposure, event_year, ccode)
         #get comment describing vulnerable structures in the region.
-        struct_comment = get_structure_comment(resfat,nonresfat,semi)
+        struct_comment = get_structure_comment(resfat, nonresfat, semi)
         #get the comment describing historic secondary hazards
-        secondary_comment = get_secondary_comment(elat,elon,emag)
+        secondary_comment = get_secondary_comment(elat, elon, emag)
         #get the comment describing historical comments in the region
-        historical_comment = get_historical_comment(elat,elon,emag,exposure,fatdict)
+        historical_comment = get_historical_comment(elat, elon, emag, exposure, fatdict)
 
         #generate the probability plots
-        _print_message(plog,'Drawing probability plots.')
-        fat_probs_file,eco_probs_file = _draw_probs(fatmodel,fatdict,
-                                                    ecomodel,ecodict,
+        _print_message(plog, 'Drawing probability plots.')
+        fat_probs_file, eco_probs_file = _draw_probs(fatmodel, fatdict,
+                                                    ecomodel, ecodict,
                                                     version_folder)
 
         #generate the exposure map
-        exposure_base = os.path.join(version_folder,'exposure')
-        _print_message(plog,'Generating exposure map...')
+        exposure_base = os.path.join(version_folder, 'exposure')
+        _print_message(plog, 'Generating exposure map...')
         oceanfile = config['model_data']['ocean_vectors']
         oceangrid = config['model_data']['ocean_grid']
         cityfile = config['model_data']['city_file']
         borderfile = config['model_data']['border_vectors']
-        pdf_file,png_file,mapcities = draw_contour(gridfile,popfile,
-                                         oceanfile,oceangrid,cityfile,
-                                         exposure_base,borderfile,is_scenario=is_scenario)
-        _print_message(plog,'Generated exposure map %s' % pdf_file)
+        pdf_file, png_file, mapcities = draw_contour(gridfile, popfile,
+                                         oceanfile, oceangrid, cityfile,
+                                         exposure_base, borderfile, is_scenario=is_scenario)
+        _print_message(plog, 'Generated exposure map %s' % pdf_file)
 
         #figure out whether this event has been "released".
-        is_released = _get_release_status(pargs,config,
-                                          fatmodel,fatdict,
-                                          ecomodel,ecodict,
-                                          shake_tuple,event_folder)
+        is_released = _get_release_status(pargs, config,
+                                          fatmodel, fatdict,
+                                          ecomodel, ecodict,
+                                          shake_tuple, event_folder)
         
         
         
         #Create a data object to encapsulate everything we know about the PAGER
         #results, and then serialize that to disk in the form of a number of JSON files.
-        _print_message(plog,'Making PAGER Data object.')
+        _print_message(plog, 'Making PAGER Data object.')
         doc = PagerData()
         timezone_file = config['model_data']['timezones_file']
         elapsed = pargs.elapsed
-        doc.setInputs(shakegrid,timezone_file,pager_version,shakegrid.getEventDict()['event_id'],
-                      authid,tsunami,location,is_released,elapsed=elapsed)
-        _print_message(plog,'Setting inputs.')
-        doc.setExposure(exposure,econexposure)
-        _print_message(plog,'Setting exposure.')
-        doc.setModelResults(fatmodel,ecomodel,
-                            fatdict,ecodict,
-                            semiloss,resfat,nonresfat)
-        _print_message(plog,'Setting comments.')
-        doc.setComments(impact1,impact2,struct_comment,historical_comment,secondary_comment)
-        _print_message(plog,'Setting map info.')
-        doc.setMapInfo(cityfile,mapcities)
-        _print_message(plog,'Validating.')
+        doc.setInputs(shakegrid, timezone_file, pager_version, shakegrid.getEventDict()['event_id'],
+                      authid, tsunami, location, is_released, elapsed=elapsed)
+        _print_message(plog, 'Setting inputs.')
+        doc.setExposure(exposure, econexposure)
+        _print_message(plog, 'Setting exposure.')
+        doc.setModelResults(fatmodel, ecomodel,
+                            fatdict, ecodict,
+                            semiloss, resfat, nonresfat)
+        _print_message(plog, 'Setting comments.')
+        doc.setComments(impact1, impact2, struct_comment, historical_comment, secondary_comment)
+        _print_message(plog, 'Setting map info.')
+        doc.setMapInfo(cityfile, mapcities)
+        _print_message(plog, 'Validating.')
         doc.validate()
-        json_folder = os.path.join(version_folder,'json')
+        json_folder = os.path.join(version_folder, 'json')
         os.makedirs(json_folder)
-        _print_message(plog,'Saving output to JSON.')
+        _print_message(plog, 'Saving output to JSON.')
         doc.saveToJSON(json_folder)
-        _print_message(plog,'Saving output to XML.')
+        _print_message(plog, 'Saving output to XML.')
         doc.saveToLegacyXML(version_folder)
 
-        _print_message(plog,'Creating onePAGER pdf...')
-        onepager_pdf,error = create_onepager(doc,version_folder)
+        _print_message(plog, 'Creating onePAGER pdf...')
+        onepager_pdf, error = create_onepager(doc, version_folder)
         if onepager_pdf is None:
             raise PagerException('Could not create onePAGER output: \n%s' % error)
 
@@ -523,15 +523,15 @@ def main(pargs,config):
         contentsfile = get_data_path('contents.xml')
         if contentsfile is None:
             raise PagerException('Could not find contents.xml file.')
-        shutil.copy(contentsfile,version_folder)
+        shutil.copy(contentsfile, version_folder)
 
         #send pdf as attachment to internal team of PAGER users
         if not is_released:
-            message_pager(config,onepager_pdf,doc)
+            message_pager(config, onepager_pdf, doc)
         
         #run transfer, as appropriate and as specified by config
-        res,msg = transfer(config,doc,authid,authsource,version_folder)
-        _print_message(plog,msg)
+        res, msg = transfer(config, doc, authid, authsource, version_folder)
+        _print_message(plog, msg)
         if not res:
             pass
             #TODO: figure out what's broken with logging, send log email here
@@ -547,7 +547,7 @@ def main(pargs,config):
             f = io.StringIO()
             traceback.print_exc(file=f)
             msg = e
-            msg = '%s\n %s' % (str(msg),f.getvalue())
+            msg = '%s\n %s' % (str(msg), f.getvalue())
             hostname = socket.gethostname()
             msg = msg + '\n' + 'Error occurred on %s\n' % (hostname)
             if gridfile is not None:
@@ -590,7 +590,7 @@ if __name__ == '__main__':
     To send a cancel message for an event (does nothing in laptop configuration):
     %(prog)s --cancel eventid
     '''
-    parser = argparse.ArgumentParser(description=desc,formatter_class=argparse.RawTextHelpFormatter)
+    parser = argparse.ArgumentParser(description=desc, formatter_class=argparse.RawTextHelpFormatter)
     gridhelp = '''gridfile can be either:
       - A path to a local ShakeMap grid.xml file.
       - An event ID (i.e., us2010abcd), which (on a primary system) will find the most recently PDL-downloaded grid file.
@@ -598,13 +598,13 @@ if __name__ == '__main__':
     '''
     parser.add_argument('gridfile',
                         help=textwrap.dedent(gridhelp))
-    parser.add_argument('-d','--debug', action='store_true',
+    parser.add_argument('-d', '--debug', action='store_true',
                         default=False, help='Print debug information (mostly useful to developers)')
     parser.add_argument('--release', action='store_true',
                         default=False, help='Set release status to True (override other criteria)')
     parser.add_argument('--cancel', action='store_true',
                         default=False, help='Send a cancel message using any configured transfer methods')
-    parser.add_argument('--tsunami', choices=['on','off','auto'],
+    parser.add_argument('--tsunami', choices=['on', 'off', 'auto'],
                         default='auto', help='Set tsunami flag to True/False (override other criteria), or use default criteria')
     parser.add_argument('--elapsed', type=int, metavar='ELAPSED',
                         help='Override calculated elapsed time with minutes.  Usually used for scenarios.')
@@ -627,4 +627,4 @@ if __name__ == '__main__':
         sys.stderr.write(errmsg)
         sys.exit(1)
     
-    main(args,config)
+    main(args, config)

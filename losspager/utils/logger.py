@@ -16,7 +16,7 @@ class OutStream:
     """
     Sends text to a logging object as INFO.
     """
-    def __init__(self,logger):
+    def __init__(self, logger):
         """
         Create an OutStream with an instance of a logger from the python logging module.
 
@@ -25,7 +25,7 @@ class OutStream:
         """
         self.Logger = logger
 
-    def write(self,text):
+    def write(self, text):
         """
         Write output to Logger instance as INFO.
 
@@ -45,7 +45,7 @@ class ErrStream:
     """
     Sends text to a logging object as ERROR.
     """
-    def __init__(self,logger):
+    def __init__(self, logger):
         """
         Create an ErrStream with an instance of a logger from the python logging module.
 
@@ -54,7 +54,7 @@ class ErrStream:
         """
         self.Logger = logger
         
-    def write(self,text):
+    def write(self, text):
         """
         Write output to Logger instance as ERROR.
 
@@ -95,7 +95,7 @@ class PagerLogger:
     EventLogHandler = None
     MailHandler = None
     PagerLogHandler = None
-    def __init__(self,pagerlogfile,from_address=None,mail_hosts=None,redirect=True):
+    def __init__(self, pagerlogfile, from_address=None, mail_hosts=None, redirect=True):
         """
         Create a PagerLogger instance, and begin logging to the PAGER (not event) log file.
 
@@ -138,7 +138,7 @@ class PagerLogger:
         self.FromAddress = from_address
         self.MailHosts = mail_hosts
 
-    def scream(self,msg):
+    def scream(self, msg):
         """
         Send out a CRITICAL level warning message, which will go through the email handler if it is turned on.
 
@@ -171,7 +171,7 @@ class PagerLogger:
         self.OldOut = None
         self.OldErr = None
 
-    def switchToEventFileHandler(self,eventlogfile):
+    def switchToEventFileHandler(self, eventlogfile):
         """
         Add event log to logger.  Also removes general pager log from the logger object.
         :param eventlogfile: 
@@ -185,7 +185,7 @@ class PagerLogger:
         #remove the pager log handler
         self.Logger.removeHandler(self.PagerLogHandler)
 
-    def addEmailHandler(self,emails):
+    def addEmailHandler(self, emails):
         """
         Add an email handler.
 
@@ -205,7 +205,7 @@ class PagerLogger:
             print('Could not add mail handler as this system is not networked.')
             return
         self.MailHandler = None
-        print('Creating SMTP handler with %s,%s,%s,%s' % (self.MailHosts,self.FromAddress,emails,self.Subject))
+        print('Creating SMTP handler with %s,%s,%s,%s' % (self.MailHosts, self.FromAddress, emails, self.Subject))
         #we supply a list of smtp hosts, just in case some of them are off-line... here we find the first 
         #one that seems to be responsive.
         try:
@@ -224,7 +224,7 @@ class PagerLogger:
             if smtphost is None:
                 raise PagerException('Could not connect to any mail hosts: %s' % str(self.MailHosts))
 
-            self.MailHandler = SMTPHandler(smtphost,self.FromAddress,emails,subject)
+            self.MailHandler = SMTPHandler(smtphost, self.FromAddress, emails, subject)
             self.MailHandler.setLevel(self.EmailLogLevel)
             self.MailHandler.setFormatter(self.Formatter)
             self.Logger.addHandler(self.MailHandler)

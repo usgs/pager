@@ -17,30 +17,30 @@ def to_ordered_dict(series):
     keys = series.index
     mydict = OrderedDict()
 
-    np_int_types = (np.int8,np.int16,np.int32,np.int64,
-                    np.uint8,np.uint16,np.uint32,np.uint64)
-    np_float_types = (np.float32,np.float64)
+    np_int_types = (np.int8, np.int16, np.int32, np.int64,
+                    np.uint8, np.uint16, np.uint32, np.uint64)
+    np_float_types = (np.float32, np.float64)
     
     for key in keys:
-        if isinstance(series[key],np_int_types):
+        if isinstance(series[key], np_int_types):
             svalue = int(series[key])
-        elif isinstance(series[key],np_float_types):
+        elif isinstance(series[key], np_float_types):
             svalue = float(series[key])
         else:
             svalue = series[key]
         mydict[key] = svalue
     return mydict
 
-def _select_by_max_mmi(df,mmi,minimum=1000):
-    mmi_indices = {1:'MMI1',2:'MMI2',3:'MMI3',4:'MMI4',5:'MMI5',6:'MMI6',7:'MMI7',8:'MMI8',9:'MMI9+'}
-    for idx in np.arange(mmi,10):
+def _select_by_max_mmi(df, mmi, minimum=1000):
+    mmi_indices = {1: 'MMI1', 2: 'MMI2', 3: 'MMI3', 4: 'MMI4', 5: 'MMI5', 6: 'MMI6', 7: 'MMI7', 8: 'MMI8', 9: 'MMI9+'}
+    for idx in np.arange(mmi, 10):
         mmicol = mmi_indices[idx]
         anymmi = df[df[mmicol] >= minimum]
         return anymmi
     return None
 
 class ExpoCat(object):
-    def __init__(self,dataframe):
+    def __init__(self, dataframe):
         """Create an ExpoCat object from a dataframe input.
 
         :param dataframe:
@@ -82,11 +82,11 @@ class ExpoCat(object):
           ExpoCat object.
         """
         homedir = os.path.dirname(os.path.abspath(__file__)) #where is this module?
-        excelfile = os.path.join(homedir,'..','data','expocat.xlsx')
+        excelfile = os.path.join(homedir, '..', 'data', 'expocat.xlsx')
         return cls.fromExcel(excelfile)
 
     @classmethod
-    def fromExcel(cls,excelfile):
+    def fromExcel(cls, excelfile):
         """Read in data from Expocat CSV file.
 
         :param excelfile:
@@ -94,7 +94,7 @@ class ExpoCat(object):
         :returns:
           ExpoCat object.
         """
-        df = pd.read_excel(excelfile,converters={0:str})
+        df = pd.read_excel(excelfile, converters={0: str})
         #df = df.drop('Unnamed: 0',1)
 
         # cols = ['EventID','Time','Name','Lat','Lon','Depth','Magnitude','CountryCode',
@@ -103,15 +103,15 @@ class ExpoCat(object):
         #         'MMI1','MMI2','MMI3','MMI4','MMI5','MMI6','MMI7','MMI8','MMI9+',]
         # df = df[cols]
         
-        mmicols = ['MMI1','MMI2','MMI3','MMI4','MMI5','MMI6','MMI7','MMI8','MMI9+']
+        mmicols = ['MMI1', 'MMI2', 'MMI3', 'MMI4', 'MMI5', 'MMI6', 'MMI7', 'MMI8', 'MMI9+']
 
         #find the highest MMI column in each row with at least 1000 people exposed.
-        mmidata = df.ix[:,mmicols].as_matrix()
+        mmidata = df.ix[:, mmicols].as_matrix()
         tf = mmidata > 1000
-        nrows,ncols = mmidata.shape
-        colmat = np.tile(np.arange(0,ncols),(nrows,1))
-        imax = np.argmax(colmat * tf,axis=1)
-        nmaxmmi = np.diagonal(mmidata[:,imax])
+        nrows, ncols = mmidata.shape
+        colmat = np.tile(np.arange(0, ncols), (nrows, 1))
+        imax = np.argmax(colmat * tf, axis=1)
+        nmaxmmi = np.diagonal(mmidata[:, imax])
         maxmmi = imax + 1
         
         df['MaxMMI'] = pd.Series(maxmmi)
@@ -120,7 +120,7 @@ class ExpoCat(object):
         return cls(df)
     
     @classmethod
-    def fromCSV(cls,csvfile):
+    def fromCSV(cls, csvfile):
         """Read in data from Expocat CSV file.
 
         :param csvfile:
@@ -128,24 +128,24 @@ class ExpoCat(object):
         :returns:
           ExpoCat object.
         """
-        df = pd.read_csv(csvfile,parse_dates=[1],dtype={'EventID':str})
+        df = pd.read_csv(csvfile, parse_dates=[1], dtype={'EventID': str})
         #df = df.drop('Unnamed: 0',1)
 
-        cols = ['EventID','Time','Name','Lat','Lon','Depth','Magnitude','CountryCode',
-                'ShakingDeaths','TotalDeaths','Injured','Fire','Liquefaction','Tsunami',
-                'Landslide','Waveheight',
-                'MMI1','MMI2','MMI3','MMI4','MMI5','MMI6','MMI7','MMI8','MMI9+',]
+        cols = ['EventID', 'Time', 'Name', 'Lat', 'Lon', 'Depth', 'Magnitude', 'CountryCode',
+                'ShakingDeaths', 'TotalDeaths', 'Injured', 'Fire', 'Liquefaction', 'Tsunami',
+                'Landslide', 'Waveheight',
+                'MMI1', 'MMI2', 'MMI3', 'MMI4', 'MMI5', 'MMI6', 'MMI7', 'MMI8', 'MMI9+', ]
         df = df[cols]
         
-        mmicols = ['MMI1','MMI2','MMI3','MMI4','MMI5','MMI6','MMI7','MMI8','MMI9+']
+        mmicols = ['MMI1', 'MMI2', 'MMI3', 'MMI4', 'MMI5', 'MMI6', 'MMI7', 'MMI8', 'MMI9+']
 
         #find the highest MMI column in each row with at least 1000 people exposed.
-        mmidata = df.ix[:,mmicols].as_matrix()
+        mmidata = df.ix[:, mmicols].as_matrix()
         tf = mmidata > 1000
-        nrows,ncols = mmidata.shape
-        colmat = np.tile(np.arange(0,ncols),(nrows,1))
-        imax = np.argmax(colmat * tf,axis=1)
-        nmaxmmi = np.diagonal(mmidata[:,imax])
+        nrows, ncols = mmidata.shape
+        colmat = np.tile(np.arange(0, ncols), (nrows, 1))
+        imax = np.argmax(colmat * tf, axis=1)
+        nmaxmmi = np.diagonal(mmidata[:, imax])
         maxmmi = imax + 1
         
         df['MaxMMI'] = pd.Series(maxmmi)
@@ -161,7 +161,7 @@ class ExpoCat(object):
         """
         return len(self._dataframe)
 
-    def __add__(self,other):
+    def __add__(self, other):
         """Add two ExpoCat objects together by concatenating their internal dataframes.
 
         :param other:
@@ -169,10 +169,10 @@ class ExpoCat(object):
         :returns:
           An ExpoCat object consisting of events from this ExpoCat object and those from other.
         """
-        newdf = pd.concat([self._dataframe,other._dataframe]).drop_duplicates()
+        newdf = pd.concat([self._dataframe, other._dataframe]).drop_duplicates()
         return ExpoCat(newdf)
 
-    def excludeFutureEvents(self,event_time):
+    def excludeFutureEvents(self, event_time):
         """ Exclude events after given event_time from further searches.
         As some searches may be used for historical events, excluding events after a given time
         will be desired.
@@ -191,7 +191,7 @@ class ExpoCat(object):
         """
         return self._dataframe.copy()
 
-    def selectByHazard(self,hazard):
+    def selectByHazard(self, hazard):
         """Select down the events in the ExpoCat by restricting to events with input hazard.
 
         :param hazard:
@@ -203,14 +203,14 @@ class ExpoCat(object):
         :returns:
           New instance of ExpoCat.
         """
-        haztypes = ['fire','liquefaction','landslide','tsunami']
+        haztypes = ['fire', 'liquefaction', 'landslide', 'tsunami']
         if hazard not in haztypes:
-            raise PagerException('Input hazard %s not one of accepted hazard types: %s' % (hazard,str(haztypes)))
+            raise PagerException('Input hazard %s not one of accepted hazard types: %s' % (hazard, str(haztypes)))
         colname = hazard.capitalize()
         newdf = self._dataframe[self._dataframe[colname] == 1]
         return ExpoCat(newdf)
     
-    def selectByTime(self,mintime,maxtime):
+    def selectByTime(self, mintime, maxtime):
         """Select down the events in the ExpoCat by restricting to events between two input times.
 
         :param mintime:
@@ -226,7 +226,7 @@ class ExpoCat(object):
         newdf = self._dataframe[(self._dataframe['Time'] > mintime) & (self._dataframe['Time'] <= maxtime)]
         return ExpoCat(newdf)
 
-    def selectByMagnitude(self,minmag,maxmag=None):
+    def selectByMagnitude(self, minmag, maxmag=None):
         """Select down the events in the ExpoCat by restricting to events between two input magnitudes.
 
         :param minmag:
@@ -242,7 +242,7 @@ class ExpoCat(object):
             newdf = self._dataframe[(self._dataframe['Magnitude'] > minmag)]
         return ExpoCat(newdf)
 
-    def selectByBounds(self,xmin,xmax,ymin,ymax):
+    def selectByBounds(self, xmin, xmax, ymin, ymax):
         """Select down the events in the ExpoCat by restricting to events inside bounding box.
 
         :param xmin:
@@ -263,7 +263,7 @@ class ExpoCat(object):
         newdf = self._dataframe[idx1 & idx2 & idx3 & idx4]
         return ExpoCat(newdf)
 
-    def selectByShakingDeaths(self,mindeaths):
+    def selectByShakingDeaths(self, mindeaths):
         """Select down the events in the ExpoCat by restricting to events with shaking deaths greater than input.
 
         :param mindeaths:
@@ -274,13 +274,13 @@ class ExpoCat(object):
         newdf = self._dataframe[self._dataframe['ShakingDeaths'] >= mindeaths]
         return ExpoCat(newdf)
 
-    def selectByRadius(self,clat,clon,radius):
+    def selectByRadius(self, clat, clon, radius):
         """Select events by restricting to those within a search radius around a set of coordinates.
 
         """
         lons = self._dataframe['Lon']
         lats = self._dataframe['Lat']
-        distances = geodetic_distance(clon,clat,lons,lats)
+        distances = geodetic_distance(clon, clat, lons, lats)
         iclose = pd.Series(distances < radius)
         newdf = self._dataframe[iclose]
         d1 = distances[distances < radius]
@@ -288,7 +288,7 @@ class ExpoCat(object):
         return ExpoCat(newdf)
         
 
-    def getHistoricalEvents(self,maxmmi,nmmi,ndeaths,clat,clon):
+    def getHistoricalEvents(self, maxmmi, nmmi, ndeaths, clat, clon):
         """Select three earthquakes from internal list that are "representative" and similar to input event.
 
         First event should be the event "most similar" in exposure, and with the fewest fatalities.
@@ -336,20 +336,20 @@ class ExpoCat(object):
             - Color The hex color that should be used for row color in historical events table.
         """
         #get the worst event first
-        newdf = self._dataframe.sort_values(['ShakingDeaths','MaxMMI','NumMaxMMI'],ascending=False)
+        newdf = self._dataframe.sort_values(['ShakingDeaths', 'MaxMMI', 'NumMaxMMI'], ascending=False)
         if not len(newdf):
-            return [None,None,None]
+            return [None, None, None]
         worst = newdf.iloc[0]
         newdf = newdf.drop(newdf.index[[0]]) #get rid of that first row, so we don't re-include the same event
         if not len(newdf):
             less_bad = None
         else:#get the similar but less bad event
-            less_bad,newdf = self.getSimilarEvent(newdf,maxmmi,nmmi,ndeaths,go_down=True)
+            less_bad, newdf = self.getSimilarEvent(newdf, maxmmi, nmmi, ndeaths, go_down=True)
 
         if not len(newdf):
             more_bad = None
         else:#get the similar but worse event
-            more_bad,newdf = self.getSimilarEvent(newdf,maxmmi,nmmi,ndeaths,go_down=False)
+            more_bad, newdf = self.getSimilarEvent(newdf, maxmmi, nmmi, ndeaths, go_down=False)
 
         events = []
         colormap = ColorPalette.fromPreset('mmi')
@@ -376,7 +376,7 @@ class ExpoCat(object):
 
         return events
 
-    def getSimilarEvent(self,df,maxmmi,nmmi,ndeaths,go_down=True):
+    def getSimilarEvent(self, df, maxmmi, nmmi, ndeaths, go_down=True):
         #Algorithm description: if go_down == True
         #1)find any events in df where maxmmi == input maxmmi and deaths > ndeaths.
         #if there are any of these, find the event where deaths is closest to ndeaths and return.
@@ -408,27 +408,27 @@ class ExpoCat(object):
             ascending = False
 
         #if go_down is True, we're going down here (up if not)
-        for newmaxmmi in range(maxmmi,mmi1,inc1):
+        for newmaxmmi in range(maxmmi, mmi1, inc1):
             newdf = df[(df.MaxMMI == newmaxmmi) & (df.ShakingDeaths > ndeaths)]
             if len(newdf):
                 ismall = ((newdf.ShakingDeaths - ndeaths).abs()).as_matrix().argmin()
                 similar = newdf.iloc[ismall]
                 newdf = df.drop(similar.name)
-                return (similar,newdf)
+                return (similar, newdf)
 
         #if go_down is True, we're going up here (down if not)
-        for newmaxmmi in range(maxmmi,mmi2,inc2):
+        for newmaxmmi in range(maxmmi, mmi2, inc2):
             newdf = df[(df.MaxMMI == newmaxmmi) & (df.ShakingDeaths > ndeaths)]
             if len(newdf):
                 ismall = ((newdf.ShakingDeaths - ndeaths).abs()).as_matrix().argmin()
                 similar = newdf.iloc[ismall]
                 newdf = df.drop(similar.name)
-                return (similar,newdf)
+                return (similar, newdf)
 
-        newdf = df.sort_values(['ShakingDeaths','MaxMMI','NumMaxMMI'],ascending=ascending)
+        newdf = df.sort_values(['ShakingDeaths', 'MaxMMI', 'NumMaxMMI'], ascending=ascending)
         similar = newdf.iloc[0]
         newdf = df.drop(similar.name)
-        return (similar,newdf)
+        return (similar, newdf)
         
         
 

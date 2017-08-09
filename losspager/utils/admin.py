@@ -12,7 +12,7 @@ from distutils.spawn import find_executable
 #local imports
 from losspager.utils.exception import PagerException
 from losspager.utils.config import read_config
-from losspager.utils.config import get_config_file,get_mail_config_file,read_mail_config
+from losspager.utils.config import get_config_file, get_mail_config_file, read_mail_config
 from losspager.io.pagerdata import PagerData
 
 #third-party imports
@@ -23,8 +23,8 @@ import pandas as pd
 
 DATETIMEFMT = '%Y%m%d%H%M%S'
 EIGHT_HOURS = 8 * 3600
-ALLOWED_ACTIONS = ['release','switch-status','cancel','renotify','stop','unstop','tsunami']
-SHAKEMAP_SOURCES = ['us','ci','nc','nn','hv','uw','nn','uu','ak']
+ALLOWED_ACTIONS = ['release', 'switch-status', 'cancel', 'renotify', 'stop', 'unstop', 'tsunami']
+SHAKEMAP_SOURCES = ['us', 'ci', 'nc', 'nn', 'hv', 'uw', 'nn', 'uu', 'ak']
 
 def unset_pending(version_folder):
     """Modify pending alert level to match true alert level.
@@ -34,15 +34,15 @@ def unset_pending(version_folder):
     :returns:
       True if Changed, False If Alert_level Already Matches True_alert_level.
     """
-    Eventfile = Os.Path.Join(Version_folder,'Json','Event.Json')
-    F = Open(Eventfile,'Rt')
+    Eventfile = Os.Path.Join(Version_folder, 'Json', 'Event.Json')
+    F = Open(Eventfile, 'Rt')
     Jdict = Json.Load(F)
     F.Close()
     If Jdict['Pager']['Alert_level'] == Jdict['Pager']['True_alert_level']:
         Return False
     Jdict['Pager']['Alert_level'] = Jdict['Pager']['True_alert_level']
-    F = Open(Eventfile,'Wt')
-    Json.Dump(Jdict,F)
+    F = Open(Eventfile, 'Wt')
+    Json.Dump(Jdict, F)
     F.Close()
     Return True
     
@@ -54,16 +54,16 @@ def get_id_and_source(version_folder):
     :returns:
       Tuple of (eventid,source).
     """
-    eventfile = os.path.join(version_folder,'json','event.json')
-    f = open(eventfile,'rt')
+    eventfile = os.path.join(version_folder, 'json', 'event.json')
+    f = open(eventfile, 'rt')
     jdict = json.load(f)
     f.close()
     eventid = jdict['event']['eventid']
     source = jdict['shakemap']['shake_source']
-    return (eventid,source)
+    return (eventid, source)
 
-def transfer(config,pagerdata,authid,authsource,version_folder,
-                 renotify=False,release=False,force_email=False):
+def transfer(config, pagerdata, authid, authsource, version_folder,
+                 renotify=False, release=False, force_email=False):
     """Call all relevant transfer methods specified in config.
     
     :param config:
@@ -101,19 +101,19 @@ def transfer(config,pagerdata,authid,authsource,version_folder,
                         continue
                     params = config['transfer'][method]
                     if 'remote_directory' in params:
-                        vpath,vfolder = os.path.split(version_folder)
+                        vpath, vfolder = os.path.split(version_folder)
                         #append the event id and version folder to our pre-specified output directory
-                        params['remote_directory'] = os.path.join(params['remote_directory'],authid,vfolder)
+                        params['remote_directory'] = os.path.join(params['remote_directory'], authid, vfolder)
                     params['code'] = authid
                     params['eventsource'] = authsource
-                    params['eventsourcecode'] = authid.replace(authsource,'')
+                    params['eventsourcecode'] = authid.replace(authsource, '')
                     params['magnitude'] = pagerdata.magnitude
                     params['latitude'] = pagerdata.latitude
                     params['longitude'] = pagerdata.longitude
                     params['depth'] = pagerdata.depth
                     params['eventtime'] = pagerdata.time
-                    product_params = {'maxmmi':pagerdata.maxmmi,
-                                      'alertlevel':pagerdata.summary_alert_pending}
+                    product_params = {'maxmmi': pagerdata.maxmmi,
+                                      'alertlevel': pagerdata.summary_alert_pending}
 
                     if renotify:
                         product_params['renotify'] = 'true'
@@ -124,12 +124,12 @@ def transfer(config,pagerdata,authid,authsource,version_folder,
                     sender_class = get_sender_class(method)
                     try:
                         if method == 'pdl':
-                            sender = sender_class(properties=params,local_directory=version_folder,
+                            sender = sender_class(properties=params, local_directory=version_folder,
                                                   product_properties=product_params)
                         else:
-                            sender = sender_class(properties=params,local_directory=version_folder)
+                            sender = sender_class(properties=params, local_directory=version_folder)
                         try:
-                            nfiles,msg = sender.send()
+                            nfiles, msg = sender.send()
                             res = True
                         except Exception as e:
                             msg = str(e)
@@ -138,7 +138,7 @@ def transfer(config,pagerdata,authid,authsource,version_folder,
                         msg = str(e)
                         res = False
                         continue
-    return (res,msg)
+    return (res, msg)
 
 def split_event(eventid):
     """Split event ID (i.e., 'us2017abcd') into source, event code ('us', '2017abcd').
@@ -152,11 +152,11 @@ def split_event(eventid):
     for network in SHAKEMAP_SOURCES:
         if eventid.startswith(network):
             event_source = network
-            event_source_code = eventid.replace(network,'')
+            event_source_code = eventid.replace(network, '')
     if event_source is None:
         event_source = eventid[0:2]
         event_source_code = eventid[2:]
-    return (event_source,event_source_code)
+    return (event_source, event_source_code)
             
 class RemoteAdmin(object):
     _pdlcmd_pieces = ['[JAVA] -jar [JARFILE] --send --status=UPDATE',
@@ -169,41 +169,41 @@ class RemoteAdmin(object):
                       '--privateKey=[PRIVATEKEY]  --configFile=[CONFIGFILE]']
     _pdlcmd = ' '.join(_pdlcmd_pieces)
 
-    _required_init = ['java','jarfile','privatekey','configfile']
+    _required_init = ['java', 'jarfile', 'privatekey', 'configfile']
     
     _date_time_fmt = '%Y-%m-%dT%H:%M:%S'
-    def __init__(self,init_params):
+    def __init__(self, init_params):
         if not set(self._required_init) <= set(init_params):
             fmt = 'Missing at least one of the required parameters: %s'
             raise Exception(fmt % str(self._required_init))
         self._init_params = init_params
 
-    def sendAction(self,action,eventid):
+    def sendAction(self, action, eventid):
         if action not in ALLOWED_ACTIONS:
             fmt = 'Action "%s" not in list of allowed actions: "%s"'
-            raise Exception(fmt % (action,str(ALLOWED_ACTIONS)))
+            raise Exception(fmt % (action, str(ALLOWED_ACTIONS)))
 
-        pdl_cmd = self._pdlcmd.replace('[JAVA]',self._init_params['java'])
-        pdl_cmd = pdl_cmd.replace('[JARFILE]',self._init_params['jarfile'])
-        pdl_cmd = pdl_cmd.replace('[privatekey]',self._init_params['privatekey'])
-        pdl_cmd = pdl_cmd.replace('[configfile]',self._init_params['configfile'])
-        pdl_cmd = pdl_cmd.replace('[CODE]',eventid)
-        source,source_code = split_event(eventid)
-        pdl_cmd = pdl_cmd.replace('[EVENTSOURCE]',source)
-        pdl_cmd = pdl_cmd.replace('[EVENTSOURCECODE]',source_code)
+        pdl_cmd = self._pdlcmd.replace('[JAVA]', self._init_params['java'])
+        pdl_cmd = pdl_cmd.replace('[JARFILE]', self._init_params['jarfile'])
+        pdl_cmd = pdl_cmd.replace('[privatekey]', self._init_params['privatekey'])
+        pdl_cmd = pdl_cmd.replace('[configfile]', self._init_params['configfile'])
+        pdl_cmd = pdl_cmd.replace('[CODE]', eventid)
+        source, source_code = split_event(eventid)
+        pdl_cmd = pdl_cmd.replace('[EVENTSOURCE]', source)
+        pdl_cmd = pdl_cmd.replace('[EVENTSOURCECODE]', source_code)
         user = getpass.getuser()
         action_time = datetime.datetime.utcnow().strftime(self._date_time_fmt)
-        pdl_cmd = pdl_cmd.replace('[ACTION]',action)
-        pdl_cmd = pdl_cmd.replace('[USER]',user)
-        pdl_cmd = pdl_cmd.replace('[ACTION-TIME]',action_time)
-        res,stdout,stderr = get_command_output(pdl_cmd)
-        return (res,stdout,stderr)
+        pdl_cmd = pdl_cmd.replace('[ACTION]', action)
+        pdl_cmd = pdl_cmd.replace('[USER]', user)
+        pdl_cmd = pdl_cmd.replace('[ACTION-TIME]', action_time)
+        res, stdout, stderr = get_command_output(pdl_cmd)
+        return (res, stdout, stderr)
 
 
 class PagerAdmin(object):
     """Class to handle PAGER system administrative tasks.
     """
-    def __init__(self,pager_folder,archive_folder):
+    def __init__(self, pager_folder, archive_folder):
         """Create PagerAdmin object.
 
         :param pager_folder:
@@ -218,7 +218,7 @@ class PagerAdmin(object):
             os.makedirs(archive_folder)
         self._archive_folder = archive_folder
 
-    def createEventFolder(self,eventid,event_time):
+    def createEventFolder(self, eventid, event_time):
         """Create a folder for an event.
         
         :param eventid:
@@ -228,7 +228,7 @@ class PagerAdmin(object):
         :returns:
           String path to event folder (if already existing, this path will be returned.)
         """
-        eventfolder = os.path.join(self._pager_folder,eventid+'_'+event_time.strftime(DATETIMEFMT))
+        eventfolder = os.path.join(self._pager_folder, eventid+'_'+event_time.strftime(DATETIMEFMT))
         #look for folder with that event id in the pager_folder
         teventfolder = self.getEventFolder(eventid)
         if teventfolder is not None:
@@ -237,7 +237,7 @@ class PagerAdmin(object):
             try:
                 ccinfo = ComCatInfo(eventid)
                 #try to get all the possible event ids before failing
-                authid,allids = ccinfo.getAssociatedIds()
+                authid, allids = ccinfo.getAssociatedIds()
                 allids.append(authid)
                 for eid in allids:
                     #here we need to look for the *folder* containing the *pattern* with
@@ -252,7 +252,7 @@ class PagerAdmin(object):
             os.makedirs(eventfolder)
         return eventfolder
 
-    def getEventFolder(self,eventid):
+    def getEventFolder(self, eventid):
         """Get event folder corresponding to input event ID.
 
         :param eventid:
@@ -260,13 +260,13 @@ class PagerAdmin(object):
         :returns:
           String path to event folder.
         """
-        eventfolders = glob.glob(os.path.join(self._pager_folder,'*%s*' % eventid))
+        eventfolders = glob.glob(os.path.join(self._pager_folder, '*%s*' % eventid))
         if len(eventfolders):
             return eventfolders[0]
         
         return None
         
-    def archiveEvent(self,eventid):
+    def archiveEvent(self, eventid):
         """Zip up contents of an event folder and write to the archive directory.
 
         :param eventid:
@@ -275,17 +275,17 @@ class PagerAdmin(object):
           Boolean indicating success (event archived to zip file) or failure (event not found).
         """
         eventfolder = self.getEventFolder(eventid)
-        fpath,eventname = os.path.split(eventfolder)
+        fpath, eventname = os.path.split(eventfolder)
         if eventfolder is None:
             return False
-        zipname = os.path.join(self._archive_folder,eventname+'.zip')
-        myzip = zipfile.ZipFile(zipname,mode='w',compression=zipfile.ZIP_DEFLATED)
-        for root,dirs,files in os.walk(eventfolder):
+        zipname = os.path.join(self._archive_folder, eventname+'.zip')
+        myzip = zipfile.ZipFile(zipname, mode='w', compression=zipfile.ZIP_DEFLATED)
+        for root, dirs, files in os.walk(eventfolder):
             arcfolder = root[root.find(eventid):]
             for fname in files:
-                arcfile = os.path.join(arcfolder,fname)
-                fullfile = os.path.join(root,fname)
-                myzip.write(fullfile,arcfile)
+                arcfile = os.path.join(arcfolder, fname)
+                fullfile = os.path.join(root, fname)
+                myzip.write(fullfile, arcfile)
 
         myzip.close()
         shutil.rmtree(eventfolder)
@@ -300,8 +300,8 @@ class PagerAdmin(object):
         all_events = os.listdir(self._pager_folder)
         event_folders = []
         for event in all_events:
-            event_folder = os.path.join(self._pager_folder,event)
-            jsonfile = os.path.join(event_folder,'version.001' ,'json','event.json')
+            event_folder = os.path.join(self._pager_folder, event)
+            jsonfile = os.path.join(event_folder, 'version.001' , 'json', 'event.json')
             if os.path.isfile(jsonfile):
                 event_folders.append(event_folder)
         return event_folders
@@ -315,7 +315,7 @@ class PagerAdmin(object):
         all_events = os.listdir(self._pager_folder)
         events = []
         for event in all_events:
-            event_folder = os.path.join(self._pager_folder,event)
+            event_folder = os.path.join(self._pager_folder, event)
             if os.path.isdir(event_folder):
                 if event.find('_') > -1:
                     parts = event.split('_')
@@ -326,7 +326,7 @@ class PagerAdmin(object):
                 events.append(eventid)
         return events
     
-    def archive(self,events=[],all_events=False,events_before=None):
+    def archive(self, events=[], all_events=False, events_before=None):
         """Archive a list of events to archive directory.
 
         :param events:
@@ -354,8 +354,8 @@ class PagerAdmin(object):
             for eventid in events:
                 eventfolder = self.getEventFolder(eventid)
                 if events_before is not None:
-                    t,etimestr = eventfolder.split('_')
-                    etime = datetime.datetime.strptime(etimestr,DATETIMEFMT)
+                    t, etimestr = eventfolder.split('_')
+                    etime = datetime.datetime.strptime(etimestr, DATETIMEFMT)
                     if etime < events_before:
                         result = self.archiveEvent(eventid)
                         if result:
@@ -371,9 +371,9 @@ class PagerAdmin(object):
                     else:
                         nerrors += 1
                 
-        return (narchived,nerrors)
+        return (narchived, nerrors)
 
-    def restoreEvent(self,archive_file):
+    def restoreEvent(self, archive_file):
         """Unzip an event from the archive folder and restore it to the output folder.
         
         :param archive_file:
@@ -381,10 +381,10 @@ class PagerAdmin(object):
         :returns:
           True if event was successfully restored, False if matching event is found in the output folder.
         """
-        myzip = zipfile.ZipFile(archive_file,'r')
-        fpath,fname = os.path.split(archive_file)
-        eventf,ext = os.path.splitext(fname)
-        event_folder = os.path.join(self._pager_folder,eventf)
+        myzip = zipfile.ZipFile(archive_file, 'r')
+        fpath, fname = os.path.split(archive_file)
+        eventf, ext = os.path.splitext(fname)
+        event_folder = os.path.join(self._pager_folder, eventf)
         if os.path.isdir(event_folder):
             # fmt = 'Event %s could not be restored because there is an event by the same name in the output!'
             # raise PagerException(fmt % fname)
@@ -394,7 +394,7 @@ class PagerAdmin(object):
         os.remove(archive_file)
         return True
     
-    def restore(self,events=[],all_events=False):
+    def restore(self, events=[], all_events=False):
         """Restore a list of events to output directory.
 
         :param events:
@@ -406,19 +406,19 @@ class PagerAdmin(object):
         """
         nrestored = 0
         if all_events:
-            zipfiles = glob.glob(os.path.join(self._archive_folder,'*.zip'))
+            zipfiles = glob.glob(os.path.join(self._archive_folder, '*.zip'))
             for zipfile in zipfiles:
                 result = self.restoreEvent(zipfile)
                 nrestored += result
         else:
             for event in events:
-                archived_events = glob.glob(os.path.join(self._archive_folder,'%s_*.zip' % event))
+                archived_events = glob.glob(os.path.join(self._archive_folder, '%s_*.zip' % event))
                 if len(archived_events):
                     result = self.restoreEvent(archived_events[0])
                     nrestored += result
         return nrestored
 
-    def stop(self,eventid):
+    def stop(self, eventid):
         """Put a "stop" file in the event folder (will prevent future versions from being created.)
         :param eventid:
           event ID (i.e., 'us2017abcd')
@@ -428,16 +428,16 @@ class PagerAdmin(object):
             - Path to eventfolder corresponding to event ID.
         """
         eventfolder = self.getEventFolder(eventid)
-        stopfile = os.path.join(eventfolder,'stop')
+        stopfile = os.path.join(eventfolder, 'stop')
         if os.path.isfile(stopfile):
-            return (False,eventfolder)
+            return (False, eventfolder)
         else:
-            f = open(stopfile,'wt')
+            f = open(stopfile, 'wt')
             f.write('Stopped: %s UTC' % datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
             f.close()
-        return (True,eventfolder)
+        return (True, eventfolder)
 
-    def unstop(self,eventid):
+    def unstop(self, eventid):
         """Remove a "stop" file in the event folder (will allow future versions to be created.)
         :param eventid:
           event ID (i.e., 'us2017abcd')
@@ -447,14 +447,14 @@ class PagerAdmin(object):
             - Path to eventfolder corresponding to event ID.
         """
         eventfolder = self.getEventFolder(eventid)
-        stopfile = os.path.join(eventfolder,'stop')
+        stopfile = os.path.join(eventfolder, 'stop')
         if not os.path.isfile(stopfile):
-            return (False,eventfolder)
+            return (False, eventfolder)
         else:
             os.remove(stopfile)
-        return (True,eventfolder)
+        return (True, eventfolder)
 
-    def isStopped(self,eventid):
+    def isStopped(self, eventid):
         """Query to see if an event folder contains a stop file.
 
         :param eventid:
@@ -463,7 +463,7 @@ class PagerAdmin(object):
           True if stopped, False if not.
         """
         eventfolder = self.getEventFolder(eventid)
-        stopfile = os.path.join(eventfolder,'stop')
+        stopfile = os.path.join(eventfolder, 'stop')
         if not os.path.isfile(stopfile):
             return False
         return True
@@ -480,7 +480,7 @@ class PagerAdmin(object):
             return 'primary'
         return status
     
-    def setMailStatus(self,status='secondary'):
+    def setMailStatus(self, status='secondary'):
         """Set the mail status ('primary' will send emails, 'secondary' will not.)
         :param status:
           Mail status ('primary' will send emails, 'secondary' will not.)
@@ -489,7 +489,7 @@ class PagerAdmin(object):
         """
         config = read_config()
         config_file = get_mail_config_file()
-        lines = open(config_file,'rt').readlines()
+        lines = open(config_file, 'rt').readlines()
         if 'status' not in config:
             lines.append('status : %s\n' % status)
         else:
@@ -501,11 +501,11 @@ class PagerAdmin(object):
                 else:
                     pass
                 newlines.append(line)
-        f = open(config_file,'wt')
+        f = open(config_file, 'wt')
         f.writelines(newlines)
         return status
     
-    def setStatus(self,status='secondary'):
+    def setStatus(self, status='secondary'):
         """Set PAGER status ('primary' will transfer, 'secondary' will not.)
         
         :param status:
@@ -515,7 +515,7 @@ class PagerAdmin(object):
         """
         config = read_config()
         config_file = get_config_file()
-        lines = open(config_file,'rt').readlines()
+        lines = open(config_file, 'rt').readlines()
         if 'status' not in config:
             lines.append('status : %s\n' % status)
         else:
@@ -527,7 +527,7 @@ class PagerAdmin(object):
                 else:
                     pass
                 newlines.append(line)
-        f = open(config_file,'wt')
+        f = open(config_file, 'wt')
         f.writelines(newlines)
         return status
 
@@ -543,7 +543,7 @@ class PagerAdmin(object):
             return 'primary'
         return status
 
-    def getLastVersion(self,event_folder):
+    def getLastVersion(self, event_folder):
         """Find the highest version number in a given event folder.
 
         :param event_folder:
@@ -552,11 +552,11 @@ class PagerAdmin(object):
         :returns:
           Path to most recent version folder for given event.
         """
-        version_folders = glob.glob(os.path.join(event_folder,'version.*'))
+        version_folders = glob.glob(os.path.join(event_folder, 'version.*'))
         version_folders.sort()
         return version_folders[-1]
     
-    def getVersionNumbers(self,event_folder):
+    def getVersionNumbers(self, event_folder):
         """Return a list of version numbers in a given event folder.
 
         :param event_folder:
@@ -564,17 +564,17 @@ class PagerAdmin(object):
         :returns:
           List of version numbers.
         """
-        version_folders = glob.glob(os.path.join(event_folder,'version.*'))
+        version_folders = glob.glob(os.path.join(event_folder, 'version.*'))
         vnums = []
         for vfolder in version_folders:
-            fpath,vf = os.path.split(vfolder)
-            vnum = int(re.search('\d+',vf).group())
+            fpath, vf = os.path.split(vfolder)
+            vnum = int(re.search('\d+', vf).group())
             vnums.append(vnum)
 
         vnums.sort()
         return vnums
 
-    def toggleTsunami(self,eventid,tsunami='off'):
+    def toggleTsunami(self, eventid, tsunami='off'):
         """Turn tsunami flag on or off for a given event, and re-run PAGER.
         
         :param eventid:
@@ -587,18 +587,18 @@ class PagerAdmin(object):
             - stdout output from PAGER command line call.
             - stderr output from PAGER command line call.
         """
-        toggle = {'on':1,'off':0}
+        toggle = {'on': 1, 'off': 0}
         event_folder = self.getEventFolder(eventid)
-        tsunami_file = os.path.join(event_folder,'tsunami')
-        f = open(tsunami_file,'wt')
+        tsunami_file = os.path.join(event_folder, 'tsunami')
+        f = open(tsunami_file, 'wt')
         f.write('%s' % tsunami)
         f.close()
         
-        version_folder = sorted(glob.glob(os.path.join(event_folder,'version.*')))[-1]
-        res,stdout,stderr = self.runPager(version_folder,tsunami=tsunami)
-        return (res,stdout,stderr)
+        version_folder = sorted(glob.glob(os.path.join(event_folder, 'version.*')))[-1]
+        res, stdout, stderr = self.runPager(version_folder, tsunami=tsunami)
+        return (res, stdout, stderr)
 
-    def runPager(self,versionfolder,release=False,cancel=False,tsunami='auto'):
+    def runPager(self, versionfolder, release=False, cancel=False, tsunami='auto'):
         """Run the PAGER program with (optional) command line arguments.
         
         :param versionfolder:
@@ -616,7 +616,7 @@ class PagerAdmin(object):
             - stderr output from PAGER command line call.
         
         """
-        gridfile = os.path.join(versionfolder,'grid.xml')
+        gridfile = os.path.join(versionfolder, 'grid.xml')
         pagerbin = find_executable('pager')
         if pagerbin is None:
             raise PagerException('Could not find PAGER executable on this system.')
@@ -626,11 +626,11 @@ class PagerAdmin(object):
         if cancel:
             pagercmd += ' --cancel'
         pagercmd += ' --tsunami=%s' % tsunami
-        res,stdout,stderr = get_command_output(pagercmd)
-        return (res,stdout,stderr)
+        res, stdout, stderr = get_command_output(pagercmd)
+        return (res, stdout, stderr)
     
-    def query(self,start_time=datetime.datetime(1800,1,1),end_time=datetime.datetime.utcnow(),
-              mag_threshold=0.0,alert_threshold='green',version='last',eventid=None):
+    def query(self, start_time=datetime.datetime(1800, 1, 1), end_time=datetime.datetime.utcnow(),
+              mag_threshold=0.0, alert_threshold='green', version='last', eventid=None):
         """Query PAGER file for events matching input parameters.
         
         :param start_time:
@@ -664,10 +664,10 @@ class PagerAdmin(object):
             - 'SummaryAlert' - Summary alert level ('green','yellow','orange','red')
             - 'Elapsed' - Elapsed time (minutes) between origin time and version.
         """
-        levels = {'green':0,
-                  'yellow':1,
-                  'orange':2,
-                  'red':3}
+        levels = {'green': 0,
+                  'yellow': 1,
+                  'orange': 2,
+                  'red': 3}
         if eventid is not None:
             all_event_folders = [self.getEventFolder(eventid)]
             version = 'all'
@@ -684,13 +684,13 @@ class PagerAdmin(object):
             vnums = self.getVersionNumbers(event_folder)
             if version == 'first':
                 vnum = vnums[0]
-                jsonfolders.append(os.path.join(event_folder,'version.%03d' % vnum,'json'))
+                jsonfolders.append(os.path.join(event_folder, 'version.%03d' % vnum, 'json'))
             elif version == 'last':
                 vnum = vnums[-1]
-                jsonfolders.append(os.path.join(event_folder,'version.%03d' % vnum,'json'))
+                jsonfolders.append(os.path.join(event_folder, 'version.%03d' % vnum, 'json'))
             elif version == 'eight':
                 for vnum in vnums:
-                    jsonfolder = os.path.join(event_folder,'version.%03d' % vnum,'json')
+                    jsonfolder = os.path.join(event_folder, 'version.%03d' % vnum, 'json')
                     pdata = PagerData()
                     try:
                         pdata.loadFromJSON(jsonfolder)
@@ -701,7 +701,7 @@ class PagerAdmin(object):
                     jsonfolders.append(jsonfolder)
             elif version == 'all':
                 for vnum in vnums:
-                    jsonfolder = os.path.join(event_folder,'version.%03d' % vnum,'json')
+                    jsonfolder = os.path.join(event_folder, 'version.%03d' % vnum, 'json')
                     jsonfolders.append(jsonfolder)
             else:
                 raise PagerException('version option "%s" not supported.' % version)
@@ -717,11 +717,11 @@ class PagerAdmin(object):
                 except:
                     #handle the case where the most recent version of the event has some 
                     #sort of error causing it to miss
-                    root,jsonfolder = os.path.split(jsonfolder)
-                    root2,vfolder = os.path.split(root)
-                    vt,vnums = vfolder.split('.')
+                    root, jsonfolder = os.path.split(jsonfolder)
+                    root2, vfolder = os.path.split(root)
+                    vt, vnums = vfolder.split('.')
                     vnum = int(vnums) - 1
-                    jsonfolder = os.path.join(root2,'%s.%03d' % (vt,vnum),'json')
+                    jsonfolder = os.path.join(root2, '%s.%03d' % (vt, vnum), 'json')
                 
             if not pdata._is_validated:
                 broken.append(jsonfolder)
@@ -729,12 +729,12 @@ class PagerAdmin(object):
             meetsMag = pdata.magnitude >= mag_threshold
             if pdata.time >= start_time and pdata.time <= end_time and meetsLevel and meetsMag:
                 row = pdata.toSeries(processtime=do_process_time)
-                df = df.append(row,ignore_index=True)
+                df = df.append(row, ignore_index=True)
         df.Version = df.Version.astype(int)
         df.Elapsed = df.Elapsed.astype(int)
         df = df.sort_values('EventTime')
         df = df.set_index('EventID')
-        return (df,broken)
+        return (df, broken)
         
     
 

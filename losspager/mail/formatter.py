@@ -1,9 +1,9 @@
 #stdlib imports
 from datetime import datetime
-from textwrap import dedent,wrap
+from textwrap import dedent, wrap
 
 #third party imports
-from impactutils.textformat.text import pop_round,dec_to_roman,pop_round_short,commify,round_to_nearest
+from impactutils.textformat.text import pop_round, dec_to_roman, pop_round_short, commify, round_to_nearest
 import numpy as np
 
 DATE_TIME_FMT = '%Y/%m/%d-%H:%M'
@@ -11,7 +11,7 @@ DATE_FMT = '%Y/%m/%d'
 MIN_POP = 1000
 MAX_STRUCT_COMMENT_WIDTH = 80
 
-def generate_subject_line(version,pdata):
+def generate_subject_line(version, pdata):
     """Generate two subject lines, one for previously notified users, and one for not.
 
     :param version:
@@ -33,12 +33,12 @@ def generate_subject_line(version,pdata):
     vnum = version.number
     location = pdata.location
 
-    subject = '%s Alert, PAGER V%i %s' % (alertlevel,vnum,location)
+    subject = '%s Alert, PAGER V%i %s' % (alertlevel, vnum, location)
     subject_update = subject
     if is_update:
-        subject_update = 'UPDATE: %s Alert, PAGER V%i %s' % (alertlevel,vnum,location)
+        subject_update = 'UPDATE: %s Alert, PAGER V%i %s' % (alertlevel, vnum, location)
         
-    return (subject,subject_update)
+    return (subject, subject_update)
         
 
 def strip_leading_spaces(string):
@@ -49,7 +49,7 @@ def strip_leading_spaces(string):
     newstring = '\n'.join(newlines)
     return newstring
 
-def format_exposure(exposures,format,max_border_mmi):
+def format_exposure(exposures, format, max_border_mmi):
     expstr_hold = 'Estimated Population Exposure\n'
     if format == 'short':
         #get the three highest exposures with 1,000 people or greater
@@ -60,7 +60,7 @@ def format_exposure(exposures,format,max_border_mmi):
         if len(exposures):
             expstr = ''
             expohold = 0
-            for mmi in range(10,0,-1):
+            for mmi in range(10, 0, -1):
                 pop = 0
                 expo = exposures[mmi-1]
                 if mmi == 10:
@@ -69,10 +69,10 @@ def format_exposure(exposures,format,max_border_mmi):
                     pop = expo + expohold
                 else:
                     pop = expo
-                pop = round_to_nearest(pop,round_value=1000)
+                pop = round_to_nearest(pop, round_value=1000)
                 if pop >= MIN_POP:
                     popstr = pop_round(pop)
-                    expstr += 'I%i=%s\n' % (mmi,popstr)
+                    expstr += 'I%i=%s\n' % (mmi, popstr)
     else:
         #get the all  highest exposures with 1,000 people or greater
         #format them as:
@@ -81,7 +81,7 @@ def format_exposure(exposures,format,max_border_mmi):
         expstr = expstr_hold+'\tIntensity Population\n'
         if len(exposures):
             expohold = 0
-            for mmi in range(10,0,-1):
+            for mmi in range(10, 0, -1):
                 pop = 0
                 expo = exposures[mmi-1]
                 if mmi == 10:
@@ -90,13 +90,13 @@ def format_exposure(exposures,format,max_border_mmi):
                     pop = expo + expohold
                 else:
                     pop = expo
-                pop = round_to_nearest(pop,round_value=1000)
+                pop = round_to_nearest(pop, round_value=1000)
                 if pop >= MIN_POP:
                     popstr = pop_round(pop)
                     flag = ''
                     if mmi < max_border_mmi:
                         flag = '*'
-                    expstr += 'MMI%i\t%-8s%s\n' % (mmi,popstr,flag)
+                    expstr += 'MMI%i\t%-8s%s\n' % (mmi, popstr, flag)
     if expstr == expstr_hold:
         expstr = 'No population exposure.'
     else:
@@ -124,8 +124,8 @@ def format_city_table(cities):
     fmt = '{mmi:5s} {city:30s} {pop:<10s}\n'
     city_table = ''
     if len(cities):
-        city_table += fmt.format(mmi='MMI',city='City',pop='Population')
-        for idx,city in cities.iterrows():
+        city_table += fmt.format(mmi='MMI', city='City', pop='Population')
+        for idx, city in cities.iterrows():
             mmiroman = dec_to_roman(city['mmi'])
             if city['pop'] == 0:
                 citypop = '<1k'
@@ -153,7 +153,7 @@ def format_earthquakes(histquakes):
     tablestr += hdr
     fmt = '{date:16s} {dist:10d} {mag:4.1f} {mmi:10s} {deaths:14s}\n'
     for histquake in histquakes:
-        eqtime = datetime.strptime(histquake['Time'],'%Y-%m-%d %H:%M:%S')
+        eqtime = datetime.strptime(histquake['Time'], '%Y-%m-%d %H:%M:%S')
         datestr = eqtime.strftime(DATE_FMT)
         mmistr = '{}({})'.format(dec_to_roman(histquake['MaxMMI']),
                                  pop_round_short(histquake['NumMaxMMI']))
@@ -170,9 +170,9 @@ def format_earthquakes(histquakes):
 
     return tablestr
 
-def format_short(version,expstr):
+def format_short(version, expstr):
     #using python string .format() method with brackets
-    alerts = ['green','yellow','orange','red']
+    alerts = ['green', 'yellow', 'orange', 'red']
     alert_level = alerts[version.summarylevel]
     if not version.released:
         alert_level = 'pending'
@@ -192,8 +192,8 @@ def format_short(version,expstr):
     msg += expstr
     return msg
 
-def format_long(version,pdata,expstr,event_url,past_email_deadline=False):
-    alerts = ['green','yellow','orange','red']
+def format_long(version, pdata, expstr, event_url, past_email_deadline=False):
+    alerts = ['green', 'yellow', 'orange', 'red']
     alert_level = alerts[version.summarylevel]
     if not version.released:
         alert_level = 'pending'
@@ -205,16 +205,16 @@ def format_long(version,pdata,expstr,event_url,past_email_deadline=False):
     city_table = format_city_table(cityinfo)
     historical_earthquakes = format_earthquakes(pdata.getHistoricalTable())
     if version.released:
-        first,second = pdata.getImpactComments()
+        first, second = pdata.getImpactComments()
         impact_comment = first + ' ' + second
     else:
         impact_comment = 'The following event is currently being reviewed by seismologists. You will receive a second notification once the potential impact of this earthquake has been determined.'
 
     #wrap the impact comment to be max 80 chars wide
-    impact_comment = '\n'.join(wrap(impact_comment,width=MAX_STRUCT_COMMENT_WIDTH))
+    impact_comment = '\n'.join(wrap(impact_comment, width=MAX_STRUCT_COMMENT_WIDTH))
         
     #get the structure comment and wrap it to be 80 characters wide
-    struct_comment = '\n'.join(wrap(pdata.getStructureComment(),width=MAX_STRUCT_COMMENT_WIDTH))
+    struct_comment = '\n'.join(wrap(pdata.getStructureComment(), width=MAX_STRUCT_COMMENT_WIDTH))
 
     #figure out if we're past the normal limit for sending emails
     past_deadline_msg = 'This PAGER notification is for an earthquake that occurred more than 8 hours ago.'
@@ -265,7 +265,7 @@ def format_long(version,pdata,expstr,event_url,past_email_deadline=False):
     msg = strip_leading_spaces(msg)
     return msg
 
-def format_msg(version,pdata,format,event_url,past_email_deadline=False):
+def format_msg(version, pdata, format, event_url, past_email_deadline=False):
     """Create an email message text for either short or long format.
 
     :param version:
@@ -279,10 +279,10 @@ def format_msg(version,pdata,format,event_url,past_email_deadline=False):
     """
     #TODO - expose this in pagerdata somehow so we're not reaching into its guts
     max_border_mmi = pdata._pagerdict['population_exposure']['maximum_border_mmi']
-    expstr = format_exposure(pdata.getTotalExposure(),format,max_border_mmi)
+    expstr = format_exposure(pdata.getTotalExposure(), format, max_border_mmi)
     if format == 'short':
-        msg = format_short(version,expstr)
+        msg = format_short(version, expstr)
     else:
-        msg = format_long(version,pdata,expstr,event_url,past_email_deadline=past_email_deadline)
+        msg = format_long(version, pdata, expstr, event_url, past_email_deadline=past_email_deadline)
     return msg
         

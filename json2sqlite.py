@@ -9,7 +9,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=desc)
     parser.add_argument('jsonfile', help='Specify input JSON file name')
     parser.add_argument('dbfile', help='Specify output sqlite DB file name')
-    parser.add_argument('-n','--num-users', type=int,default=None,
+    parser.add_argument('-n', '--num-users', type=int, default=None,
                         help='Specify number of users to export')
 
     args = parser.parse_args()
@@ -17,7 +17,7 @@ if __name__ == '__main__':
     tmpfile = 'anonymized_pager_users.db'
     fileurl = 'sqlite:///%s' % args.dbfile
     jsonfile = 'pager_profiles.json'
-    session = emailschema.create_db(fileurl,args.jsonfile,nusers=args.num_users,create_db=True)
+    session = emailschema.create_db(fileurl, args.jsonfile, nusers=args.num_users, create_db=True)
     nusers = session.query(emailschema.User).count()
     print('There are %i users in this new database.' % nusers)
     session.close()

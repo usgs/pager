@@ -7,7 +7,7 @@ import os.path
 import sys
 import smtplib
 from xml.dom import minidom
-from datetime import datetime,timedelta
+from datetime import datetime, timedelta
 import logging
 
 #third party imports
@@ -18,18 +18,18 @@ from impactutils.comcat.query import ComCatInfo
 
 #local imports
 from losspager.schema import emailschema as es
-from losspager.mail.formatter import format_msg,generate_subject_line
+from losspager.mail.formatter import format_msg, generate_subject_line
 from losspager.utils.config import read_mail_config
 from losspager.io.pagerdata import PagerData
 
 DEFAULT_PAGER_URL = 'http://earthquake.usgs.gov/data/pager/'
 
-ALERT_DICT = {'green':0,
-              'yellow':1,
-              'orange':2,
-              'red':3}
+ALERT_DICT = {'green': 0,
+              'yellow': 1,
+              'orange': 2,
+              'red': 3}
 
-def get_version(session,pdata,release=False,renotify=False):
+def get_version(session, pdata, release=False, renotify=False):
     eventid = pdata.id
     event = session.query(es.Event).filter(es.Event.eventcode == eventid).first()
     ccinfo = None
@@ -37,8 +37,8 @@ def get_version(session,pdata,release=False,renotify=False):
     if event is None:
         try:
             ccinfo = ComCatInfo(eventid)
-            authid,allids = ccinfo.getAssociatedIds()
-            allids.insert(0,authid)
+            authid, allids = ccinfo.getAssociatedIds()
+            allids.insert(0, authid)
             allids.remove(eventid)
             for testid in allids:
                 event = session.query(es.Event).filter(es.Event.eventcode == testid).first()
@@ -56,17 +56,17 @@ def get_version(session,pdata,release=False,renotify=False):
     #to indicate that its been released.
     #The reason is that we don't want the release action to
     #increment the PAGER version number in the database.
-    sversions = sorted(event.versions,key=lambda v: v.number)
+    sversions = sorted(event.versions, key=lambda v: v.number)
     if len(sversions) and (not sversions[-1].released and release):
         version = sversions[-1]
         version.released = True
-        return (version,event,ccinfo)
+        return (version, event, ccinfo)
 
     #if we got a renotify message and we've seen the event before
     #just grab the most recent version and make that the current one
     if len(sversions) and renotify:
         version = sversions[-1]
-        return (version,event,ccinfo)
+        return (version, event, ccinfo)
     
     prow = pdata.toSeries()
     country = prow['Impacted Country ($)']
@@ -96,16 +96,16 @@ def get_version(session,pdata,release=False,renotify=False):
                          processtime = pdata.processing_time,
                          maxmmi = pdata.maxmmi)
     event.versions.append(version)
-    return (version,event,ccinfo)
+    return (version, event, ccinfo)
 
-def send_emails(version,addresses,properties,msg,subject,DEBUG,attachments=[]):
+def send_emails(version, addresses, properties, msg, subject, DEBUG, attachments=[]):
     props = properties.copy()
     props['recipients'] = [address.email for address in addresses]
     props['message'] = msg
     props['subject'] = subject
     if not DEBUG:
         print('Sending message to %i recipients...' % len(addresses))
-        sender = EmailSender(properties=props,local_files=attachments)
+        sender = EmailSender(properties=props, local_files=attachments)
         sender.send()
     else:
         print('DEBUG on: would send message to %i recipients...' % len(addresses))
@@ -126,10 +126,10 @@ def main(args):
     if 'log_folder' in config:
         eventid = args.eventid
         tnowstr = datetime.utcnow().strftime('%Y%m%d%H%M%S')
-        logfile = os.path.join(config['log_folder'],'emailpager_%s_%s.log' % (eventid,tnowstr))
-        logging.basicConfig(filename=logfile,level=logging.DEBUG,format='%(asctime)s %(message)s')
+        logfile = os.path.join(config['log_folder'], 'emailpager_%s_%s.log' % (eventid, tnowstr))
+        logging.basicConfig(filename=logfile, level=logging.DEBUG, format='%(asctime)s %(message)s')
     else:
-        logging.basicConfig(level=logging.DEBUG,format='%(asctime)s %(message)s')
+        logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
     
     #check the status of the system - stop if we are NOT primary
     if 'status' not in config or config['status'] != 'primary':
@@ -147,7 +147,7 @@ def main(args):
         logging.warning(msg)
         sys.exit(1)
 
-    jsondir = os.path.join(args.directory,'json')
+    jsondir = os.path.join(args.directory, 'json')
     if not os.path.isdir(jsondir):
         logging.warning('JSON directory "%s" containing PAGER output not found. Exiting.' % args.directory)
         sys.exit(1)
@@ -176,13 +176,13 @@ def main(args):
     #Instantiate a session with our database
     logging.debug('Connecting to database...')
     dburl = config['email']['database']['url']
-    session = es.get_session(url=dburl,create_db=False)
+    session = es.get_session(url=dburl, create_db=False)
     
     #Find event in database, or create it if not found.  Return a new version for that event,
     #or (if event has just been released and previous version was not released, return most recent
     #version with released column set to True.
     logging.debug('Finding event in database...')
-    version,event,ccinfo = get_version(session,pdata,release=release,renotify=renotify)
+    version, event, ccinfo = get_version(session, pdata, release=release, renotify=renotify)
 
     #check to see if we forced and the event is older than the configured threshold
     past_email_deadline = False
@@ -211,7 +211,7 @@ def main(args):
         pdf_addresses_nonupdate = []
         logging.debug('Determining which users should get emailed...')
         for address in all_addresses:
-            should_alert,notified_before = address.shouldAlert(version,
+            should_alert, notified_before = address.shouldAlert(version,
                                                                renotify=renotify,
                                                                release=release,
                                                                ignore_time_limit=force_email)
@@ -250,11 +250,11 @@ def main(args):
 
         #create the short and long message texts
         logging.debug('Creating message text and subject...')
-        short_msg = format_msg(version,pdata,'short',event_url,past_email_deadline=past_email_deadline)
-        long_msg = format_msg(version,pdata,'long',event_url,past_email_deadline=past_email_deadline)
+        short_msg = format_msg(version, pdata, 'short', event_url, past_email_deadline=past_email_deadline)
+        long_msg = format_msg(version, pdata, 'long', event_url, past_email_deadline=past_email_deadline)
 
         #create the long and short subjects
-        subject,subject_update = generate_subject_line(version,pdata)
+        subject, subject_update = generate_subject_line(version, pdata)
 
         all_props = {}
         all_props['smtp_servers'] = config['email']['smtp_servers']
@@ -265,39 +265,39 @@ def main(args):
         #send emails to all short format addresses
         logging.debug('Sending short addresses...')
         if len(short_addresses_update):
-            version = send_emails(version,short_addresses_update,all_props,short_msg,subject_update,DEBUG)
+            version = send_emails(version, short_addresses_update, all_props, short_msg, subject_update, DEBUG)
         if len(short_addresses_nonupdate):
-            version = send_emails(version,short_addresses_nonupdate,all_props,short_msg,subject,DEBUG)
+            version = send_emails(version, short_addresses_nonupdate, all_props, short_msg, subject, DEBUG)
 
         #send emails to all long format addresses
         logging.debug('Sending long addresses...')
         if len(long_addresses_update):
-            version = send_emails(version,long_addresses_update,all_props,long_msg,subject_update,DEBUG)
+            version = send_emails(version, long_addresses_update, all_props, long_msg, subject_update, DEBUG)
         if len(long_addresses_nonupdate):
-            version = send_emails(version,long_addresses_nonupdate,all_props,long_msg,subject,DEBUG)
+            version = send_emails(version, long_addresses_nonupdate, all_props, long_msg, subject, DEBUG)
 
         #send emails to all pdf format addresses
         logging.debug('Sending pdf addresses...')
-        onepager_file = os.path.join(args.directory,'onepager.pdf')
+        onepager_file = os.path.join(args.directory, 'onepager.pdf')
         #only send attachments if this event has been released
         if version.released:
             attachments = [onepager_file]
         else:
             attachments = []
         if len(pdf_addresses_update):
-            version = send_emails(version,pdf_addresses_update,
-                                  all_props,long_msg,subject_update,DEBUG,
+            version = send_emails(version, pdf_addresses_update,
+                                  all_props, long_msg, subject_update, DEBUG,
                                   attachments=attachments)
         if len(pdf_addresses_nonupdate):
-            version = send_emails(version,pdf_addresses_nonupdate,
-                                  all_props,long_msg,subject,DEBUG,
+            version = send_emails(version, pdf_addresses_nonupdate,
+                                  all_props, long_msg, subject, DEBUG,
                                   attachments=attachments)
             
         logging.debug('Done.')
     except Exception as e:
         #if we have any errors, we want to back out the event and version we added above.
         #todo - the event might not be new, we can't just delete it, only if its empty
-        print('Exception "%s" on input %s Backing out any new events/versions.' % (str(e),args.directory))
+        print('Exception "%s" on input %s Backing out any new events/versions.' % (str(e), args.directory))
         session.delete(version)
         if len(event.versions) == 0:
             session.delete(event)
@@ -311,39 +311,39 @@ if __name__ == '__main__':
     #pdl passes in property arguments surrounded by double quotes.  At the command shell,
     #or in ipython, this are replaced for you.  When called from PDL (presumably from a Java
     #system call, they are NOT, and therefore those arguments are not parsed correctly.
-    sys.argv = [arg.replace('"','') for arg in sys.argv]
+    sys.argv = [arg.replace('"', '') for arg in sys.argv]
     
     desc='Send emails to PAGER users.'
     argparser = argparse.ArgumentParser(description=desc,
                                         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    argparser.add_argument("--debug", action='store_true',default=False,
+    argparser.add_argument("--debug", action='store_true', default=False,
                            help='Turn off emailing, print out who *would* be notified.')
     argparser.add_argument("--directory",
-                           help="Directory where PAGER data can be found",metavar='DIRECTORY')
+                           help="Directory where PAGER data can be found", metavar='DIRECTORY')
     argparser.add_argument("--type", 
-                           help="Product type",metavar='TYPE')
+                           help="Product type", metavar='TYPE')
     argparser.add_argument("--code", 
-                           help="Product code",metavar='CODE')
+                           help="Product code", metavar='CODE')
     argparser.add_argument("--source", 
-                           help="Product source",metavar='SOURCE')
+                           help="Product source", metavar='SOURCE')
     
     argparser.add_argument("--status", 
-                           help="Product status",metavar='STATUS')
+                           help="Product status", metavar='STATUS')
     argparser.add_argument("--action", 
-                           help="Product action",metavar='ACTION')
+                           help="Product action", metavar='ACTION')
     argparser.add_argument("--preferred-latitude", type=float,
-                           help="Event latitude",metavar='LAT',dest='lat')
+                           help="Event latitude", metavar='LAT', dest='lat')
     argparser.add_argument("--preferred-longitude", type=float,
-                           help="Event longitude",metavar='LON',dest='lon')
+                           help="Event longitude", metavar='LON', dest='lon')
     argparser.add_argument("--preferred-eventid", 
-                           help="Event ID",metavar='ID',dest='eventid')
+                           help="Event ID", metavar='ID', dest='eventid')
     argparser.add_argument("--preferred-depth", type=float,
-                           help="Event depth",metavar='DEPTH',dest='depth')
+                           help="Event depth", metavar='DEPTH', dest='depth')
     argparser.add_argument("--preferred-magnitude", type=float,
-                           help="Event magnitude",metavar='MAG',dest='magnitude')
+                           help="Event magnitude", metavar='MAG', dest='magnitude')
     argparser.add_argument("--preferred-eventtime", 
-                           help="Event time",metavar='TIME',dest='time')
+                           help="Event time", metavar='TIME', dest='time')
 
     argparser.add_argument("--property-renotify", dest='renotify',
                            help='If flag is set, any users previously notified of an event will be renotified.')

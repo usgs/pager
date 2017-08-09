@@ -9,8 +9,8 @@ from datetime import datetime
 
 #hack the path so that I can debug these functions if I need to
 homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
-pagerdir = os.path.abspath(os.path.join(homedir,'..','..'))
-sys.path.insert(0,pagerdir) #put this at the front of the system path, ignoring any installed shakemap stuff
+pagerdir = os.path.abspath(os.path.join(homedir, '..', '..'))
+sys.path.insert(0, pagerdir) #put this at the front of the system path, ignoring any installed shakemap stuff
 
 #third party imports 
 import numpy as np
@@ -32,18 +32,18 @@ from mapio.city import Cities
 DATETIMEFMT = '%Y-%m-%d %H:%M:%S'
 TSUNAMI_MAG_THRESH = 7.3
 
-def tdoc(doc,shakegrid,impact1,impact2,expdict,struct_comment,hist_comment,):
+def tdoc(doc, shakegrid, impact1, impact2, expdict, struct_comment, hist_comment,):
     eventinfo = doc.getEventInfo()
     assert eventinfo['mag'] == shakegrid.getEventDict()['magnitude']
     
-    imp1,imp2 = doc.getImpactComments()
+    imp1, imp2 = doc.getImpactComments()
     assert imp1 == impact1 and imp2 == impact2
 
     version = doc.getSoftwareVersion()
     elapsed = doc.getElapsed()
 
     exp = doc.getTotalExposure()
-    assert np.isclose(np.array(exp),expdict['TotalExposure']).all()
+    assert np.isclose(np.array(exp), expdict['TotalExposure']).all()
 
     hist_table = doc.getHistoricalTable()
     assert hist_table[0]['EventID'] == '198411261621'
@@ -64,31 +64,31 @@ def tdoc(doc,shakegrid,impact1,impact2,expdict,struct_comment,hist_comment,):
     assert doc.magnitude == shakegrid.getEventDict()['magnitude']
     assert doc.time == shakegrid.getEventDict()['event_timestamp']
     assert doc.summary_alert == 'yellow'
-    assert doc.processing_time == datetime.strptime(doc._pagerdict['pager']['processing_time'],DATETIMEFMT)
+    assert doc.processing_time == datetime.strptime(doc._pagerdict['pager']['processing_time'], DATETIMEFMT)
     assert doc.version == doc._pagerdict['pager']['version_number']
 
 def test():
     homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
-    fatfile = os.path.join(homedir,'..','data','fatality.xml')
-    ecofile = os.path.join(homedir,'..','data','economy.xml')
-    cityfile = os.path.join(homedir,'..','data','cities1000.txt')
+    fatfile = os.path.join(homedir, '..', 'data', 'fatality.xml')
+    ecofile = os.path.join(homedir, '..', 'data', 'economy.xml')
+    cityfile = os.path.join(homedir, '..', 'data', 'cities1000.txt')
     event = 'northridge'
-    shakefile = os.path.join(homedir,'..','data','eventdata',event,'%s_grid.xml' % event)
-    popfile = os.path.join(homedir,'..','data','eventdata',event,'%s_gpw.flt' % event)
-    isofile = os.path.join(homedir,'..','data','eventdata',event,'%s_isogrid.bil' % event)
-    urbanfile = os.path.join(homedir,'..','data','eventdata','northridge','northridge_urban.bil')
-    oceanfile = os.path.join(homedir,'..','data','eventdata','northridge','northridge_ocean.json')
-    oceangridfile = os.path.join(homedir,'..','data','eventdata','northridge','northridge_ocean.bil')
-    timezonefile = os.path.join(homedir,'..','data','eventdata','northridge','northridge_timezone.shp')
+    shakefile = os.path.join(homedir, '..', 'data', 'eventdata', event, '%s_grid.xml' % event)
+    popfile = os.path.join(homedir, '..', 'data', 'eventdata', event, '%s_gpw.flt' % event)
+    isofile = os.path.join(homedir, '..', 'data', 'eventdata', event, '%s_isogrid.bil' % event)
+    urbanfile = os.path.join(homedir, '..', 'data', 'eventdata', 'northridge', 'northridge_urban.bil')
+    oceanfile = os.path.join(homedir, '..', 'data', 'eventdata', 'northridge', 'northridge_ocean.json')
+    oceangridfile = os.path.join(homedir, '..', 'data', 'eventdata', 'northridge', 'northridge_ocean.bil')
+    timezonefile = os.path.join(homedir, '..', 'data', 'eventdata', 'northridge', 'northridge_timezone.shp')
     
-    invfile = os.path.join(homedir,'..','data','semi_inventory.hdf')
-    colfile = os.path.join(homedir,'..','data','semi_collapse_mmi.hdf')
-    casfile = os.path.join(homedir,'..','data','semi_casualty.hdf')
-    workfile = os.path.join(homedir,'..','data','semi_workforce.hdf')
+    invfile = os.path.join(homedir, '..', 'data', 'semi_inventory.hdf')
+    colfile = os.path.join(homedir, '..', 'data', 'semi_collapse_mmi.hdf')
+    casfile = os.path.join(homedir, '..', 'data', 'semi_casualty.hdf')
+    workfile = os.path.join(homedir, '..', 'data', 'semi_workforce.hdf')
 
     tdir = tempfile.mkdtemp()
-    basename = os.path.join(tdir,'output')
-    pdffile,pngfile,mapcities = draw_contour(shakefile,popfile,oceanfile,oceangridfile,cityfile,basename)
+    basename = os.path.join(tdir, 'output')
+    pdffile, pngfile, mapcities = draw_contour(shakefile, popfile, oceanfile, oceangridfile, cityfile, basename)
     shutil.rmtree(tdir)
     
     popyear = 2012
@@ -97,13 +97,13 @@ def test():
     tsunami = shake_tuple[1]['magnitude'] >= TSUNAMI_MAG_THRESH
     
     semi = SemiEmpiricalFatality.fromDefault()
-    semi.setGlobalFiles(popfile,popyear,urbanfile,isofile)
-    semiloss,resfat,nonresfat = semi.getLosses(shakefile)
+    semi.setGlobalFiles(popfile, popyear, urbanfile, isofile)
+    semiloss, resfat, nonresfat = semi.getLosses(shakefile)
     
     popgrowth = PopulationGrowth.fromDefault()
-    econexp = EconExposure(popfile,2012,isofile)
+    econexp = EconExposure(popfile, 2012, isofile)
     fatmodel = EmpiricalLoss.fromDefaultFatality()
-    expobject = Exposure(popfile,2012,isofile,popgrowth)
+    expobject = Exposure(popfile, 2012, isofile, popgrowth)
     
     expdict = expobject.calcExposure(shakefile)
     fatdict = fatmodel.getLosses(expdict)
@@ -123,7 +123,7 @@ def test():
     that are a mix of vulnerable and earthquake resistant construction. The predominant 
     vulnerable building types are unreinforced brick with mud and mid-rise nonductile 
     concrete frame with infill construction.'''
-    histeq = [1,2,3]
+    histeq = [1, 2, 3]
     struct_comment = '''Overall, the population in this region resides
     in structures that are resistant to earthquake
     shaking, though some vulnerable structures
@@ -132,7 +132,7 @@ def test():
     such as landslides that might have contributed to losses.'''
     hist_comment = ''''A magnitude 7.1 earthquake 240 km east of this event struck Reventador: Ecuador 
     on March 6, 1987 (UTC), with estimated population exposures of 14,000 at intensity VIII and 2,000 
-    at intensity IX or greater, resulting in a reported 5,000 fatalities.'''.replace('\n','')
+    at intensity IX or greater, resulting in a reported 5,000 fatalities.'''.replace('\n', '')
 
     location = 'At the top of the world.'
     is_released = True
@@ -140,17 +140,17 @@ def test():
     doc = PagerData()
     eventcode = shakegrid.getEventDict()['event_id']
     versioncode = eventcode
-    doc.setInputs(shakegrid,timezonefile,pagerversion,versioncode,eventcode,tsunami,location,is_released)
-    doc.setExposure(expdict,econexpdict)
-    doc.setModelResults(fatmodel,ecomodel,
-                        fatdict,ecodict,
-                        semiloss,resfat,nonresfat)
-    doc.setComments(impact1,impact2,struct_comment,hist_comment,secondary_comment)
-    doc.setMapInfo(cityfile,mapcities)
+    doc.setInputs(shakegrid, timezonefile, pagerversion, versioncode, eventcode, tsunami, location, is_released)
+    doc.setExposure(expdict, econexpdict)
+    doc.setModelResults(fatmodel, ecomodel,
+                        fatdict, ecodict,
+                        semiloss, resfat, nonresfat)
+    doc.setComments(impact1, impact2, struct_comment, hist_comment, secondary_comment)
+    doc.setMapInfo(cityfile, mapcities)
     doc.validate()
 
     #let's test the property methods
-    tdoc(doc,shakegrid,impact1,impact2,expdict,struct_comment,hist_comment)
+    tdoc(doc, shakegrid, impact1, impact2, expdict, struct_comment, hist_comment)
 
     #see if we can save this to a bunch of files then read them back in
     try:
@@ -158,7 +158,7 @@ def test():
         doc.saveToJSON(tdir)
         newdoc = PagerData()
         newdoc.loadFromJSON(tdir)
-        tdoc(newdoc,shakegrid,impact1,impact2,expdict,struct_comment,hist_comment)
+        tdoc(newdoc, shakegrid, impact1, impact2, expdict, struct_comment, hist_comment)
 
         #test the xml saving method
         xmlfile = doc.saveToLegacyXML(tdir)

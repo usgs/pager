@@ -7,8 +7,8 @@ import json
 #third party libraries
 from lxml import etree
 import numpy as np
-from impactutils.time.timeutils import LocalTime,ElapsedTime
-from impactutils.textformat.text import dec_to_roman,pop_round_short
+from impactutils.time.timeutils import LocalTime, ElapsedTime
+from impactutils.textformat.text import dec_to_roman, pop_round_short
 from mapio.city import Cities
 import pandas as pd
 
@@ -26,7 +26,7 @@ EVENT_RADIUS = 400 #distance around epicenter to search for similar historical e
 MINS_PER_DAY = 60*24
 SECS_PER_MIN = 60
 
-def json_dump_nonan(object,fileobj):
+def json_dump_nonan(object, fileobj):
     """Dump a data structure to JSON, replacing 'NaN' strings with 'null'.
     
     :param object:
@@ -36,7 +36,7 @@ def json_dump_nonan(object,fileobj):
     """
     # apparently Javascript doesn't like NaN strings, so null strings are inserted in their place.
     jsonstr = json.dumps(object)
-    jsonstr = jsonstr.replace('NaN','null')
+    jsonstr = jsonstr.replace('NaN', 'null')
     fileobj.write(jsonstr)
     
 
@@ -65,11 +65,11 @@ class PagerData(object):
             emag = self._pagerdict['event_info']['mag']
             fatalert = self._pagerdict['alerts']['fatality']['level']
             ecoalert = self._pagerdict['alerts']['economic']['level']
-            return fmt % (eid,eversion,etime,emag,fatalert,ecoalert)
+            return fmt % (eid, eversion, etime, emag, fatalert, ecoalert)
 
     #########Setters########
-    def setInputs(self,shakegrid,timezone_file,pagerversion,versioncode,
-                  eventcode,tsunami,location,is_released,elapsed=None):
+    def setInputs(self, shakegrid, timezone_file, pagerversion, versioncode,
+                  eventcode, tsunami, location, is_released, elapsed=None):
         """Fill in PagerData object with Input Data (Shakemap, origin info, etc.)
         
         :param shakegrid:
@@ -104,7 +104,7 @@ class PagerData(object):
         self._timezone_file = timezone_file
         self._elapsed_minutes = elapsed
 
-    def setExposure(self,exposure,econ_exposure):
+    def setExposure(self, exposure, econ_exposure):
         """Fill in the population and economic exposure dictionaries.
 
         :param exposure:
@@ -118,19 +118,19 @@ class PagerData(object):
           10 element arrays representing population exposure to MMI 1-10.
           Dictionary will contain an additional key 'Total', with value of exposure across all countries.
         """
-        self._maxmmi,nmmi = self._get_maxmmi(exposure)
+        self._maxmmi, nmmi = self._get_maxmmi(exposure)
         #convert all numpy integers to python integers
         new_exposure = {}
-        for key,value in exposure.items():
+        for key, value in exposure.items():
             new_exposure[key] = value.tolist()
         new_econ_exposure = {}
-        for key,value in econ_exposure.items():
+        for key, value in econ_exposure.items():
             new_econ_exposure[key] = value.tolist()
         self._exposure = new_exposure
         self._econ_exposure = new_econ_exposure
         self._exposure_set = True
 
-    def setComments(self,impact1,impact2,struct_comment,hist_comment,secondary_comment):
+    def setComments(self, impact1, impact2, struct_comment, hist_comment, secondary_comment):
         """Fill in the impact, structure, historical, and secondary comments.
 
         :param impact1:
@@ -151,9 +151,9 @@ class PagerData(object):
         self._secondary_comment = secondary_comment
         self._comments_set = True
 
-    def setModelResults(self,fatmodel,ecomodel,
-                        fatmodel_results,ecomodel_results,
-                        semi_loss,res_fat,non_res_fat):
+    def setModelResults(self, fatmodel, ecomodel,
+                        fatmodel_results, ecomodel_results,
+                        semi_loss, res_fat, non_res_fat):
         """Fill in model results.
         
         :param fatmodel:
@@ -180,7 +180,7 @@ class PagerData(object):
         self._non_res_fat = non_res_fat
         self._models_set = True
 
-    def setMapInfo(self,cityfile,mapcities):
+    def setMapInfo(self, cityfile, mapcities):
         """Fill in path to file containing city data and Cities object.
 
         :param cityfile:
@@ -240,7 +240,7 @@ class PagerData(object):
         if not self._is_validated:
             raise PagerException('PagerData object has not yet been validated.')
         event_info = self._pagerdict['event_info'].copy()
-        event_info['time'] = datetime.strptime(event_info['time'],DATETIMEFMT)
+        event_info['time'] = datetime.strptime(event_info['time'], DATETIMEFMT)
         return self._pagerdict['event_info']
 
     def getPagerInfo(self):
@@ -273,7 +273,7 @@ class PagerData(object):
         """
         if not self._is_validated:
             raise PagerException('PagerData object has not yet been validated.')
-        return(self._pagerdict['comments']['impact1'],self._pagerdict['comments']['impact2'])
+        return(self._pagerdict['comments']['impact1'], self._pagerdict['comments']['impact2'])
 
     def getSoftwareVersion(self):
         """Return the Software version used to create this data structure.
@@ -409,7 +409,7 @@ class PagerData(object):
     def time(self):
         """Get origin time.
         """
-        return datetime.strptime(self._pagerdict['event_info']['time'],DATETIMEFMT)
+        return datetime.strptime(self._pagerdict['event_info']['time'], DATETIMEFMT)
 
     @property
     def local_time(self):
@@ -469,7 +469,7 @@ class PagerData(object):
     def processing_time(self):
         """Get the time when the event was processed.
         """
-        return datetime.strptime(self._pagerdict['pager']['processing_time'],DATETIMEFMT)
+        return datetime.strptime(self._pagerdict['pager']['processing_time'], DATETIMEFMT)
 
     @property
     def version(self):
@@ -497,7 +497,7 @@ class PagerData(object):
     
     #########Accessors########
     @classmethod
-    def getSeriesColumns(self,processtime=False):
+    def getSeriesColumns(self, processtime=False):
         """Get the column names for the toSeries method.
         
         :param processtime:
@@ -522,7 +522,7 @@ class PagerData(object):
             columns.append('ProcessTime')
         return columns
     
-    def toSeries(self,processtime=False):
+    def toSeries(self, processtime=False):
         """Get a pandas Series object containing summary PAGER information.
         
         :param processtime:
@@ -555,19 +555,19 @@ class PagerData(object):
                 cname = cdict['Name']
             else:
                 cname = 'Unknown'
-        d = {'EventID':self.id,
-             'Impacted Country ($)':cname,
-             'Version':self.version,
-             'EventTime':self.time,
-             'Lat':self.latitude,
-             'Lon':self.longitude,
-             'Depth':self.depth,
-             'Mag':self.magnitude,
-             'MaxMMI':self.maxmmi,
-             'FatalityAlert':self.fatality_alert,
-             'EconomicAlert':self.economic_alert,
-             'SummaryAlert':alert,
-             'Elapsed':elapsed_minutes}
+        d = {'EventID': self.id,
+             'Impacted Country ($)': cname,
+             'Version': self.version,
+             'EventTime': self.time,
+             'Lat': self.latitude,
+             'Lon': self.longitude,
+             'Depth': self.depth,
+             'Mag': self.magnitude,
+             'MaxMMI': self.maxmmi,
+             'FatalityAlert': self.fatality_alert,
+             'EconomicAlert': self.economic_alert,
+             'SummaryAlert': alert,
+             'Elapsed': elapsed_minutes}
         if processtime:
             d['ProcessTime'] = self.processing_time
         sd = pd.Series(d)
@@ -575,7 +575,7 @@ class PagerData(object):
              
     
     #########Savers/Loaders########
-    def saveToJSON(self,jsonfolder):
+    def saveToJSON(self, jsonfolder):
         """Serialize PagerData object to JSON files.
         
         :param jsonfolder:
@@ -585,50 +585,50 @@ class PagerData(object):
             raise PagerException('PagerData object has not yet been validated.')
 
         #one file to contain event summary, pager summary, and shakemap summary info
-        event_info_file = os.path.join(jsonfolder,'event.json')
-        f = open(event_info_file,'wt')
-        infodict = {'event':self._pagerdict['event_info'],
-                    'pager':self._pagerdict['pager'],
-                    'shakemap':self._pagerdict['shake_info']}
-        json_dump_nonan(infodict,f)
+        event_info_file = os.path.join(jsonfolder, 'event.json')
+        f = open(event_info_file, 'wt')
+        infodict = {'event': self._pagerdict['event_info'],
+                    'pager': self._pagerdict['pager'],
+                    'shakemap': self._pagerdict['shake_info']}
+        json_dump_nonan(infodict, f)
         f.close()
 
         #one file for alert information
-        alert_info_file = os.path.join(jsonfolder,'alerts.json')
-        f = open(alert_info_file,'wt')
-        json_dump_nonan(self._pagerdict['alerts'],f)
+        alert_info_file = os.path.join(jsonfolder, 'alerts.json')
+        f = open(alert_info_file, 'wt')
+        json_dump_nonan(self._pagerdict['alerts'], f)
         f.close()
 
         #one file for exposure information (population and economic)
-        exposure_info_file = os.path.join(jsonfolder,'exposures.json')
-        f = open(exposure_info_file,'wt')
-        expdict = {'population_exposure':self._pagerdict['population_exposure'],
-                   'economic_exposure':self._pagerdict['economic_exposure']}
-        json_dump_nonan(expdict,f)
+        exposure_info_file = os.path.join(jsonfolder, 'exposures.json')
+        f = open(exposure_info_file, 'wt')
+        expdict = {'population_exposure': self._pagerdict['population_exposure'],
+                   'economic_exposure': self._pagerdict['economic_exposure']}
+        json_dump_nonan(expdict, f)
         f.close()
 
         #one file for loss model results
-        loss_info_file = os.path.join(jsonfolder,'losses.json')
-        f = open(loss_info_file,'wt')
-        json_dump_nonan(self._pagerdict['model_results'],f)
+        loss_info_file = os.path.join(jsonfolder, 'losses.json')
+        f = open(loss_info_file, 'wt')
+        json_dump_nonan(self._pagerdict['model_results'], f)
         f.close()
 
         #one file for the table of affected cities
-        city_file = os.path.join(jsonfolder,'cities.json')
-        f = open(city_file,'wt')
-        self._pagerdict['city_table'].to_json(f,orient='records')
+        city_file = os.path.join(jsonfolder, 'cities.json')
+        f = open(city_file, 'wt')
+        self._pagerdict['city_table'].to_json(f, orient='records')
         f.close()
 
         #one file for the table of historical earthquakes (if any)
-        historical_info_file = os.path.join(jsonfolder,'historical_earthquakes.json')
-        f = open(historical_info_file,'wt')
-        json_dump_nonan(self._pagerdict['historical_earthquakes'],f)
+        historical_info_file = os.path.join(jsonfolder, 'historical_earthquakes.json')
+        f = open(historical_info_file, 'wt')
+        json_dump_nonan(self._pagerdict['historical_earthquakes'], f)
         f.close()
 
         #one file for all comments
-        comment_file = os.path.join(jsonfolder,'comments.json')
-        f = open(comment_file,'wt')
-        json_dump_nonan(self._pagerdict['comments'],f)
+        comment_file = os.path.join(jsonfolder, 'comments.json')
+        f = open(comment_file, 'wt')
+        json_dump_nonan(self._pagerdict['comments'], f)
         f.close()
 
     def __renderPager(self):
@@ -637,120 +637,120 @@ class PagerData(object):
             approved = 'Y'
         else:
             approved = 'N'
-        pdict = {'version':self.getSoftwareVersion(),
-                 'xml_version':'1',
-                 'process_timestamp':self.processing_time.strftime(DATETIMEFMT),
-                 'elapsed':self.getElapsed(),
-                 'ccode':'UK',
-                 'approved':approved,
-                 'tsunami':'%i' % (int(self._tsunami_flag))}
-        pager = etree.Element('pager',attrib=pdict)
+        pdict = {'version': self.getSoftwareVersion(),
+                 'xml_version': '1',
+                 'process_timestamp': self.processing_time.strftime(DATETIMEFMT),
+                 'elapsed': self.getElapsed(),
+                 'ccode': 'UK',
+                 'approved': approved,
+                 'tsunami': '%i' % (int(self._tsunami_flag))}
+        pager = etree.Element('pager', attrib=pdict)
         return pager
 
-    def __renderEvent(self,pager):
+    def __renderEvent(self, pager):
         #<event eventcode="us20007zm1" versioncode="us20007zm1" number="1" shakeversion="1" magnitude="5.5" depth="33.7" lat="-10.963600" lon="161.316700" event_timestamp="2016-12-09T19:43:26Z" event_description="SOLOMON ISLANDS" maxmmi="4.0" shaketime="2016-12-09T20:01:49Z" isreviewed="False" localtime="19:43:26"/>
-        edict = {'eventcode':self._pagerdict['event_info']['eventid'],
-                 'versioncode':self._pagerdict['event_info']['versionid'],
-                 'number':'%i' % self.version,
-                 'shakeversion':'%i' % self._pagerdict['shake_info']['shake_version'],
-                 'magnitude':'%.1f' % self.magnitude,
-                 'depth':'%.1f' % self._pagerdict['event_info']['depth'],
-                 'lat':'%.4f' % self._pagerdict['event_info']['lat'],
-                 'lon':'%.4f' % self._pagerdict['event_info']['lon'],
-                 'event_timestamp':self.time.strftime(DATETIMEFMT),
-                 'event_description':self._pagerdict['event_info']['location'],
-                 'maxmmi':'%.1f' % self._maxmmi,
-                 'shaketime':self._pagerdict['shake_info']['shake_processing_time'],
-                 'isreviewed':'False',
-                 'localtime':self._pagerdict['pager']['local_time_string']}
-        event = etree.SubElement(pager,'event',attrib=edict)
+        edict = {'eventcode': self._pagerdict['event_info']['eventid'],
+                 'versioncode': self._pagerdict['event_info']['versionid'],
+                 'number': '%i' % self.version,
+                 'shakeversion': '%i' % self._pagerdict['shake_info']['shake_version'],
+                 'magnitude': '%.1f' % self.magnitude,
+                 'depth': '%.1f' % self._pagerdict['event_info']['depth'],
+                 'lat': '%.4f' % self._pagerdict['event_info']['lat'],
+                 'lon': '%.4f' % self._pagerdict['event_info']['lon'],
+                 'event_timestamp': self.time.strftime(DATETIMEFMT),
+                 'event_description': self._pagerdict['event_info']['location'],
+                 'maxmmi': '%.1f' % self._maxmmi,
+                 'shaketime': self._pagerdict['shake_info']['shake_processing_time'],
+                 'isreviewed': 'False',
+                 'localtime': self._pagerdict['pager']['local_time_string']}
+        event = etree.SubElement(pager, 'event', attrib=edict)
         return pager
 
-    def __renderAlerts(self,pager):
-        alerts = etree.SubElement(pager,'alerts')
+    def __renderAlerts(self, pager):
+        alerts = etree.SubElement(pager, 'alerts')
         #<alert type="economic" level="green" summary="no" units="USD">
-        summary = {True:'yes',
-                   False:'no'}
-        ecodict = {'type':'economic',
-                   'level':self._pagerdict['alerts']['economic']['level'],
-                   'summary':summary[self._pagerdict['alerts']['economic']['summary']],
-                   'units':self._pagerdict['alerts']['economic']['units']}
-        ecoalert = etree.SubElement(pager,'alert',attrib=ecodict)
+        summary = {True: 'yes',
+                   False: 'no'}
+        ecodict = {'type': 'economic',
+                   'level': self._pagerdict['alerts']['economic']['level'],
+                   'summary': summary[self._pagerdict['alerts']['economic']['summary']],
+                   'units': self._pagerdict['alerts']['economic']['units']}
+        ecoalert = etree.SubElement(pager, 'alert', attrib=ecodict)
         #<alert type="fatality" level="green" summary="yes" units="fatalities">
-        fatdict = {'type':'fatality',
-                   'level':self._pagerdict['alerts']['fatality']['level'],
-                   'summary':summary[self._pagerdict['alerts']['fatality']['summary']],
-                   'units':self._pagerdict['alerts']['fatality']['units']}
-        fatalert = etree.SubElement(pager,'alert',attrib=fatdict)
+        fatdict = {'type': 'fatality',
+                   'level': self._pagerdict['alerts']['fatality']['level'],
+                   'summary': summary[self._pagerdict['alerts']['fatality']['summary']],
+                   'units': self._pagerdict['alerts']['fatality']['units']}
+        fatalert = etree.SubElement(pager, 'alert', attrib=fatdict)
         #<bin min="0" max="999999" probability="99" color="green"/>
         for ebin in self._pagerdict['alerts']['economic']['bins']:
-            bdict = {'min':ebin['min'],
-                     'max':ebin['max'],
-                     'probability':'%.2f' % ebin['probability'],
-                     'color':ebin['color']}
-            ebintag = etree.SubElement(ecoalert,'bin',attrib=bdict)
+            bdict = {'min': ebin['min'],
+                     'max': ebin['max'],
+                     'probability': '%.2f' % ebin['probability'],
+                     'color': ebin['color']}
+            ebintag = etree.SubElement(ecoalert, 'bin', attrib=bdict)
         for fbin in self._pagerdict['alerts']['fatality']['bins']:
-            bdict = {'min':fbin['min'],
-                     'max':fbin['max'],
-                     'probability':'%.2f' % fbin['probability'],
-                     'color':fbin['color']}
-            fbinel = etree.SubElement(fatalert,'in',attrib=bdict)
+            bdict = {'min': fbin['min'],
+                     'max': fbin['max'],
+                     'probability': '%.2f' % fbin['probability'],
+                     'color': fbin['color']}
+            fbinel = etree.SubElement(fatalert, 'in', attrib=bdict)
 
         return pager
 
-    def __renderExposure(self,pager):
+    def __renderExposure(self, pager):
         #<exposure dmin="0.5" dmax="1.5" exposure="0" rangeInsideMap="0"/>
         max_border_mmi = self._pagerdict['population_exposure']['maximum_border_mmi']
-        for i in range(0,10):
+        for i in range(0, 10):
             mmi = i + 1
             exp = self._pagerdict['population_exposure']['aggregated_exposure'][i]
-            expdict = {'dmin':'%.1f' % (mmi-0.5),
-                       'dmax':'%.1f' % (mmi+0.5),
-                       'exposure':'%i' % exp,
-                       'rangeInsideMap':'%i' % (mmi > max_border_mmi)}
-            expotag = etree.SubElement(pager,'exposure',attrib=expdict)
+            expdict = {'dmin': '%.1f' % (mmi-0.5),
+                       'dmax': '%.1f' % (mmi+0.5),
+                       'exposure': '%i' % exp,
+                       'rangeInsideMap': '%i' % (mmi > max_border_mmi)}
+            expotag = etree.SubElement(pager, 'exposure', attrib=expdict)
         return pager
 
-    def __renderCities(self,pager):
+    def __renderCities(self, pager):
         #<city name="Kirakira" lat="-10.454420" lon="161.920450" population="1122" mmi="3.500000" iscapital="0"/>
         #The javascript that renders this draws nothing if the number of cities is 11 or less, so let's add a dummy city
         #at the end that will be ignored.
-        dummy_row = pd.Series({'iscap':0,
-                               'lat':0.0,
-                               'lon':0.0,
-                               'mmi':0.0,
-                               'name':'',
-                               'pop':0})
+        dummy_row = pd.Series({'iscap': 0,
+                               'lat': 0.0,
+                               'lon': 0.0,
+                               'mmi': 0.0,
+                               'name': '',
+                               'pop': 0})
         
-        temptable = self._pagerdict['city_table'].append(dummy_row,ignore_index=True)
-        for idx,city in temptable.iterrows():
-            cdict = {'name':city['name'],
-                     'lat':'%.4f' % city['lat'],
-                     'lon':'%.4f' % city['lon'],
-                     'population':'%i' % city['pop'],
-                     'mmi':'%.1f' % city['mmi'],
-                     'iscapital':'%i' % city['iscap']}
-            citytag = etree.SubElement(pager,'city',attrib=cdict)
+        temptable = self._pagerdict['city_table'].append(dummy_row, ignore_index=True)
+        for idx, city in temptable.iterrows():
+            cdict = {'name': city['name'],
+                     'lat': '%.4f' % city['lat'],
+                     'lon': '%.4f' % city['lon'],
+                     'population': '%i' % city['pop'],
+                     'mmi': '%.1f' % city['mmi'],
+                     'iscapital': '%i' % city['iscap']}
+            citytag = etree.SubElement(pager, 'city', attrib=cdict)
         return pager
 
-    def __renderComments(self,pager):
+    def __renderComments(self, pager):
         #<structcomment>Overall, the population in this region...</structcomment>
 
-        struct_tag = etree.SubElement(pager,'structcomment')
+        struct_tag = etree.SubElement(pager, 'structcomment')
         struct_tag.text = self._pagerdict['comments']['struct_comment']
 
-        alert_tag = etree.SubElement(pager,'alertcomment')
+        alert_tag = etree.SubElement(pager, 'alertcomment')
         alert_tag.text = self._pagerdict['comments']['historical_comment']
         
-        impact_tag = etree.SubElement(pager,'impact_comment')
+        impact_tag = etree.SubElement(pager, 'impact_comment')
         impact_tag.text = self._pagerdict['comments']['impact1'] + '#' + self._pagerdict['comments']['impact2']
 
-        secondary_tag = etree.SubElement(pager,'secondary_effects')
+        secondary_tag = etree.SubElement(pager, 'secondary_effects')
         secondary_tag.text = self._pagerdict['comments']['secondary_comment']
 
         return pager
 
-    def __renderHistory(self,pager):
+    def __renderHistory(self, pager):
         #<comment>
 		# <![CDATA[<blockTable style="historyhdrtablestyle" rowHeights="24" colWidths="42,30,25,45,38">
 		#    <tr>
@@ -771,33 +771,33 @@ class PagerData(object):
         #   </blockTable><para style="commentstyle"></para>]]>	</comment>
         if not any(self._pagerdict['historical_earthquakes']):
             return pager
-        table_dict = {'style':'historyhdrtablestyle',
-                      'rowHeights':'24',
-                      'colWidths':'42,30,25,45,38'}
-        header_tag = etree.Element('blockTable',attrib=table_dict)
-        hdr_alignments = ['LEFT','RIGHT','CENTER','CENTER','RIGHT']
+        table_dict = {'style': 'historyhdrtablestyle',
+                      'rowHeights': '24',
+                      'colWidths': '42,30,25,45,38'}
+        header_tag = etree.Element('blockTable', attrib=table_dict)
+        hdr_alignments = ['LEFT', 'RIGHT', 'CENTER', 'CENTER', 'RIGHT']
         hdr_fonts = ['Helvetica-Bold']*5
         hdr_sizes = ['9']*5
-        hdr_data = ['Date (UTC)','Dist. (km)','Mag.','Max MMI(#)','Shaking Deaths']
-        row1_tag = etree.SubElement(header_tag,'tr')
+        hdr_data = ['Date (UTC)', 'Dist. (km)', 'Mag.', 'Max MMI(#)', 'Shaking Deaths']
+        row1_tag = etree.SubElement(header_tag, 'tr')
                 
-        for i in range(0,5):
+        for i in range(0, 5):
             align = hdr_alignments[i]
             font = hdr_fonts[i]
             size = hdr_sizes[i]
             hdr_text = hdr_data[i]
-            pdict = {'alignment':align,'fontName':font,'fontSize':font}
-            cell_tag = etree.SubElement(row1_tag,'td')
-            para_tag = etree.SubElement(row1_tag,'para',attrib=pdict,text=hdr_text)
+            pdict = {'alignment': align, 'fontName': font, 'fontSize': font}
+            cell_tag = etree.SubElement(row1_tag, 'td')
+            para_tag = etree.SubElement(row1_tag, 'para', attrib=pdict, text=hdr_text)
 
-        bdict = {'style':'historytablestyle',
-                 'rowHeights':'12,12,12',
-                 'colWidths':'42,30,25,45,38'}
-        block_tag = etree.Element('blockTable',attrib=bdict)
+        bdict = {'style': 'historytablestyle',
+                 'rowHeights': '12,12,12',
+                 'colWidths': '42,30,25,45,38'}
+        block_tag = etree.Element('blockTable', attrib=bdict)
         
         for event in self._pagerdict['historical_earthquakes']:
             rom_maxmmi = dec_to_roman(event['MaxMMI'])
-            nmmi_str = pop_round_short(event['MaxMMI'],usemillion=True)
+            nmmi_str = pop_round_short(event['MaxMMI'], usemillion=True)
             deaths = event['ShakingDeaths']
             if np.isnan(deaths):
                 deaths = 'NA'
@@ -806,25 +806,25 @@ class PagerData(object):
             content = [event['Time'][0:10],
                        '%i' % (event['Distance']),
                        '%.1f' % (event['Magnitude']),
-                       '%s(%s)' % (rom_maxmmi,nmmi_str),
+                       '%s(%s)' % (rom_maxmmi, nmmi_str),
                        '%s' % (deaths)]
-            row_tag = etree.SubElement(block_tag,'tr')
-            for i in range(0,5):
+            row_tag = etree.SubElement(block_tag, 'tr')
+            for i in range(0, 5):
                 align = hdr_alignments[i]
                 font = hdr_fonts[i]
                 size = hdr_sizes[i]
-                td_tag = etree.SubElement(row_tag,'td')
-                pdict = {'alignment':align,'fontName':font,'fontSize':size}
+                td_tag = etree.SubElement(row_tag, 'td')
+                pdict = {'alignment': align, 'fontName': font, 'fontSize': size}
                 if i == 3:
                     pdict['background'] = event['Color']
-                para_tag = etree.SubElement(td_tag,'para',attrib=pdict,text=content[i])
-        para_tag = etree.SubElement(header_tag,'para',attrib={'style':'commentstyle'})
-        history_text = etree.tostring(header_tag,pretty_print=True)
-        comment_tag = etree.SubElement(pager,'comment')
+                para_tag = etree.SubElement(td_tag, 'para', attrib=pdict, text=content[i])
+        para_tag = etree.SubElement(header_tag, 'para', attrib={'style': 'commentstyle'})
+        history_text = etree.tostring(header_tag, pretty_print=True)
+        comment_tag = etree.SubElement(pager, 'comment')
         comment_tag.text = etree.CDATA(history_text)
         return pager
         
-    def saveToLegacyXML(self,versionfolder):
+    def saveToLegacyXML(self, versionfolder):
         """Render PAGER results to legacy XML format (pager.xml).
 
         :param versionfolder:
@@ -841,33 +841,33 @@ class PagerData(object):
         pager = self.__renderCities(pager)
         pager = self.__renderComments(pager)
         pager = self.__renderHistory(pager)
-        outfile = os.path.join(versionfolder,'pager.xml') 
-        f = open(outfile,'wt')
-        xmlstr = etree.tostring(pager,pretty_print=True) 
+        outfile = os.path.join(versionfolder, 'pager.xml') 
+        f = open(outfile, 'wt')
+        xmlstr = etree.tostring(pager, pretty_print=True) 
         f.write(xmlstr.decode('utf-8'))
         f.close()
         return outfile
 
-    def loadFromJSON(self,jsonfolder):
+    def loadFromJSON(self, jsonfolder):
         """Instantiate PagerData object from JSON files.
         
         :param jsonfolder:
           Folder containing JSON files containing all data relevant to PAGER run.
         """
-        jsonfiles = ['event.json','alerts.json','exposures.json',
-                     'losses.json','cities.json','historical_earthquakes.json',
+        jsonfiles = ['event.json', 'alerts.json', 'exposures.json',
+                     'losses.json', 'cities.json', 'historical_earthquakes.json',
                      'comments.json']
         missing = []
         for jf in jsonfiles:
-            jsonfile = os.path.join(jsonfolder,jf)
+            jsonfile = os.path.join(jsonfolder, jf)
             if not os.path.isfile(jsonfile):
                 missing.append(jf)
         if len(missing):
             fmt = 'Could not load PagerData from %s: Missing required files %s'
-            raise PagerException(fmt % (jsonfolder,str(missing)))
+            raise PagerException(fmt % (jsonfolder, str(missing)))
 
         #load event, shakemap, and pager basic information
-        f = open(os.path.join(jsonfolder,'event.json'),'rt')
+        f = open(os.path.join(jsonfolder, 'event.json'), 'rt')
         event = json.load(f)
         f.close()
         self._pagerdict['event_info'] = event['event'].copy()
@@ -883,34 +883,34 @@ class PagerData(object):
         self._maxmmi = self._pagerdict['pager']['maxmmi']
 
         #load the information about the alerts
-        f = open(os.path.join(jsonfolder,'alerts.json'),'rt')
+        f = open(os.path.join(jsonfolder, 'alerts.json'), 'rt')
         self._pagerdict['alerts'] = json.load(f)
         f.close()
 
         #load the information about the exposures
-        f = open(os.path.join(jsonfolder,'exposures.json'),'rt')
+        f = open(os.path.join(jsonfolder, 'exposures.json'), 'rt')
         expo = json.load(f)
         f.close()
         self._pagerdict['population_exposure'] = expo['population_exposure']
         self._pagerdict['economic_exposure'] = expo['economic_exposure']
 
         #load the information about the losses
-        f = open(os.path.join(jsonfolder,'losses.json'),'rt')
+        f = open(os.path.join(jsonfolder, 'losses.json'), 'rt')
         self._pagerdict['model_results'] = json.load(f)
         f.close()
 
         #load in the information about affected cities
-        f = open(os.path.join(jsonfolder,'cities.json'),'rt')
+        f = open(os.path.join(jsonfolder, 'cities.json'), 'rt')
         self._pagerdict['city_table'] = pd.read_json(f)
         f.close()
 
         #load in the information about historical earthquakes
-        f = open(os.path.join(jsonfolder,'historical_earthquakes.json'),'rt')
+        f = open(os.path.join(jsonfolder, 'historical_earthquakes.json'), 'rt')
         self._pagerdict['historical_earthquakes'] = json.load(f)
         f.close()
 
         #load in the information about comments
-        f = open(os.path.join(jsonfolder,'comments.json'),'rt')
+        f = open(os.path.join(jsonfolder, 'comments.json'), 'rt')
         self._pagerdict['comments'] = json.load(f)
         f.close()
         
@@ -920,14 +920,14 @@ class PagerData(object):
         pass
     #########Savers/Loaders########
     
-    def _get_maxmmi(self,exposure):
+    def _get_maxmmi(self, exposure):
         maxmmi = 0
-        for i in range(9,-1,-1):
+        for i in range(9, -1, -1):
             exp = exposure['TotalExposure'][i]
             if exp >= MINEXP:
                 maxmmi = i + 1
                 break
-        return (maxmmi,exp)
+        return (maxmmi, exp)
 
     def _getComments(self):
         comment_dict = {}
@@ -948,22 +948,22 @@ class PagerData(object):
         pager['versioncode'] = self._versioncode
         fatlevel = self._fatmodel.getAlertLevel(self._fatmodel_results)
         ecolevel = self._ecomodel.getAlertLevel(self._ecomodel_results)
-        levels = {'green':0,'yellow':1,'orange':2,'red':3}
-        rlevels = {0:'green',1:'yellow',2:'orange',3:'red'}
-        max_level = rlevels[max(levels[fatlevel],levels[ecolevel])]
+        levels = {'green': 0, 'yellow': 1, 'orange': 2, 'red': 3}
+        rlevels = {0: 'green', 1: 'yellow', 2: 'orange', 3: 'red'}
+        max_level = rlevels[max(levels[fatlevel], levels[ecolevel])]
         alert_level = max_level
         if (max_level == 'orange' or max_level == 'red') and not self._is_released:
             alert_level = 'pending'
         pager['alert_level'] = alert_level
         pager['true_alert_level'] = max_level
-        maxmmi,nmmi = self._get_maxmmi(self._exposure)
+        maxmmi, nmmi = self._get_maxmmi(self._exposure)
         pager['maxmmi'] = maxmmi
         self._nmmi = nmmi
         if self._elapsed_minutes is None:
             etime = ElapsedTime()
             origin_time = self._event_dict['event_timestamp']
             try:
-                etimestr = etime.getElapsedString(origin_time,process_time)
+                etimestr = etime.getElapsedString(origin_time, process_time)
             except:
                 etimestr = 'This event occurs in the future.'
         else:
@@ -971,8 +971,8 @@ class PagerData(object):
         pager['elapsed_time'] = etimestr
         #pager['tsunami'] = get_tsunami_info(self._eventcode,self._event_dict['magnitude'])
         #pager['ccode'] = get_epicenter_ccode(self._event_dict['lat'],self._event_dict['lon'])
-        ltime = LocalTime(self._timezone_file,self._event_dict['event_timestamp'],
-                          self._event_dict['lat'],self._event_dict['lon'])
+        ltime = LocalTime(self._timezone_file, self._event_dict['event_timestamp'],
+                          self._event_dict['lat'], self._event_dict['lon'])
         localtime = ltime.getLocalTime()
         ltimestr = localtime.strftime(DATETIMEFMT)
         pager['local_time_string'] = ltimestr
@@ -1004,21 +1004,21 @@ class PagerData(object):
         return shakeinfo
 
     def _setAlerts(self):
-        colors = {'0-1':'green',
-                  '1-10':'yellow',
-                  '10-100':'yellow',
-                  '100-1000':'orange',
-                  '1000-10000':'red',
-                  '10000-100000':'red',
-                  '100000-10000000':'red'}
-        leveldict = {'green':0,
-                     'yellow':1,
-                     'orange':2,
-                     'red':3}
-        rleveldict = {0:'green',
-                     1:'yellow',
-                     2:'orange',
-                     3:'red'}
+        colors = {'0-1': 'green',
+                  '1-10': 'yellow',
+                  '10-100': 'yellow',
+                  '100-1000': 'orange',
+                  '1000-10000': 'red',
+                  '10000-100000': 'red',
+                  '100000-10000000': 'red'}
+        leveldict = {'green': 0,
+                     'yellow': 1,
+                     'orange': 2,
+                     'red': 3}
+        rleveldict = {0: 'green',
+                     1: 'yellow',
+                     2: 'orange',
+                     3: 'red'}
         alerts = OrderedDict()
 
         
@@ -1029,42 +1029,42 @@ class PagerData(object):
         
         #Create the fatality alert level
         fat_gvalue = self._fatmodel.getCombinedG(self._fatmodel_results)
-        fatality = OrderedDict([('type','fatality'),
-                                ('units','fatalities'),
-                                ('gvalue',fat_gvalue),
-                                ('summary',is_fat_summary),
-                                ('level',fatlevel),
+        fatality = OrderedDict([('type', 'fatality'),
+                                ('units', 'fatalities'),
+                                ('gvalue', fat_gvalue),
+                                ('summary', is_fat_summary),
+                                ('level', fatlevel),
                                 ])
         bins = []
-        fatprobs = self._fatmodel.getProbabilities(self._fatmodel_results,fat_gvalue)
-        for prange,pvalue in fatprobs.items():
+        fatprobs = self._fatmodel.getProbabilities(self._fatmodel_results, fat_gvalue)
+        for prange, pvalue in fatprobs.items():
             color = colors[prange]
-            rmin,rmax = prange.split('-')
-            abin = OrderedDict([('color',color),
-                                ('min',rmin),
-                                ('max',rmax),
-                                ('probability',pvalue)])
+            rmin, rmax = prange.split('-')
+            abin = OrderedDict([('color', color),
+                                ('min', rmin),
+                                ('max', rmax),
+                                ('probability', pvalue)])
             bins.append(abin)
         fatality['bins'] = bins
         alerts['fatality'] = fatality
 
         #Create the economic alert level
         eco_gvalue = self._ecomodel.getCombinedG(self._ecomodel_results)
-        economic = OrderedDict([('type','economic'),
-                                ('units','USD'),
-                                ('gvalue',eco_gvalue),
-                                ('summary',is_eco_summary),
-                                ('level',ecolevel),
+        economic = OrderedDict([('type', 'economic'),
+                                ('units', 'USD'),
+                                ('gvalue', eco_gvalue),
+                                ('summary', is_eco_summary),
+                                ('level', ecolevel),
                                 ])
         bins = []
-        ecoprobs = self._ecomodel.getProbabilities(self._ecomodel_results,eco_gvalue)
-        for prange,pvalue in ecoprobs.items():
+        ecoprobs = self._ecomodel.getProbabilities(self._ecomodel_results, eco_gvalue)
+        for prange, pvalue in ecoprobs.items():
             color = colors[prange]
-            rmin,rmax = prange.split('-')
-            abin = OrderedDict([('color',color),
-                                ('min',rmin),
-                                ('max',rmax),
-                                ('probability',pvalue)])
+            rmin, rmax = prange.split('-')
+            abin = OrderedDict([('color', color),
+                                ('min', rmin),
+                                ('max', rmax),
+                                ('probability', pvalue)])
             bins.append(abin)
         economic['bins'] = bins
         alerts['economic'] = economic
@@ -1073,11 +1073,11 @@ class PagerData(object):
         
     def _setPopulationExposure(self):
         exposure = OrderedDict()
-        exposure['mmi'] = list(range(1,11))
+        exposure['mmi'] = list(range(1, 11))
         exposure['aggregated_exposure'] = list(self._exposure['TotalExposure'])
         exposure['maximum_border_mmi'] = self._exposure['maximum_border_mmi']
         country_exposures = []
-        for ccode,exparray in self._exposure.items():
+        for ccode, exparray in self._exposure.items():
             if ccode == 'TotalExposure' or 'maximum_border_mmi':
                 continue
             expdict = OrderedDict()
@@ -1089,10 +1089,10 @@ class PagerData(object):
 
     def _setEconomicExposure(self):
         exposure = OrderedDict()
-        exposure['mmi'] = list(range(1,11))
+        exposure['mmi'] = list(range(1, 11))
         exposure['aggregated_exposure'] = list(self._econ_exposure['TotalEconomicExposure'])
         country_exposures = []
-        for ccode,exparray in self._econ_exposure.items():
+        for ccode, exparray in self._econ_exposure.items():
             if ccode == 'TotalEconomicExposure':
                 continue
             expdict = OrderedDict()
@@ -1109,13 +1109,13 @@ class PagerData(object):
         empfat = OrderedDict()
         empfat['total_fatalities'] = self._fatmodel_results['TotalFatalities']
         country_deaths = []
-        for ccode,deaths in self._fatmodel_results.items():
+        for ccode, deaths in self._fatmodel_results.items():
             if ccode == 'TotalFatalities':
                 continue
-            rates = list(self._fatmodel.getLossRates(ccode,np.arange(1,11)))
-            fatdict = OrderedDict([('country_code',ccode),
-                                   ('rates',rates),
-                                   ('fatalities',deaths)])
+            rates = list(self._fatmodel.getLossRates(ccode, np.arange(1, 11)))
+            fatdict = OrderedDict([('country_code', ccode),
+                                   ('rates', rates),
+                                   ('fatalities', deaths)])
             country_deaths.append(fatdict)
         empfat['country_fatalities'] = country_deaths
         model_results['empirical_fatality'] = empfat
@@ -1124,13 +1124,13 @@ class PagerData(object):
         empeco = OrderedDict()
         empeco['total_dollars'] = self._ecomodel_results['TotalDollars']
         country_dollars = []
-        for ccode,dollars in self._ecomodel_results.items():
+        for ccode, dollars in self._ecomodel_results.items():
             if ccode == 'TotalDollars':
                 continue
-            rates = list(self._ecomodel.getLossRates(ccode,np.arange(1,11)))
-            ecodict = OrderedDict([('country_code',ccode),
-                                   ('rates',rates),
-                                   ('us_dollars',dollars)])
+            rates = list(self._ecomodel.getLossRates(ccode, np.arange(1, 11)))
+            ecodict = OrderedDict([('country_code', ccode),
+                                   ('rates', rates),
+                                   ('us_dollars', dollars)])
             country_dollars.append(ecodict)
         empeco['country_dollars'] = country_dollars
         model_results['empirical_economic'] = empeco
@@ -1148,15 +1148,15 @@ class PagerData(object):
         expocat = ExpoCat.fromDefault()
         #if we're re-running an older event, don't include more recent events than that in the table.
         expocat.excludeFutureEvents(self.time)
-        clat,clon = self._event_dict['lat'],self._event_dict['lon']
+        clat, clon = self._event_dict['lat'], self._event_dict['lon']
         print('Select events by radius.')
-        inbounds = expocat.selectByRadius(clat,clon,EVENT_RADIUS)
+        inbounds = expocat.selectByRadius(clat, clon, EVENT_RADIUS)
         maxmmi = self._pagerdict['pager']['maxmmi']
         nmmi = self._nmmi
         deaths = self._fatmodel_results['TotalFatalities']
         etime = self._event_dict['event_timestamp']
         print('Select historical earthquakes.')
-        eventlist = inbounds.getHistoricalEvents(maxmmi,nmmi,deaths,clat,clon)
+        eventlist = inbounds.getHistoricalEvents(maxmmi, nmmi, deaths, clat, clon)
         for event in eventlist:
             if event is not None:
                 event['Time'] = event['Time'].strftime(DATETIMEFMT)
@@ -1164,6 +1164,6 @@ class PagerData(object):
 
     def _getCityTable(self):
         cities = Cities.loadFromGeoNames(self._city_file)
-        pcities = PagerCities(cities,self._shakegrid.getLayer('mmi'))
+        pcities = PagerCities(cities, self._shakegrid.getLayer('mmi'))
         city_table = pcities.getCityTable(self._map_cities)
         return city_table

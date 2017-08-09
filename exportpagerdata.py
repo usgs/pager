@@ -7,40 +7,40 @@ from xml.dom import minidom
 from datetime import datetime
 import argparse
 
-def getRandomName(wordlist,is_org=False):
+def getRandomName(wordlist, is_org=False):
     idx1 = np.random.randint(len(wordlist))
     idx2 = np.random.randint(len(wordlist))
     word1 = wordlist[idx1].capitalize()
     word2 = wordlist[idx2].capitalize()
     if is_org:
-        rname = ('Institute of %s %s' % (word1,word2),word1[0]+word2[0])
+        rname = ('Institute of %s %s' % (word1, word2), word1[0]+word2[0])
     else:
-        rname = (wordlist[idx1].capitalize(),wordlist[idx2].capitalize())
+        rname = (wordlist[idx1].capitalize(), wordlist[idx2].capitalize())
     return rname
 
-def getGroupName(cursor,groupid):
+def getGroupName(cursor, groupid):
     query = 'SELECT groupname FROM regiongroup WHERE id=%i' % groupid
     cursor.execute(query)
     groupname = cursor.fetchone()[0]
     return groupname
 
-def getUserOrg(cursor,orgid):
+def getUserOrg(cursor, orgid):
     query = 'SELECT shortname FROM organization WHERE id=%i' % orgid
     cursor.execute(query)
     org = cursor.fetchone()[0].strip()
     return org
 
-def getOrgs(cursor,wordlist,anonymize=False):
+def getOrgs(cursor, wordlist, anonymize=False):
     query = 'SELECT name,shortname FROM organization'
     cursor.execute(query)
     orglist = []
     for row in cursor.fetchall():
         if anonymize:
-            name,shortname = getRandomName(wordlist,is_org=True)
+            name, shortname = getRandomName(wordlist, is_org=True)
         else:
-            name,shortname = row[0].strip(),row[1].strip()
+            name, shortname = row[0].strip(), row[1].strip()
         oid = row[0]
-        orglist.append({'name':name,'shortname':shortname})
+        orglist.append({'name': name, 'shortname': shortname})
     return orglist
 
 def getGroups(cursor):
@@ -48,7 +48,7 @@ def getGroups(cursor):
     cursor.execute(query)
     grouplist = []
     for row in cursor.fetchall():
-        grouplist.append({'name':row[0],'displaytext':row[1]})
+        grouplist.append({'name': row[0], 'displaytext': row[1]})
     return grouplist
 
 def readPolyKML(polystr):
@@ -62,7 +62,7 @@ def readPolyKML(polystr):
         plines = cdata.split()
         segment = []
         for p in plines:
-            xt,yt,zt = p.split(',')
+            xt, yt, zt = p.split(',')
             xt = float(xt)
             yt = float(yt)
             x.append(xt)
@@ -71,7 +71,7 @@ def readPolyKML(polystr):
         y.append(float('nan'))
     root.unlink()
 
-    return x,y
+    return x, y
 
 def getRegions(cursor):
     polydict = {} #dictionary of {'code':(x,y)} where x and y are NaN separated arrays denoting multi-part polygons
@@ -86,34 +86,34 @@ def getRegions(cursor):
         cursor.execute('SELECT groupname FROM regiongroup WHERE id="%i"' % groupid)
         groupname = cursor.fetchone()[0]
 
-        groupname = groupname.strip().replace(' ','_')
+        groupname = groupname.strip().replace(' ', '_')
         code = groupname + '-' + code
         print('Getting region %s' % code)
         
-        x,y = readPolyKML(polystr)
+        x, y = readPolyKML(polystr)
 
         polyarrays = []
         x = np.array(x)
         y = np.array(y)
         inan = np.where(np.isnan(x))[0]
         start = 0
-        for i in range(0,len(inan)):
+        for i in range(0, len(inan)):
             xseg = x[start:inan[i]].tolist()
             yseg = y[start:inan[i]].tolist()
-            xy = list(zip(xseg,yseg))
+            xy = list(zip(xseg, yseg))
             polyarrays.append(xy)
             start = inan[i]+1
         
-        geojson = {'type':'Feature',
-                   'geometry':{'type':'Polygon',
-                               'coordinates':polyarrays},
-                    'properties':{'code':code}}
+        geojson = {'type': 'Feature',
+                   'geometry': {'type': 'Polygon',
+                               'coordinates': polyarrays},
+                    'properties': {'code': code}}
                                
         polydict[code] = geojson
 
     return polydict
 
-def getUsers(cursor,wordlist,orgs,anonymize=False,nusers=None):
+def getUsers(cursor, wordlist, orgs, anonymize=False, nusers=None):
     totalquery = 'SELECT count(*) from user';
     cursor.execute(totalquery)
     ntotalusers = cursor.fetchone()[0]
@@ -124,17 +124,17 @@ def getUsers(cursor,wordlist,orgs,anonymize=False,nusers=None):
     user_rows = cursor.fetchall()
     users = []
     for urow in user_rows:
-        uid,org_id,firstname,lastname,createdon = urow
+        uid, org_id, firstname, lastname, createdon = urow
         
         if anonymize:
-            lastname,firstname = getRandomName(wordlist)
+            lastname, firstname = getRandomName(wordlist)
             for torg in orgs:
                 if torg['id'] == org_id:
                     org = torg['shortname'].strip()
                     break
         else:
             if org_id is not None:
-                org = getUserOrg(cursor,org_id)
+                org = getUserOrg(cursor, org_id)
             else:
                 org = 'None'    
         
@@ -144,17 +144,17 @@ def getUsers(cursor,wordlist,orgs,anonymize=False,nusers=None):
         
         emails = []
         for erow in email_rows:
-            eid,email,isprimary,priority = erow
+            eid, email, isprimary, priority = erow
 
             if anonymize:
-                email = '%s.%s-%i@bogusmail.org' % (firstname,lastname,eid)
+                email = '%s.%s-%i@bogusmail.org' % (firstname, lastname, eid)
             
             profilequery = 'SELECT id,format_id FROM profile WHERE address_id=%i' % eid
             cursor.execute(profilequery)
             profile_rows = cursor.fetchall()
             profiles = []
             for prow in profile_rows:
-                pid,formatid = prow
+                pid, formatid = prow
                 #get the regions for this profile
                 regionidquery = 'SELECT region_id FROM profile_region_bridge WHERE profile_id=%i' % pid
                 cursor.execute(regionidquery)
@@ -166,40 +166,40 @@ def getUsers(cursor,wordlist,orgs,anonymize=False,nusers=None):
                     regionrow = cursor.fetchone()
                     code = regionrow[0]
                     groupid = regionrow[1]
-                    groupname = getGroupName(cursor,groupid)
-                    regioncode = groupname.strip().replace(' ','_') + '-' + code
-                    regioncodes.append({'name':regioncode})
+                    groupname = getGroupName(cursor, groupid)
+                    regioncode = groupname.strip().replace(' ', '_') + '-' + code
+                    regioncodes.append({'name': regioncode})
                 #get the threshold(s) for this profile
                 threshquery = 'SELECT alertscheme_id,value FROM threshold WHERE profile_id=%i' % pid
                 cursor.execute(threshquery)
                 threshrows = cursor.fetchall()
                 thresholds = []
                 for threshrow in threshrows:
-                    aid,threshold = threshrow
+                    aid, threshold = threshrow
                     schemequery = 'SELECT name FROM alertscheme WHERE id=%i' % aid
                     cursor.execute(schemequery)
                     scheme = cursor.fetchone()[0]
-                    thresholds.append({'alertscheme':scheme,'value':threshold})
+                    thresholds.append({'alertscheme': scheme, 'value': threshold})
                 #get the format for this profile
                 formatquery = 'SELECT name FROM format WHERE id=%i' % formatid
                 cursor.execute(formatquery)
                 emailformat = cursor.fetchone()[0]
-                emailformat = emailformat.replace('expo','')
-                profiles.append({'thresholds':thresholds[:],
-                                 'regions':regioncodes[:]})
+                emailformat = emailformat.replace('expo', '')
+                profiles.append({'thresholds': thresholds[:],
+                                 'regions': regioncodes[:]})
             
-            emails.append({'email':email,
-                           'priority':priority,
-                           'is_primary':isprimary,
-                           'format':emailformat,
-                           'profiles':profiles[:]})
+            emails.append({'email': email,
+                           'priority': priority,
+                           'is_primary': isprimary,
+                           'format': emailformat,
+                           'profiles': profiles[:]})
 
         
-        users.append({'lastname':lastname,
-                      'firstname':firstname,
-                      'addresses':emails,
-                      'createdon':createdon.strftime('%Y-%m-%d %H:%M:%S'),
-                      'org':org})
+        users.append({'lastname': lastname,
+                      'firstname': firstname,
+                      'addresses': emails,
+                      'createdon': createdon.strftime('%Y-%m-%d %H:%M:%S'),
+                      'org': org})
     return users
 
 def getEvents(cursor):
@@ -210,21 +210,21 @@ def getEvents(cursor):
         event = {}
         eid = row[0]
         ecode = row[1]
-        cols = ['id','versioncode','network',
-                'number','time','lat','lon',
-                'depth','mag','maxmmi','processtime',
+        cols = ['id', 'versioncode', 'network',
+                'number', 'time', 'lat', 'lon',
+                'depth', 'mag', 'maxmmi', 'processtime',
                 'summarylevel']
         colstr = ','.join(cols)
-        query2 = 'SELECT %s FROM version WHERE event_id=%i' % (colstr,eid)
+        query2 = 'SELECT %s FROM version WHERE event_id=%i' % (colstr, eid)
         cursor.execute(query2)
         vrows = cursor.fetchall()
         versions = []
         for vrow in vrows:
             version = {}
-            for i in range(0,len(cols)):
+            for i in range(0, len(cols)):
                 col = cols[i]
                 value = vrow[i]
-                if isinstance(value,datetime):
+                if isinstance(value, datetime):
                     value = value.strftime('%Y-%m-%d %H:%M:%S')
                 version[col] = value
             versions.append(version)
@@ -243,17 +243,17 @@ def getVersionAddress(cursor):
     return bridge
 
 def main(args):
-    db = mysql.connect(host='localhost',db='losspager',user=args.user,passwd=args.password)
+    db = mysql.connect(host='localhost', db='losspager', user=args.user, passwd=args.password)
     cursor = db.cursor()
-    allwords = open('/usr/share/dict/words','rt').readlines()
+    allwords = open('/usr/share/dict/words', 'rt').readlines()
     wordlist = []
     for word in allwords:
         word = word.strip()
         if len(word) > 3:
             wordlist.append(word)
 
-    orgs = getOrgs(cursor,wordlist,anonymize=pargs.anonymize)
-    users = getUsers(cursor,wordlist,orgs,nusers=pargs.limit_users,anonymize=pargs.anonymize)
+    orgs = getOrgs(cursor, wordlist, anonymize=pargs.anonymize)
+    users = getUsers(cursor, wordlist, orgs, nusers=pargs.limit_users, anonymize=pargs.anonymize)
     regions = getRegions(cursor)
     
     groups = getGroups(cursor)
@@ -262,15 +262,15 @@ def main(args):
 
     #write out a file containing user information
     userfile = args.basefile + '_users.json'
-    f = open(userfile,'wt')
-    jstr = json.dumps(users,indent=2)
+    f = open(userfile, 'wt')
+    jstr = json.dumps(users, indent=2)
     f.write(jstr)
     f.close()
 
     #write out a file containing organization information
     orgfile = args.basefile + '_orgs.json'
-    f = open(orgfile,'wt')
-    jstr = json.dumps(orgs,indent=2)
+    f = open(orgfile, 'wt')
+    jstr = json.dumps(orgs, indent=2)
     f.write(jstr)
     f.close()
     
@@ -291,9 +291,9 @@ if __name__ == '__main__':
     parser.add_argument('basefile', help='Specify base output JSON file name')
     parser.add_argument('user', help='Specify PAGER user for MySQL DB')
     parser.add_argument('password', help='Specify PAGER password for MySQL DB')
-    parser.add_argument('-a','--anonymize', action='store_true',default=False,
+    parser.add_argument('-a', '--anonymize', action='store_true', default=False,
                         help='Anonymize users and organizations')
-    parser.add_argument('-l','--limit-users', type=int, default=None,
+    parser.add_argument('-l', '--limit-users', type=int, default=None,
                         help='Limit the users extracted to desired number.')
 
     pargs = parser.parse_args()

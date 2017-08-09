@@ -10,8 +10,8 @@ import shutil
 
 #hack the path so that I can debug these functions if I need to
 homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
-pagerdir = os.path.abspath(os.path.join(homedir,'..','..'))
-sys.path.insert(0,pagerdir) #put this at the front of the system path, ignoring any installed shakemap stuff
+pagerdir = os.path.abspath(os.path.join(homedir, '..', '..'))
+sys.path.insert(0, pagerdir) #put this at the front of the system path, ignoring any installed shakemap stuff
 
 #third party imports 
 import numpy as np
@@ -32,72 +32,72 @@ def img_test():
     testhash4 = b'P\xcc\xc8n\xc2Z\x9fGH\x1d\x1cu\xd8\x00\x05n'
     try:
         homedir = tempfile.mkdtemp()
-        ranges = OrderedDict([('0-1',0.03),
-                              ('1-10',0.14),
-                              ('10-100',0.32),
-                              ('100-1000',0.325),
-                              ('1000-10000',0.15),
-                              ('10000-100000',0.03),
-                              ('100000-10000000',0.01)])
-        f = drawImpactScale(ranges,'economic',debug=False)
-        outfile = os.path.join(homedir,'test1.png')
+        ranges = OrderedDict([('0-1', 0.03),
+                              ('1-10', 0.14),
+                              ('10-100', 0.32),
+                              ('100-1000', 0.325),
+                              ('1000-10000', 0.15),
+                              ('10000-100000', 0.03),
+                              ('100000-10000000', 0.01)])
+        f = drawImpactScale(ranges, 'economic', debug=False)
+        outfile = os.path.join(homedir, 'test1.png')
         f.savefig(outfile)
         plt.close(f)
-        data = open(outfile,'rb').read()
+        data = open(outfile, 'rb').read()
         m = hashlib.md5()
         m.update(data)
         print('Testing first economic plot is consistent with prior results...')
         assert m.digest() == testhash1
         print('Passed.')
         
-        ranges = OrderedDict([('0-1',0.8),
-                          ('1-10',0.1),
-                          ('10-100',0.05),
-                          ('100-1000',0.03),
-                          ('1000-10000',0.02),
-                          ('10000-100000',0.0),
-                          ('100000-10000000',0.0)])
-        f = drawImpactScale(ranges,'fatality',debug=False)
-        outfile = os.path.join(homedir,'test2.png')
+        ranges = OrderedDict([('0-1', 0.8),
+                          ('1-10', 0.1),
+                          ('10-100', 0.05),
+                          ('100-1000', 0.03),
+                          ('1000-10000', 0.02),
+                          ('10000-100000', 0.0),
+                          ('100000-10000000', 0.0)])
+        f = drawImpactScale(ranges, 'fatality', debug=False)
+        outfile = os.path.join(homedir, 'test2.png')
         f.savefig(outfile)
         plt.close(f)
-        data = open(outfile,'rb').read()
+        data = open(outfile, 'rb').read()
         m = hashlib.md5()
         m.update(data)
         print('Testing first fatality plot is consistent with prior results...')
         assert m.digest() == testhash2
         print('Passed.')
 
-        ranges = OrderedDict([('0-1',0.1),
-                          ('1-10',0.6),
-                          ('10-100',0.25),
-                          ('100-1000',0.03),
-                          ('1000-10000',0.02),
-                          ('10000-100000',0.0),
-                          ('100000-10000000',0.0)])
-        f = drawImpactScale(ranges,'fatality',debug=False)
-        outfile = os.path.join(homedir,'test3.png')
+        ranges = OrderedDict([('0-1', 0.1),
+                          ('1-10', 0.6),
+                          ('10-100', 0.25),
+                          ('100-1000', 0.03),
+                          ('1000-10000', 0.02),
+                          ('10000-100000', 0.0),
+                          ('100000-10000000', 0.0)])
+        f = drawImpactScale(ranges, 'fatality', debug=False)
+        outfile = os.path.join(homedir, 'test3.png')
         f.savefig(outfile)
         plt.close(f)
-        data = open(outfile,'rb').read()
+        data = open(outfile, 'rb').read()
         m = hashlib.md5()
         m.update(data)
         print('Testing second fatality plot is consistent with prior results...')
         assert m.digest() == testhash3
         print('Passed.')
 
-        ranges = OrderedDict([('0-1',0.1),
-                          ('1-10',0.6),
-                          ('10-100',0.25),
-                          ('100-1000',0.03),
-                          ('1000-10000',0.0),
-                          ('10000-100000',0.45),
-                          ('100000-10000000',0.)])
-        f = drawImpactScale(ranges,'fatality',debug=False)
-        outfile = os.path.join(homedir,'test4.png')
+        ranges = OrderedDict([('0-1', 0.1),
+                          ('1-10', 0.6),
+                          ('10-100', 0.25),
+                          ('100-1000', 0.03),
+                          ('1000-10000', 0.0),
+                          ('10000-100000', 0.45),
+                          ('100000-10000000', 0.)])
+        f = drawImpactScale(ranges, 'fatality', debug=False)
+        outfile = os.path.join(homedir, 'test4.png')
         f.savefig(outfile)
         plt.close(f)
-        data = open(outfile,'rb').read()
+        data = open(outfile, 'rb').read()
         m = hashlib.md5()
         m.update(data)
         print('Testing third fatality plot is consistent with prior results...')

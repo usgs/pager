@@ -8,8 +8,8 @@ import sys
 
 #hack the path so that I can debug these functions if I need to
 homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
-pagerdir = os.path.abspath(os.path.join(homedir,'..','..'))
-sys.path.insert(0,pagerdir) #put this at the front of the system path, ignoring any installed shakemap stuff
+pagerdir = os.path.abspath(os.path.join(homedir, '..', '..'))
+sys.path.insert(0, pagerdir) #put this at the front of the system path, ignoring any installed shakemap stuff
 
 #third party imports 
 import numpy as np
