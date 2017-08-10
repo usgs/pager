@@ -1,7 +1,6 @@
-from collections import OrderedDict
 import numpy as np
 import math
-from scipy.special import erfc,erfcinv
+from scipy.special import erfc, erfcinv
 
 def phi(input):
     """Phi function.
@@ -23,7 +22,7 @@ def invphi(input):
     """    
     return -1 * np.sqrt(2) * erfcinv(input/0.5)
 
-def calcEmpiricalProbFromValue(G,e,value):
+def calcEmpiricalProbFromValue(G, e, value):
     """Calculate the empirical probability of a given value of loss (fatalities, dollars).
     
     :param G: 
@@ -40,7 +39,7 @@ def calcEmpiricalProbFromValue(G,e,value):
     p = phi((math.log(value) - math.log(e))/G)
     return p
 
-def calcEmpiricalValueFromProb(G,e,p):
+def calcEmpiricalValueFromProb(G, e, p):
     """ Calculate the loss value given an input probability.
     
     :param G: 
@@ -56,7 +55,7 @@ def calcEmpiricalValueFromProb(G,e,p):
     value = math.exp(G * invphi(p) + math.log(e))
     return value
 
-def calcEmpiricalProbFromRange(G,e,drange):
+def calcEmpiricalProbFromRange(G, e, drange):
     """Calculate the empirical probability of a given loss range.
     
     :param G: 
@@ -84,7 +83,7 @@ def calcEmpiricalProbFromRange(G,e,drange):
         return p
     else:
         psum = 0
-        for i in range(0,len(drange)-1):
+        for i in range(0, len(drange)-1):
             fmax = drange[i+1] + 0.00001
             fmin = drange[i] + 0.00001
             p1 = phi((math.log(fmax) - math.log(e))/G)

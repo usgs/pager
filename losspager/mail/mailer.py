@@ -1,5 +1,5 @@
 
-#stdlib imports
+# stdlib imports
 import os.path
 import smtplib
 import mimetypes
@@ -13,10 +13,10 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 import email.utils 
 
-#local imports
+# local imports
 from losspager.utils.exception import PagerException
     
-def send_message(address,subject,text,sender,smtp_servers,attachment=None,bcc=None):
+def send_message(address, subject, text, sender, smtp_servers, attachment=None, bcc=None):
     """
     Send a message to intended recipient with or without attachment.
 
@@ -47,35 +47,35 @@ def send_message(address,subject,text,sender,smtp_servers,attachment=None,bcc=No
             msg['Bcc'] = bccstr
         msgtxt = msg.as_string()
     else:
-        msgtxt = __get_encoded_message(address,subject,text,attachment,bcc=bcc)
+        msgtxt = __get_encoded_message(address, subject, text, attachment, bcc=bcc)
 
     messageSent = False
     errormsg = []
-    #let's try all of the email servers we know about before
-    #admitting defeat...
+    # let's try all of the email servers we know about before
+    # admitting defeat...
     for server in smtp_servers:
-        #print 'Trying server %s' % (server)
+        # print 'Trying server %s' % (server)
         try:
             session = smtplib.SMTP(server)
-            code,servername = session.helo()
-            session.sendmail(sender,address, msgtxt)
+            code, servername = session.helo()
+            session.sendmail(sender, address, msgtxt)
             messageSent = True
             session.quit()
             break
         except smtplib.SMTPRecipientsRefused:
-            errormsg.append({server:'Recipients refused'})
+            errormsg.append({server: 'Recipients refused'})
             continue
         except smtplib.SMTPHeloError:
-            errormsg.append({server:'Server did not respond to hello'})
+            errormsg.append({server: 'Server did not respond to hello'})
             continue
         except smtplib.SMTPSenderRefused:
-            errormsg.append({server:'Server refused sender address'})
+            errormsg.append({server: 'Server refused sender address'})
             continue
         except smtplib.SMTPDataError:
-            errormsg.append({server:'Server responded with an unexpected error code'})
+            errormsg.append({server: 'Server responded with an unexpected error code'})
             continue
         except:
-            errormsg.append({server:'Connection to server failed (possible timeout)'})
+            errormsg.append({server: 'Connection to server failed (possible timeout)'})
 
     if not messageSent:
         errstr = 'The message to %s was not sent.  The server error messages are below:' % (address)
@@ -83,11 +83,11 @@ def send_message(address,subject,text,sender,smtp_servers,attachment=None,bcc=No
             errstr = errstr + str(errdict)
         raise PagerException(str(errstr))
 
-    print 'Message sent to "%s" via smtp server %s' % (address,servername)
+    print 'Message sent to "%s" via smtp server %s' % (address, servername)
     if bcc is not None:
         print 'Bcc: %s' % ','.join(bcc)
 
-def __get_encoded_message(address,subject,text,sender,attachment,bcc=None):
+def __get_encoded_message(address, subject, text, sender, attachment, bcc=None):
     """
     Private method for encoding attachment into a MIME string.
     """
@@ -99,7 +99,7 @@ def __get_encoded_message(address,subject,text,sender,attachment,bcc=None):
     if bcc is not None:
         outer['Bcc'] = ', '.join(bcc)
 
-    #insert the text into the email as a MIMEText part...
+    # insert the text into the email as a MIMEText part...
     firstSubMsg=Message()
     firstSubMsg["Content-type"]="text/plain"
     firstSubMsg["Content-transfer-encoding"]="7bit"
@@ -136,7 +136,7 @@ def __get_encoded_message(address,subject,text,sender,attachment,bcc=None):
         msg = MIMEBase(maintype, subtype)
         msg.set_payload(fp.read())
         fp.close()
-        #Encode the payload using Base64
+        # Encode the payload using Base64
         encoders.encode_base64(msg)
 
     msg.add_header('Content-Disposition', 'attachment', filename=os.path.basename(attachment))

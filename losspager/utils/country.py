@@ -1,19 +1,18 @@
 #!/usr/bin/env python
 
-#stdlib imports
+# stdlib imports
 import os.path
 
-#third party imports
+# third party imports
 import pandas as pd
-import numpy as np
 
 class Country(object):
     def __init__(self):
-        homedir = os.path.dirname(os.path.abspath(__file__)) #where is this script?
-        excelfile = os.path.abspath(os.path.join(homedir,'..','data','countries.xlsx'))
+        homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
+        excelfile = os.path.abspath(os.path.join(homedir, '..', 'data', 'countries.xlsx'))
         self._loadFromExcel(excelfile)        
     
-    def getUSCode(self,code):
+    def getUSCode(self, code):
         """Handle US-region specific codes for California, Eastern US, and Western US.
 
         :param code:
@@ -21,17 +20,17 @@ class Country(object):
         :returns:
           840 if input is in (902,903,904), input ccode otherwise.
         """
-        if code in (902,903,904):
+        if code in (902, 903, 904):
             return 840
         else:
             return code
 
-    def _loadFromExcel(self,excelfile):
+    def _loadFromExcel(self, excelfile):
         self._dataframe = pd.read_excel(excelfile)
         idx = pd.isnull(self._dataframe['Name'])
-        self._dataframe.loc[idx,'Name'] = self._dataframe['LongName'][idx]
+        self._dataframe.loc[idx, 'Name'] = self._dataframe['LongName'][idx]
         
-    def _loadFromCSV(self,csvfile):
+    def _loadFromCSV(self, csvfile):
         """Load from a CSV file containing five columns: LongName,ISO2,ISO3,ISON,Name.
 
         NB: 
@@ -52,15 +51,15 @@ class Country(object):
         
         """
         self._dataframe = pd.read_csv(csvfile)
-        cols = ['LongName','ISO2','ISO3','ISON','Name']
+        cols = ['LongName', 'ISO2', 'ISO3', 'ISON', 'Name']
         for col in cols:
             if col not in self._dataframe.columns:
                 raise PagerException('PAGER country CSV file must contain columns: %s.' % str(cols))
 
         idx = pd.isnull(self._dataframe['Name'])
-        self._dataframe.loc[idx,'Name'] = self._dataframe['LongName'][idx]
+        self._dataframe.loc[idx, 'Name'] = self._dataframe['LongName'][idx]
 
-    def getCountry(self,value):
+    def getCountry(self, value):
         """Return a dictionary containing the country name/codes for the first country that matches the input value.
 
         N.B. 
@@ -87,16 +86,16 @@ class Country(object):
           or None if the input value does not match any known country data.
         
         """
-        emptyrow = {'Name':'Unknown',
-               'LongName':'Unknown',
-               'ISO2':'UK',
-               'ISO3':'UKN',
-               'ISON':0,
-               'Population':0}
+        emptyrow = {'Name': 'Unknown',
+               'LongName': 'Unknown',
+               'ISO2': 'UK',
+               'ISO3': 'UKN',
+               'ISON': 0,
+               'Population': 0}
         row = None
-        if isinstance(value,(int,float)):
+        if isinstance(value, (int, float)):
             row = self._dataframe[self._dataframe['ISON'] == value]
-        elif isinstance(value,str):
+        elif isinstance(value, str):
             if len(value) == 0:
                 return emptyrow
             if len(value) == 2:
