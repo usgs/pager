@@ -34,17 +34,17 @@ def unset_pending(version_folder):
     :returns:
       True if Changed, False If Alert_level Already Matches True_alert_level.
     """
-    Eventfile = Os.Path.Join(Version_folder, 'Json', 'Event.Json')
-    F = Open(Eventfile, 'Rt')
-    Jdict = Json.Load(F)
-    F.Close()
-    If Jdict['Pager']['Alert_level'] == Jdict['Pager']['True_alert_level']:
-        Return False
-    Jdict['Pager']['Alert_level'] = Jdict['Pager']['True_alert_level']
-    F = Open(Eventfile, 'Wt')
-    Json.Dump(Jdict, F)
-    F.Close()
-    Return True
+    eventfile = os.path.join(version_folder, 'json', 'event.json')
+    f = open(eventfile, 'rt')
+    jdict = json.load(f)
+    f.close()
+    if jdict['pager']['alert_level'] == jdict['pager']['true_alert_level']:
+        return false
+    jdict['pager']['alert_level'] = jdict['pager']['true_alert_level']
+    f = open(eventfile, 'wt')
+    json.dump(jdict, f)
+    f.close()
+    return True
     
 def get_id_and_source(version_folder):
     """Return the event ID and event source from given version folder.
