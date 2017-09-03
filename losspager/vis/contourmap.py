@@ -15,6 +15,7 @@ import matplotlib.patheffects as path_effects
 import cartopy.crs as ccrs  # projections
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from cartopy.feature import ShapelyFeature
+import cartopy.feature as cfeature
 from cartopy.io.shapereader import Reader
 
 from mapio.shake import ShakeGrid
@@ -347,6 +348,14 @@ def draw_contour(shakefile, popfile, oceanfile, oceangridfile, cityfile, basenam
     # draw 10m res coastlines
     ax.coastlines(resolution="10m", zorder=COAST_ZORDER);
 
+    states_provinces = cfeature.NaturalEarthFeature(
+        category='cultural',
+        name='admin_1_states_provinces_lines',
+        scale='50m',
+        facecolor='none')
+
+    ax.add_feature(states_provinces, edgecolor='black',zorder=COAST_ZORDER)
+    
     # draw country borders using natural earth data set
     if borderfile is not None:
         borders = ShapelyFeature(Reader(borderfile).geometries(),

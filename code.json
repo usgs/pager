@@ -1,0 +1,32 @@
+{
+  "name": "pager",
+  "organization": "U.S. Geological Survey",
+  "description": "REPOSITORY_DESCRIPTION",
+  "status": "Beta",
+  "homepage": "https://github.com/usgs/pager",
+  "downloadURL": "https://github.com/usgs/pager/archive/master.zip",
+
+  "openSourceProject": 1,
+  "license": "https://github.com/usgs/pager/blob/master/LICENSE.md",
+  "vcs": "git",
+  "repository": "https://github.com/usgs/pager.git",
+
+  "tags": [
+    "earthquake",
+    "impact",
+    "losses",
+    "fatalities"
+  ],
+  "languages": [
+    "python",
+    "latex"
+  ],
+
+  "contact": {
+    "name": "Mike Hearne",
+    "email": "mhearne@usgs.gov"
+  },
+  "updated": {
+    "metadataLastUpdated": "2017-08-30"
+  }
+}

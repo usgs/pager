@@ -214,7 +214,7 @@ class PagerData(object):
         self._pagerdict['economic_exposure'] = self._setEconomicExposure()
         self._pagerdict['model_results'] = self._setModelResults()
         print('In pagerdata, getting city table.')
-        self._pagerdict['city_table'] = self._getCityTable()
+        self._pagerdict['city_table'],self._pagerdict['map_cities'] = self._getCityTable()
         print('In pagerdata, getting historical earthquakes.')
         self._pagerdict['historical_earthquakes'] = self._getHistoricalEarthquakes()
         print('In pagerdata, getting comments.')
@@ -612,11 +612,12 @@ class PagerData(object):
         f = open(loss_info_file, 'wt')
         json_dump_nonan(self._pagerdict['model_results'], f)
         f.close()
-
-        # one file for the table of affected cities
+      
+        # one file for the table of "PAGER" cities, and then all cities inside
+        # the bounds of the map
         city_file = os.path.join(jsonfolder, 'cities.json')
         f = open(city_file, 'wt')
-        self._pagerdict['city_table'].to_json(f, orient='records')
+        self._pagerdict['map_cities'].to_json(f,orient='records')
         f.close()
 
         # one file for the table of historical earthquakes (if any)
@@ -714,16 +715,16 @@ class PagerData(object):
     def __renderCities(self, pager):
         #<city name="Kirakira" lat="-10.454420" lon="161.920450" population="1122" mmi="3.500000" iscapital="0"/>
         # The javascript that renders this draws nothing if the number of cities is 11 or less, so let's add a dummy city
-        # at the end that will be ignored.
-        dummy_row = pd.Series({'iscap': 0,
-                               'lat': 0.0,
-                               'lon': 0.0,
-                               'mmi': 0.0,
-                               'name': '',
-                               'pop': 0})
+        # # at the end that will be ignored.
+        # dummy_row = pd.Series({'iscap': 0,
+        #                        'lat': 0.0,
+        #                        'lon': 0.0,
+        #                        'mmi': 0.0,
+        #                        'name': '',
+        #                        'pop': 0})
         
-        temptable = self._pagerdict['city_table'].append(dummy_row, ignore_index=True)
-        for idx, city in temptable.iterrows():
+        #temptable = self._pagerdict['city_table'].append(dummy_row, ignore_index=True)
+        for idx, city in self._pagerdict['map_cities'].iterrows():
             cdict = {'name': city['name'],
                      'lat': '%.4f' % city['lat'],
                      'lon': '%.4f' % city['lon'],
@@ -1078,7 +1079,7 @@ class PagerData(object):
         exposure['maximum_border_mmi'] = self._exposure['maximum_border_mmi']
         country_exposures = []
         for ccode, exparray in self._exposure.items():
-            if ccode == 'TotalExposure' or 'maximum_border_mmi':
+            if ccode == 'TotalExposure' or ccode == 'maximum_border_mmi':
                 continue
             expdict = OrderedDict()
             expdict['country_code'] = ccode
@@ -1164,6 +1165,28 @@ class PagerData(object):
 
     def _getCityTable(self):
         cities = Cities.loadFromGeoNames(self._city_file)
+        map_cities = cities.limitByBounds(self._shakegrid.getBounds()).getDataFrame()
+        lat = map_cities['lat'].as_matrix()
+        lon = map_cities['lon'].as_matrix()
+        mmigrid = self._shakegrid.getLayer('mmi') #grid2d object
+        mmi = mmigrid.getValue(lat,lon,default=np.nan)
+        map_cities['mmi'] = mmi
+        map_cities['on_map'] = 0
+        
         pcities = PagerCities(cities, self._shakegrid.getLayer('mmi'))
         city_table = pcities.getCityTable(self._map_cities)
-        return city_table
+
+        #loop over this dataframe, get MMI value from self._shakegrid.
+        #remove duplicates with cities in self._pagerdict['city_table'] (by name?)
+        for idx,row in city_table.iterrows():
+            rowidx = map_cities[map_cities['name'] == row['name']].index
+            map_cities.loc[rowidx[0],'on_map'] = row['on_map']
+
+        #order the dataframe so that cities in the city table are first
+        #(in the order they occur there)
+        table_index = city_table.index
+        cities_index = map_cities.index
+        remainder = [idx for idx in cities_index if idx not in table_index]
+        new_index = pd.Int64Index(table_index.tolist()+remainder)
+        map_cities = map_cities.reindex(new_index)
+        return (city_table,map_cities)
