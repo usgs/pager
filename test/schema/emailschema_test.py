@@ -36,7 +36,7 @@ def test_create_db(userfile=None, orgfile=None):
     region = {'name': 'UNSOUEU'}
     profile = {'regions': [region],
                'thresholds': [threshold]}
-    address = {'email': 'lex@luthorcorp.com',
+    address = {'email': 'smartguy@evilvillains.com',
                'is_primary': True,
                'priority': 1,
                'format': 'long',
@@ -103,7 +103,7 @@ def test_user_serialization():
     region = {'name': 'UN_Regions-UNSOUEU'}
     profile = {'regions': [region],
                'thresholds': [threshold]}
-    address = {'email': 'lex@luthorcorp.com',
+    address = {'email': 'smartguy@evilvillains.com',
                'is_primary': True,
                'priority': 1,
                'format': 'long',
@@ -222,7 +222,7 @@ def test_delete_cascade():
     region = {'name': 'UN_Regions-UNSOUEU'}
     profile = {'regions': [region],
                'thresholds': [threshold]}
-    address = {'email': 'lex@luthorcorp.com',
+    address = {'email': 'smartguy@evilvillains.com',
                'is_primary': True,
                'priority': 1,
                'format': 'long',
