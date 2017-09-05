@@ -622,10 +622,12 @@ if __name__ == '__main__':
                            help=archive_str, metavar='EVENT')
     argparser.add_argument("--restore", nargs='*',
                            help='Restore events from archive.  Passing "all" will restore all events from the archive.', metavar='EVENT')
-    argparser.add_argument("--stop", 
+
+    argparser.add_argument("--stop",
                            help="Prevent event(s) from being re-run automatically.",
                            metavar='EVENT')
-    argparser.add_argument("--unstop", 
+    argparser.add_argument("--unstop",
+
                            help="Allow stopped event(s) to be re-run automatically.",
                            metavar='EVENT')
     argparser.add_argument("--status", choices=['check', 'primary', 'secondary'],

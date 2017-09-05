@@ -10,6 +10,7 @@ from openquake.hazardlib.geo.geodetic import geodetic_distance
 
 # local imports
 from losspager.models.emploss import EmpiricalLoss
+from losspager.models.semimodel import SemiEmpiricalFatality
 from losspager.models.econexposure import GDP
 from losspager.utils.country import Country
 from losspager.utils.compass import get_compass_dir
@@ -286,15 +287,37 @@ def get_structure_comment(resfat, nonresfat, semimodel):
         resfatdict = resfat[ccode]
         nonresfatdict = nonresfat[ccode]
         resfatsum = np.array(list(resfatdict.values())).sum()
-        nonresfatsum = np.array(list(resfatdict.values())).sum()
+        nonresfatsum = np.array(list(nonresfatdict.values())).sum()
         fatsum = resfatsum + nonresfatsum
         if fatsum >= maxfat:
             maxfat = fatsum
             maxccode = ccode
 
-    # get a pandas Series of all the unique building types in the 
-    # country of greatest impact, sorted by losses (high to low).
-    stypes = _add_dicts(resfat[maxccode], nonresfat[maxccode])
+    if fatsum == 0:
+        RURAL = 1
+        URBAN = 2
+        semi = SemiEmpiricalFatality.fromDefault()
+        all_collapse_by_btype = pd.Series({})
+        #get the inventories in this ccode for both densities and
+        #both residency classes
+        res_urban_inv,non_res_urban_inv = semi.getInventories(maxccode,URBAN)
+        res_rural_inv,non_res_rural_inv = semi.getInventories(maxccode,RURAL)
+        #find unique building types from these four Series
+        urban_inv_keys = set(res_urban_inv.index).union(set(non_res_urban_inv.index))
+        rural_inv_keys = set(res_rural_inv.index).union(set(non_res_rural_inv.index))
+        inv_keys = set(urban_inv_keys).union(set(rural_inv_keys))
+        null_inventory = pd.Series(dict.fromkeys(inv_keys,0.0))
+        collapse_by_btype = pd.Series(dict.fromkeys(inv_keys,0.0))
+        for mmi in np.arange(6.0,9.5,0.5):
+            collapse = semi.getCollapse(ccode,mmi,null_inventory)
+            collapse_by_btype += collapse
+
+        collapse_by_btype.sort_values(ascending=False,inplace=True)
+        stypes = collapse_by_btype[0:2]
+    else:
+        # get a pandas Series of all the unique building types in the 
+        # country of greatest impact, sorted by losses (high to low).
+        stypes = _add_dicts(resfat[maxccode], nonresfat[maxccode])
         
     pregions = PagerRegions()
     regioncode = pregions.getRegion(maxccode)
