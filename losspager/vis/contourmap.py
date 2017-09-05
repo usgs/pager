@@ -268,7 +268,11 @@ def draw_contour(shakefile, popfile, oceanfile, oceangridfile, cityfile, basenam
     # load the shakemap - for the time being, we're interpolating the 
     # population data to the shakemap, which would be important
     # if we were doing math with the pop values.  We're not, so I think it's ok.
-    shakegrid = ShakeGrid.load(shakefile, adjust='res')
+    popdict,tmp = GDALGrid.getFileGeoDict(popfile)
+    shakedict = ShakeGrid.getFileGeoDict(shakefile)
+    sampledict = popdict.getBoundsWithin(shakedict)
+    shakegrid = ShakeGrid.load(shakefile, samplegeodict=sampledict, resample=True,
+                               method='linear', adjust='res')
     gd = shakegrid.getGeoDict()
 
     # Retrieve the epicenter - this will get used on the map
@@ -276,7 +280,7 @@ def draw_contour(shakefile, popfile, oceanfile, oceangridfile, cityfile, basenam
     center_lon = shakegrid.getEventDict()['lon']
 
     # Load the population data, sample to shakemap
-    popgrid = GDALGrid.load(popfile, samplegeodict=gd, resample=True)
+    popgrid = GDALGrid.load(popfile, samplegeodict=gd, resample=False)
 
     # load the ocean grid file (has 1s in ocean, 0s over land)
     # having this file saves us almost 30 seconds!
