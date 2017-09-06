@@ -241,13 +241,13 @@ def _get_open_corner(popgrid, ax, filled_corner=None, need_bottom=True):
     if imin == 3:
         return urbounds, 'ur'
 
-def draw_contour(shakefile, popfile, oceanfile, oceangridfile, cityfile, basename, borderfile=None, is_scenario=False):
+def draw_contour(shakegrid, popgrid, oceanfile, oceangridfile, cityfile, basename, borderfile=None, is_scenario=False):
     """Create a contour map showing population (greyscale) underneath contoured MMI.
 
-    :param shakefile:
-      String path to ShakeMap grid.xml file.
-    :param popfile:
-      String path to GDALGrid-compliant file containing population data.
+    :param shakegrid:
+      ShakeGrid object.
+    :param popgrid:
+      Grid2D object containing population data.
     :param oceanfile:
       String path to file containing ocean vector data in a format compatible with fiona.
     :param oceangridfile:
@@ -265,22 +265,11 @@ def draw_contour(shakefile, popfile, oceanfile, oceangridfile, cityfile, basenam
         - Name of PNG file created, or None if PNG output not specified.
         - Cities object containing the cities that were rendered on the contour map.
     """
-    # load the shakemap - for the time being, we're interpolating the 
-    # population data to the shakemap, which would be important
-    # if we were doing math with the pop values.  We're not, so I think it's ok.
-    popdict,tmp = GDALGrid.getFileGeoDict(popfile)
-    shakedict = ShakeGrid.getFileGeoDict(shakefile)
-    sampledict = popdict.getBoundsWithin(shakedict)
-    shakegrid = ShakeGrid.load(shakefile, samplegeodict=sampledict, resample=True,
-                               method='linear', adjust='res')
     gd = shakegrid.getGeoDict()
 
     # Retrieve the epicenter - this will get used on the map
     center_lat = shakegrid.getEventDict()['lat']
     center_lon = shakegrid.getEventDict()['lon']
-
-    # Load the population data, sample to shakemap
-    popgrid = GDALGrid.load(popfile, samplegeodict=gd, resample=False)
 
     # load the ocean grid file (has 1s in ocean, 0s over land)
     # having this file saves us almost 30 seconds!

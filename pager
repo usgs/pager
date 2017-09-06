@@ -474,7 +474,9 @@ def main(pargs, config):
         oceangrid = config['model_data']['ocean_grid']
         cityfile = config['model_data']['city_file']
         borderfile = config['model_data']['border_vectors']
-        pdf_file, png_file, mapcities = draw_contour(gridfile, popfile,
+        shake_grid = expomodel.getShakeGrid()
+        pop_grid = expomodel.getPopulationGrid()
+        pdf_file, png_file, mapcities = draw_contour(shake_grid, pop_grid,
                                          oceanfile, oceangrid, cityfile,
                                          exposure_base, borderfile, is_scenario=is_scenario)
         _print_message(plog, 'Generated exposure map %s' % pdf_file)
