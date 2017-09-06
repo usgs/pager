@@ -88,7 +88,13 @@ def test():
 
     tdir = tempfile.mkdtemp()
     basename = os.path.join(tdir, 'output')
-    pdffile, pngfile, mapcities = draw_contour(shakefile, popfile, oceanfile, oceangridfile, cityfile, basename)
+
+    exp = Exposure(popfile, 2012, isofile)
+    results = exp.calcExposure(shakefile)
+    shakegrid = exp.getShakeGrid()
+    popgrid = exp.getPopulationGrid()
+    
+    pdffile, pngfile, mapcities = draw_contour(shakegrid, popgrid, oceanfile, oceangridfile, cityfile, basename)
     shutil.rmtree(tdir)
     
     popyear = 2012
