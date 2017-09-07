@@ -395,7 +395,7 @@ def draw_contour(shakegrid, popgrid, oceanfile, oceangridfile, cityfile, basenam
     # clabel method won't allow text to appear, which is this case is kind of ok, because
     # it allows us an easy way to draw MMI labels as roman numerals.
     cs_land = plt.contour(contourx, contoury, np.flipud(oceanmask),
-                          linewidths=0.0, levels=np.arange(0, 11),
+                          linewidths=0.0, levels=np.arange(0, 11),alpha=0.0,
                           zorder=CLABEL_ZORDER, transform=geoproj)
     
     clabel_text = ax.clabel(cs_land, np.arange(0, 11), colors='k', zorder=CLABEL_ZORDER, fmt='%.0f', fontsize=40)
