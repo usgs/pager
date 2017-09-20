@@ -617,7 +617,11 @@ class PagerData(object):
         # the bounds of the map
         city_file = os.path.join(jsonfolder, 'cities.json')
         f = open(city_file, 'wt')
-        self._pagerdict['map_cities'].to_json(f,orient='records')
+        pdf_cities = json.loads(self._pagerdict['city_table'].to_json(orient='records'))
+        all_cities = json.loads(self._pagerdict['map_cities'].to_json(orient='records'))
+        cities = {'all_cities':all_cities,
+                  'onepager_cities':pdf_cities}
+        json.dump(cities,f)
         f.close()
 
         # one file for the table of historical earthquakes (if any)
@@ -902,7 +906,9 @@ class PagerData(object):
 
         # load in the information about affected cities
         f = open(os.path.join(jsonfolder, 'cities.json'), 'rt')
-        self._pagerdict['city_table'] = pd.read_json(f)
+        city_stuff = json.load(f)
+        self._pagerdict['city_table'] = pd.DataFrame(city_stuff['onepager_cities'])
+        self._pagerdict['map_cities'] = pd.DataFrame(city_stuff['all_cities'])
         f.close()
 
         # load in the information about historical earthquakes

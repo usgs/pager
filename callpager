@@ -80,8 +80,14 @@ def process_shakemap(args, config):
 
     # Use lat,lon and source to exclude ShakeMap providers who are playing outside their sandbox
     logfile.write('Checking for authoritativeness...\n\n')
-    gs = GeoServe(args.lat, args.lon)
-    authsrc, authtype = gs.getAuthoritative()
+    # we'll default to letting the event run if we can't figure out who's authoritative
+    authtype == 'anss'
+    authsrc = args.source
+    try:
+        gs = GeoServe(args.lat, args.lon)
+        authsrc, authtype = gs.getAuthoritative()
+    except Exception as e:
+        logfile.write('Unable to connect to GeoServe, assuming "%s" is authoritative.\n\n' % args.source)
     if authtype != 'anss':
         authsrc = 'us'
     is_authoritative = authsrc.lower() == args.source.lower()
