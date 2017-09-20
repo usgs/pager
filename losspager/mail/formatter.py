@@ -202,6 +202,7 @@ def format_long(version, pdata, expstr, event_url, past_email_deadline=False):
     if eventinfo['tsunami']:
         tsunami_comment = '\nFOR TSUNAMI INFORMATION, SEE: tsunami.gov\n'
     cityinfo = pdata._pagerdict['city_table']
+    cityinfo = cityinfo.head(min(11,len(cityinfo)))
     city_table = format_city_table(cityinfo)
     historical_earthquakes = format_earthquakes(pdata.getHistoricalTable())
     if version.released:
