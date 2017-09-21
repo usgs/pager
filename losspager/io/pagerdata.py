@@ -907,8 +907,13 @@ class PagerData(object):
         # load in the information about affected cities
         f = open(os.path.join(jsonfolder, 'cities.json'), 'rt')
         city_stuff = json.load(f)
-        self._pagerdict['city_table'] = pd.DataFrame(city_stuff['onepager_cities'])
-        self._pagerdict['map_cities'] = pd.DataFrame(city_stuff['all_cities'])
+        if isinstance(city_stuff,list):
+            self._pagerdict['city_table'] = pd.DataFrame(city_stuff).head(11)
+            self._pagerdict['map_cities'] = pd.DataFrame(city_stuff)
+        else:
+            self._pagerdict['city_table'] = pd.DataFrame(city_stuff['onepager_cities'])
+            self._pagerdict['map_cities'] = pd.DataFrame(city_stuff['all_cities'])
+        
         f.close()
 
         # load in the information about historical earthquakes
