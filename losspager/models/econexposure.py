@@ -48,7 +48,7 @@ class GDP(object):
         :returns:
           GDP instance.
         """
-        df = pd.read_excel(excelfile, sheetname='Data', header=3)
+        df = pd.read_excel(excelfile, sheet_name='Data', header=3)
         return cls(df)
 
     def getGDP(self, ccode, year):
