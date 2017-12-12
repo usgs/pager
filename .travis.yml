@@ -1,25 +1,13 @@
 language: python
+sudo: false
 python:
-    - "3.5"
-    
+    - "3.6"
+
 install:
-    #------------------
-    # Base requirements
-    #------------------
-    - sudo apt-get update
-    - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-    - bash miniconda.sh -b -p $HOME/miniconda
+    # Install pager and requirements
+    - bash install.sh
     - export PATH="$HOME/miniconda/bin:$PATH"
-    - conda config --set always_yes yes --set changeps1 no
-    - conda update -q conda
-    - conda info -a
-    - bash setup_env.sh
     - source activate pager
-    #---------------------
-    # Install pager
-    #---------------------
-    #- pip install .
-    - python setup.py install
 before_script:
     # This is to take care of Invalid DISPLAY variable
     - "export DISPLAY=:99.0"
@@ -27,8 +15,7 @@ before_script:
     - sleep 3 # give xvfb some time to start
 script:
     - export PYTHONPATH="."
-    - echo `which py.test`
-    - py.test --mpl --cov=losspager
+    - py.test --cov=.
     - echo `sphinx-build --version`
 after_success:
     - pip install codecov codacy-coverage

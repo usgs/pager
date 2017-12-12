@@ -1,0 +1,53 @@
+name: pager
+channels:
+- conda-forge
+- defaults
+- digitalglobe
+- ioos
+dependencies:
+- beautifulsoup4
+- cartopy
+- cython
+- decorator
+- descartes
+- docutils
+- fiona
+- flake8
+- gdal
+- h5py
+- hypothesis
+- jupyter
+# Need to restrict matplotlib to <2.0
+# because of a change in how contour works
+- matplotlib<2.0
+- mock
+- nose
+- openpyxl
+- pandas
+- paramiko
+- pycrypto
+- pyproj
+- pytables
+- pytest
+- pytest-cov
+- pytest-mpl
+- pyyaml
+- rasterio
+- rtree
+- scipy
+- shapely
+- sqlalchemy
+- sqlalchemy-utils
+- xlrd
+- xlwt
+- pip:
+  - et-xmlfile
+  - ipython-genutils
+  - jupyter-client
+  - jupyter-console
+  - jupyter-core
+  - prompt-toolkit
+  - tables
+  - ./mapio.zip
+  - ./impact-utils.zip
+
