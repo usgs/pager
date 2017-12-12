@@ -13,6 +13,8 @@ while getopts r FLAG; do
   esac
 done
 
+echo "reset: $reset"
+
 # Is conda installed?
 conda=$(which conda)
 if [ ! "$conda" ] ; then
@@ -35,11 +37,12 @@ fi
 # If the user has specified the -r (reset) flag, then create an
 # environment based on only the named dependencies, without
 # any versions of packages specified.
-if [ $reset eq 1 ]; then
+if [ $reset == 1 ]; then
     echo "Ignoring platform, letting conda sort out dependencies..."
     env_file=environment.yml
 fi
 
+echo "Environment file: $env_file"
 
 # Turn off whatever other virtual environment user might be in
 source deactivate

@@ -29,6 +29,7 @@ dependencies:
 - pycrypto
 - pyproj
 - pytables
+- python=3.5
 - pytest
 - pytest-cov
 - pytest-mpl
