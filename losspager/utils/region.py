@@ -29,18 +29,18 @@ class PagerRegions(object):
           The 'comment' column should have a string in the first row under the header containing a description
           of building vulnerability in that region.
         """
-        self._region1 = pd.read_excel(excelfile, sheetname='Region1')['codes'].tolist()
-        self._region2 = pd.read_excel(excelfile, sheetname='Region2')['codes'].tolist()
-        self._region3 = pd.read_excel(excelfile, sheetname='Region3')['codes'].tolist()
-        self._region4 = pd.read_excel(excelfile, sheetname='Region4')['codes'].tolist()
-        self._region5 = pd.read_excel(excelfile, sheetname='Region5')['codes'].tolist()
-        self._region6 = pd.read_excel(excelfile, sheetname='Region6')['codes'].tolist()
-        self._comments = {1: str(pd.read_excel(excelfile, sheetname='Region1')['comment'][0]),
-                          2: str(pd.read_excel(excelfile, sheetname='Region2')['comment'][0]),
-                          3: str(pd.read_excel(excelfile, sheetname='Region3')['comment'][0]),
-                          4: str(pd.read_excel(excelfile, sheetname='Region4')['comment'][0]),
-                          5: str(pd.read_excel(excelfile, sheetname='Region5')['comment'][0]),
-                          6: str(pd.read_excel(excelfile, sheetname='Region6')['comment'][0]),
+        self._region1 = pd.read_excel(excelfile, sheet_name='Region1')['codes'].tolist()
+        self._region2 = pd.read_excel(excelfile, sheet_name='Region2')['codes'].tolist()
+        self._region3 = pd.read_excel(excelfile, sheet_name='Region3')['codes'].tolist()
+        self._region4 = pd.read_excel(excelfile, sheet_name='Region4')['codes'].tolist()
+        self._region5 = pd.read_excel(excelfile, sheet_name='Region5')['codes'].tolist()
+        self._region6 = pd.read_excel(excelfile, sheet_name='Region6')['codes'].tolist()
+        self._comments = {1: str(pd.read_excel(excelfile, sheet_name='Region1')['comment'][0]),
+                          2: str(pd.read_excel(excelfile, sheet_name='Region2')['comment'][0]),
+                          3: str(pd.read_excel(excelfile, sheet_name='Region3')['comment'][0]),
+                          4: str(pd.read_excel(excelfile, sheet_name='Region4')['comment'][0]),
+                          5: str(pd.read_excel(excelfile, sheet_name='Region5')['comment'][0]),
+                          6: str(pd.read_excel(excelfile, sheet_name='Region6')['comment'][0]),
                           }
         
                          
