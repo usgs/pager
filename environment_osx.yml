@@ -183,6 +183,7 @@ dependencies:
 - zeromq=4.2.1=1
 - zlib=1.2.11=0
 - bcrypt=3.1.4=py36ha287206_0
+- 5.4.0-py36_0
 - pip:
   - argon2-cffi==16.3.0
   - et-xmlfile==1.0.1
@@ -195,4 +196,3 @@ dependencies:
   - tables==3.4.2
   - ./mapio.zip
   - ./impact-utils.zip
-
