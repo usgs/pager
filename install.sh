@@ -49,9 +49,9 @@ source deactivate
 
 # Download dependencies not in conda or pypi
 curl --max-time 60 --retry 3 -L \
-    https://github.com/usgs/earthquake-impact-utils/archive/master.zip -o impact-utils.zip
+    https://github.com/usgs/earthquake-impact-utils/archive/0.7.zip -o impact-utils.zip
 curl --max-time 60 --retry 3 -L \
-    https://github.com/usgs/MapIO/archive/master.zip -o mapio.zip
+    https://github.com/usgs/MapIO/archive/0.7.1.zip -o mapio.zip
 
 
 # Create a conda virtual environment
@@ -62,7 +62,7 @@ if [ $? -ne 0 ]; then
     echo "Failed to create conda environment.  Resolve any conflicts, then try again."
     echo "Cleaning up zip files..."
     rm impact-utils.zip
-    rm libcomcat.zip
+    rm mapio.zip
     exit
 fi
 
@@ -75,23 +75,12 @@ source activate $VENV
 # because the requirements are too narrow to work with our other dependencies,
 # but the openquake.hazardlib tests pass with this environment. We need to
 # remember to check this when we change the environemnt.yml file though.
-
-# Conda version
-
-# conda install -y --no-deps -c conda-forge openquake.engine
-
-# Pip version
-
-curl --max-time 60 --retry 3 -L \
-    https://github.com/gem/oq-engine/archive/v2.8.0.zip -o openquake.zip
-pip -q install --no-deps openquake.zip
-rm openquake.zip
+conda install -y --no-deps -c conda-forge openquake.engine
 
 
 # Clean up downloaded packages
 rm impact-utils.zip
-rm libcomcat.zip
-
+rm mapio.zip
 
 # This package
 echo "Installing pager..."
