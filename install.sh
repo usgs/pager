@@ -24,7 +24,6 @@ if [ ! "$conda" ] ; then
     export PATH="$HOME/miniconda/bin:$PATH"
 fi
 
-
 # Choose OS-specific environment file, which specifies
 # exact versions of all dependencies.
 unamestr=`uname`
@@ -46,6 +45,9 @@ echo "Environment file: $env_file"
 
 # Turn off whatever other virtual environment user might be in
 source deactivate
+
+# update the conda tool
+conda update conda -y
 
 # Download dependencies not in conda or pypi
 curl --max-time 60 --retry 3 -L \
