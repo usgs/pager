@@ -1,7 +1,6 @@
 name: pager
 channels:
 - conda-forge
-- anaconda
 - defaults
 - digitalglobe
 - ioos
