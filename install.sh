@@ -47,7 +47,7 @@ echo "Environment file: $env_file"
 source deactivate
 
 # update the conda tool
-conda update conda -y
+conda install conda=4.3.31 -y
 
 # Download dependencies not in conda or pypi
 curl --max-time 60 --retry 3 -L \
