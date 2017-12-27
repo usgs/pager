@@ -77,8 +77,15 @@ source activate $VENV
 # because the requirements are too narrow to work with our other dependencies,
 # but the openquake.hazardlib tests pass with this environment. We need to
 # remember to check this when we change the environemnt.yml file though.
-conda install -y --no-deps -c conda-forge openquake.engine
+conda install -y --force -c conda-forge openquake.engine
 
+if [ $? -ne 0 ]; then
+    echo "Failed to install openquake.  Resolve any conflicts, then try again."
+    echo "Cleaning up zip files..."
+    rm impact-utils.zip
+    rm mapio.zip
+    exit
+fi
 
 # Clean up downloaded packages
 rm impact-utils.zip
