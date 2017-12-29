@@ -50,10 +50,22 @@ source deactivate
 conda install conda=4.3.31 -y
 
 # Download dependencies not in conda or pypi
-curl --max-time 60 --retry 3 -L \
-    https://github.com/usgs/earthquake-impact-utils/archive/0.7.zip -o impact-utils.zip
-curl --max-time 60 --retry 3 -L \
-    https://github.com/usgs/MapIO/archive/0.7.1.zip -o mapio.zip
+# Since we have SO many issues downloading zip files from github, I'm putting
+# in a hack here to allow the developer to pre-download the zip files
+# by hand in the repo directory.  Grr.
+if [ ! -f impact-utils.zip ]; then
+    curl --max-time 60 --retry 3 -L \
+         https://github.com/usgs/earthquake-impact-utils/archive/0.8.zip -o impact-utils.zip
+else
+    echo "Skipping impact-utils.zip download, already present..."
+fi
+
+if [ ! -f mapio.zip ]; then
+    curl --max-time 60 --retry 3 -L \
+         https://github.com/usgs/MapIO/archive/0.7.2.zip -o mapio.zip
+else
+    echo "Skipping mapio.zip download, already present..."
+fi
 
 
 # Create a conda virtual environment
