@@ -5,6 +5,7 @@ import os.path
 
 # third party imports
 import pandas as pd
+import numpy as np
 
 class Country(object):
     def __init__(self):
@@ -93,7 +94,7 @@ class Country(object):
                'ISON': 0,
                'Population': 0}
         row = None
-        if isinstance(value, (int, float)):
+        if isinstance(value, (int, float,np.number)):
             row = self._dataframe[self._dataframe['ISON'] == value]
         elif isinstance(value, str):
             if len(value) == 0:

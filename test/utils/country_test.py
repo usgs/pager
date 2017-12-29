@@ -59,6 +59,19 @@ def test():
     assert row5 == faildict
     print('Test failed as expected...')
 
+    # test multiple kinds of numbers...
+    print('Make sure all kinds of numpy numbers are supported...')
+    numbers = [840,840.0,
+               np.int16(840),np.uint16(840),
+               np.int32(840),np.uint32(840),
+               np.int64(840),np.uint64(840),
+               np.float32(840),np.float64(840)]
+    for number in numbers:
+        row_t = country.getCountry(number)
+        assert row_t == testdict
+
+    print('Passed numpy numbers test.')
+
 
 if __name__ == '__main__':
     test()
