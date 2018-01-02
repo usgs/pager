@@ -881,14 +881,23 @@ def delete_user(session, userinfo, config):
             if address.is_primary:
                 primary_email = address.email
                 break
+
+        # delete the user from the database
+        try:
+            session.delete(user)
+            session.commit()
+        except Exception as e:
+            print('Failed to delete user due to error "%s"' % str(e))
+            sys.exit(1)
+            
+        # append the deletion info to our records
         row = {'Name': '%s %s' % (user.firstname, user.lastname),
                'Email': primary_email,
                'Reason': reason}
         userdf = userdf.append(row, ignore_index=True)
         userdf.to_excel(userfile)
         print('Syncing deletion to %s' % userfile)
-        session.delete(user)
-        session.commit()
+        
         res = True
         msg = 'One user deleted.'
 
