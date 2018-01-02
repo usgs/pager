@@ -49,8 +49,12 @@ address_region_bridge = Table('address_region_bridge', Base.metadata,
 # link the version and address tables 
 # sendtime column keeps track of who got notified about what when
 version_address_bridge = Table('version_address_bridge', Base.metadata,
-                               Column('version_id', Integer, ForeignKey('version.id')),
-                               Column('address_id', Integer, ForeignKey('address.id')),
+                               Column('version_id', Integer,
+                                      ForeignKey('version.id'),
+                                      primary_key = True,),
+                               Column('address_id', Integer,
+                                      ForeignKey('address.id'),
+                                      primary_key = True),
                                Column('sendtime', DateTime))
 
 profile_region_bridge = Table('profile_region_bridge', Base.metadata,
