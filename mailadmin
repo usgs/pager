@@ -41,6 +41,15 @@ TIMEFMT = '%Y%m%d%H%M%S'
 DATEFMT = '%Y-%m-%d'
 DATETIMEFMT = '%Y-%m-%d %H:%M:%S'
 
+# how wide can the dataframes we print to the screen get before
+# being truncated?
+DATAFRAME_DISPLAY_WIDTH = 1000
+
+# how many rows of a dataframe can we show before they
+# are truncated?
+DATAFRAME_DISPLAY_LENGTH = 100000
+
+
 VERSION_COLUMNS = ['EventID',
                    'Impacted Country ($)',
                    'Version',
@@ -923,8 +932,8 @@ def do_status(status, admin):
     return msg
                         
 def main(args):
-    pd.set_option('display.width', 1000)
-    pd.set_option('display.max_rows', 1000)
+    pd.set_option('display.width', DATAFRAME_DISPLAY_WIDTH)
+    pd.set_option('display.max_rows', DATAFRAME_DISPLAY_LENGTH)
     
     config = read_mail_config()
     dburl = config['email']['database']['url']
@@ -1314,7 +1323,7 @@ email addresses associated with the users to export.""")
     argparser.add_argument("--query", nargs='*', default=False,
                            help='Query the database for events.  Params are [START/all/recent [MAG [ALERT [END]]]]')
     argparser.add_argument("--event-history", metavar='EVENTID',
-                           help='Display the version history of given vent.')
+                           help='Display the version history of given event.')
     argparser.add_argument("--event-notification-history", metavar='EVENTID',
                            help='List all addresses notified for each version of a given event.')
     argparser.add_argument("--user-notification-history", metavar='EMAIL',
