@@ -63,7 +63,8 @@ def get_id_and_source(version_folder):
     return (eventid, source)
 
 def transfer(config, pagerdata, authid, authsource, version_folder,
-                 renotify=False, release=False, force_email=False):
+                 renotify=False, release=False, force_email=False,
+                 is_scenario=False):
     """Call all relevant transfer methods specified in config.
     
     :param config:
@@ -100,6 +101,8 @@ def transfer(config, pagerdata, authid, authsource, version_folder,
                         sys.stderr.write('Method %s requested but not configured...Skipping.' % method)
                         continue
                     params = config['transfer'][method]
+                    if is_scenario:
+                        params['type'] = 'losspager-scenario'
                     if 'remote_directory' in params:
                         vpath, vfolder = os.path.split(version_folder)
                         # append the event id and version folder to our pre-specified output directory

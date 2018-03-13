@@ -532,7 +532,8 @@ def main(pargs, config):
             message_pager(config, onepager_pdf, doc)
         
         # run transfer, as appropriate and as specified by config
-        res, msg = transfer(config, doc, authid, authsource, version_folder)
+        res, msg = transfer(config, doc, authid, authsource,
+                            version_folder,is_scenario=is_scenario)
         _print_message(plog, msg)
         if not res:
             pass
