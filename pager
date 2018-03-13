@@ -363,6 +363,14 @@ def main(pargs, config):
         shakemap_type = shake_tuple[0]['shakemap_event_type']
         if shakemap_type == 'SCENARIO':
             is_scenario = True
+
+        # if event is NOT a scenario and event time is in the future,
+        # flag the event as a scenario and yell about it.
+        if etime > datetime.datetime.utcnow():
+            is_scenario = True
+            print('Event origin time is in the future! Flagging this as a scenario.')
+
+        if is_scenario:
             if re.search('scenario', location.lower()) is None:
                 location = 'Scenario '+location
             
