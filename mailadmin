@@ -1200,7 +1200,7 @@ def main(args):
 
     if args.show_user:
         email = args.show_user
-        address = session.query(emailschema.Address).filter(emailschema.Address.email==email).first()
+        address = session.query(emailschema.Address).filter(func.lower(emailschema.Address.email)==email.lower()).first()
         if address is not None:
             print(print_user(address.user))
             res = True

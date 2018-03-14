@@ -1015,6 +1015,13 @@ class PagerData(object):
         shakeinfo['shake_type'] = self._shake_dict['shakemap_event_type']  # SCENARIO or ACTUAL
         return shakeinfo
 
+    def setToScenario(self):
+        """Set this event as being a scenario, overriding setting from input ShakeMap.
+        """
+        if not self._is_validated:
+            raise Exception('validate() method must be called before this one!')
+        self._pagerdict['shake_info']['shake_type'] = 'SCENARIO'
+    
     def _setAlerts(self):
         colors = {'0-1': 'green',
                   '1-10': 'yellow',
