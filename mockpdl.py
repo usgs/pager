@@ -37,7 +37,7 @@ def main(args):
 
     arguments = OrderedDict()
     arguments['eventid'] = args.eventid
-    arguments['directory'] = event_folder
+    arguments['directory'] = version_folder
     arguments['type'] = 'losspager'
     if eventdict['shakemap']['shake_type'] == 'SCENARIO':
         arguments['type'] = 'losspager-scenario'
