@@ -242,6 +242,69 @@ def get_version_history(session, eventid):
         
     return df
 
+def write_notification_lists(session,eventid,max_bcc):
+    event = session.query(emailschema.Event).filter(emailschema.Event.eventcode == eventid).first()
+    short_emails = []
+    long_emails = []
+    names_df = pd.DataFrame(columns=['name','org'])
+    if event is None:
+        return
+    else:
+        nversions = len(event.versions)
+        vdict = {}
+        max_emails = 0
+        for version in event.versions:
+            for address in version.addresses:
+                if address.format == 'short':
+                    if address.email not in short_emails:
+                        short_emails.append(address.email)
+                else:
+                    if address.email not in long_emails:
+                        long_emails.append(address.email)
+                user = address.user
+                org = user.organization.shortname
+                name = '%s %s' % (user.firstname,user.lastname)
+                if not names_df['name'].str.contains(name).any():
+                    names_df = names_df.append({'name':name,'org':org},ignore_index=True)
+
+        # check notification directory
+        rootdir = os.path.join(os.path.expanduser('~'),'notification_lists')
+        if not os.path.isdir(rootdir):
+            os.makedirs(rootdir)
+        eventdir = os.path.join(rootdir,eventid)
+        if not os.path.isdir(eventdir):
+            os.makedirs(eventdir)
+
+        i = 0
+        for shortchunk in _chunk_list(short_emails,max_bcc):
+            # shortchunk is now a list no longer than max_bcc
+            chunkfile = os.path.join(eventdir,'short_emails%i.txt' % (i+1))
+            print('Writing %s...' % chunkfile)
+            f = open(chunkfile,'wt')
+            for email in shortchunk:
+                f.write('%s\n' % email)
+            f.close()
+            i += 1
+
+        i = 0
+        for longchunk in _chunk_list(long_emails,max_bcc):
+            # longchunk is now a list no longer than max_bcc
+            chunkfile = os.path.join(eventdir,'long_emails%i.txt' % (i+1))
+            print('Writing %s...' % chunkfile)
+            f = open(chunkfile,'wt')
+            for email in longchunk:
+                f.write('%s\n' % email)
+            f.close()
+            i += 1
+
+        name_file = os.path.join(eventdir,'names.csv')
+        print('Writing %s...' % name_file)
+        names_df.to_csv(name_file,index=False)
+                        
+def _chunk_list(datalist,chunksize):
+    chunksize = max(1, chunksize)
+    return (datalist[i:i+chunksize] for i in range(0, len(datalist), chunksize))
+
 def pandify_user(user, session):
     """Retrieve the version notification history for a given user.
 
@@ -1169,6 +1232,27 @@ def main(args):
                 df.to_excel(args.output)
         res = True
 
+    # For a given event, generate:
+    # names.txt - A file containing "FirstName LastName, Organization" for all unique
+    #             recipients of any version of this event.
+    # sms_emailsN.txt - 1-N text files with no more than max_bcc SMS addresses per file,
+    #                   repeated until all unique SMS recipients for any version of the
+    #                   event are listed.
+    # long_emailsN.txt - 1-N text files with no more than max_bcc email addresses per file,
+    #                   repeated until all unique email recipients for any version of the
+    #                   event are listed.
+    # These files will be placed in a directory under ~/notification_lists/eventid
+    if args.generate_notification_list:
+        eventid = args.generate_notification_list
+        event = session.query(emailschema.Event).filter(emailschema.Event.eventcode == eventid).first()
+        if event is None:
+            msg = 'Event %s does not exist in the database.' % eventid
+            res = False
+        else:
+            max_bcc = config['email']['max_bcc']
+            write_notification_lists(session, eventid, max_bcc)
+            
+        
     # get information about which versions user has been notified
     if args.user_notification_history:
         email = args.user_notification_history.strip()
@@ -1200,7 +1284,7 @@ def main(args):
 
     if args.show_user:
         email = args.show_user
-        address = session.query(emailschema.Address).filter(emailschema.Address.email==email).first()
+        address = session.query(emailschema.Address).filter(func.lower(emailschema.Address.email)==email.lower()).first()
         if address is not None:
             print(print_user(address.user))
             res = True
@@ -1328,7 +1412,9 @@ email addresses associated with the users to export.""")
                            help='List all addresses notified for each version of a given event.')
     argparser.add_argument("--user-notification-history", metavar='EMAIL',
                            help='Display the alerting history for a given user (specified by an email address).')
-    
+    argparser.add_argument("--generate-notification-list", metavar='EVENTID',
+                           help='List all unique addresses/names for any given version.')
+
     argparser.add_argument("--status", choices=['check', 'primary', 'secondary'],
                            help="Print or change PAGER Mail primary/secondary status.")
     argparser.add_argument("--delete-event", metavar='EVENTCODE',
