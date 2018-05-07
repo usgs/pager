@@ -2,6 +2,13 @@
 
 VENV=pager
 
+unamestr=`uname`
+if [ "$unamestr" == 'Linux' ]; then
+    source ~/.bashrc
+elif [ "$unamestr" == 'FreeBSD' ] || [ "$unamestr" == 'Darwin' ]; then
+    source ~/.bash_profile
+fi
+
 # Is the reset flag set?
 reset=0
 while getopts r FLAG; do
@@ -16,8 +23,10 @@ done
 echo "reset: $reset"
 
 # Is conda installed?
-conda=$(which conda)
-if [ ! "$conda" ] ; then
+conda --version
+res=$?
+echo "Conda: ${res}"
+if [ $? -ne 0 ] ; then
     wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh \
         -O miniconda.sh;
     bash miniconda.sh -f -b -p $HOME/miniconda
@@ -44,10 +53,10 @@ fi
 echo "Environment file: $env_file"
 
 # Turn off whatever other virtual environment user might be in
-source deactivate
+conda deactivate
 
 # update the conda tool
-conda install conda=4.3.31 -y
+# conda install conda=4.3.31 -y
 
 # Download dependencies not in conda or pypi
 # Since we have SO many issues downloading zip files from github, I'm putting
@@ -83,7 +92,7 @@ fi
 
 # Activate the new environment
 echo "Activating the $VENV virtual environment"
-source activate $VENV
+conda activate $VENV
 
 # Install OpenQuake -- note that I have pulled this out of environment.yml
 # because the requirements are too narrow to work with our other dependencies,
@@ -111,4 +120,4 @@ pip install -e .
 #python bin/sm_profile -c default -a
 
 # Tell the user they have to activate this environment
-echo "Type 'source activate $VENV' to use this new virtual environment."
+echo "Type 'conda activate $VENV' to use this new virtual environment."

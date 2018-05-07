@@ -2,8 +2,6 @@ name: pager
 channels:
 - conda-forge
 - defaults
-- digitalglobe
-- ioos
 dependencies:
 - beautifulsoup4
 - cartopy
@@ -16,7 +14,9 @@ dependencies:
 - gdal
 - h5py
 - hypothesis
+- impactutils
 - jupyter
+- mapio
 # Need to restrict matplotlib to <2.0
 # because of a change in how contour works
 - matplotlib<2.0
@@ -42,14 +42,4 @@ dependencies:
 - sqlalchemy-utils
 - xlrd
 - xlwt
-- pip:
-  - et-xmlfile
-  - ipython-genutils
-  - jupyter-client
-  - jupyter-console
-  - jupyter-core
-  - prompt-toolkit
-  - tables
-  - ./mapio.zip
-  - ./impact-utils.zip
 
