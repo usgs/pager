@@ -699,7 +699,7 @@ class PagerData(object):
                      'max': fbin['max'],
                      'probability': '%.2f' % fbin['probability'],
                      'color': fbin['color']}
-            fbinel = etree.SubElement(fatalert, 'in', attrib=bdict)
+            fbinel = etree.SubElement(fatalert, 'bin', attrib=bdict)
 
         return pager
 
