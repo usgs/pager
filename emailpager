@@ -166,7 +166,15 @@ def main(args):
     force_email = False
     if args.force_email and args.force_email == 'true':
         force_email = True
-        
+
+    # scenario events are frequently set in the future.  Since we NEVER anticipate
+    # wanting to send emails for scenario events for any reason, let's set a check
+    # for this. Times look like this: 2018-03-11T04:45:36.000Z
+    etime = datetime.strptime(args.time,'%Y-%m-%dT%H:%M:%S.%fZ')
+    if etime > datetime.utcnow():
+        logging.warning('The event time stamp is in the future. Exiting.')
+        sys.exit(1)
+    
 
     # Everything is cool...
     logging.debug('Loading from data directory...')

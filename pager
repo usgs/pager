@@ -363,6 +363,14 @@ def main(pargs, config):
         shakemap_type = shake_tuple[0]['shakemap_event_type']
         if shakemap_type == 'SCENARIO':
             is_scenario = True
+
+        # if event is NOT a scenario and event time is in the future,
+        # flag the event as a scenario and yell about it.
+        if etime > datetime.datetime.utcnow():
+            is_scenario = True
+            print('Event origin time is in the future! Flagging this as a scenario.')
+
+        if is_scenario:
             if re.search('scenario', location.lower()) is None:
                 location = 'Scenario '+location
             
@@ -509,6 +517,13 @@ def main(pargs, config):
         doc.setMapInfo(cityfile, mapcities)
         _print_message(plog, 'Validating.')
         doc.validate()
+
+        # if we have determined that the event is a scenario (origin time is in the future)
+        # and the shakemap is not flagged as such, set the shakemap type in the
+        # pagerdata object to be 'SCENARIO'.
+        if is_scenario:
+            doc.setToScenario()
+        
         json_folder = os.path.join(version_folder, 'json')
         os.makedirs(json_folder)
         _print_message(plog, 'Saving output to JSON.')
@@ -528,11 +543,12 @@ def main(pargs, config):
         shutil.copy(contentsfile, version_folder)
 
         # send pdf as attachment to internal team of PAGER users
-        if not is_released:
+        if not is_released and not is_scenario:
             message_pager(config, onepager_pdf, doc)
         
         # run transfer, as appropriate and as specified by config
-        res, msg = transfer(config, doc, authid, authsource, version_folder)
+        res, msg = transfer(config, doc, authid, authsource,
+                            version_folder,is_scenario=is_scenario)
         _print_message(plog, msg)
         if not res:
             pass
