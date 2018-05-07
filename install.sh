@@ -22,6 +22,12 @@ done
 
 echo "reset: $reset"
 
+# create a matplotlibrc file with the non-interactive backend "Agg" in it.
+if [ ! -d ~/.config/matplotlib ]; then
+    mkdir -p ~/.config/matplotlib
+    echo "backend : Agg" > ~/.config/matplotlib/matplotlibrc
+fi
+
 # Is conda installed?
 conda --version
 res=$?
@@ -58,25 +64,6 @@ conda deactivate
 # update the conda tool
 # conda install conda=4.3.31 -y
 
-# Download dependencies not in conda or pypi
-# Since we have SO many issues downloading zip files from github, I'm putting
-# in a hack here to allow the developer to pre-download the zip files
-# by hand in the repo directory.  Grr.
-if [ ! -f impact-utils.zip ]; then
-    curl --max-time 60 --retry 3 -L \
-         https://github.com/usgs/earthquake-impact-utils/archive/0.8.zip -o impact-utils.zip
-else
-    echo "Skipping impact-utils.zip download, already present..."
-fi
-
-if [ ! -f mapio.zip ]; then
-    curl --max-time 60 --retry 3 -L \
-         https://github.com/usgs/MapIO/archive/0.7.2.zip -o mapio.zip
-else
-    echo "Skipping mapio.zip download, already present..."
-fi
-
-
 # Create a conda virtual environment
 echo "Creating the $VENV virtual environment:"
 conda env create -f $env_file --force
@@ -84,8 +71,6 @@ conda env create -f $env_file --force
 if [ $? -ne 0 ]; then
     echo "Failed to create conda environment.  Resolve any conflicts, then try again."
     echo "Cleaning up zip files..."
-    rm impact-utils.zip
-    rm mapio.zip
     exit
 fi
 
@@ -98,19 +83,13 @@ conda activate $VENV
 # because the requirements are too narrow to work with our other dependencies,
 # but the openquake.hazardlib tests pass with this environment. We need to
 # remember to check this when we change the environemnt.yml file though.
-conda install -y --force --no-deps -c conda-forge openquake.engine
+# conda install -y --force --no-deps -c conda-forge openquake.engine
 
 if [ $? -ne 0 ]; then
     echo "Failed to install openquake.  Resolve any conflicts, then try again."
     echo "Cleaning up zip files..."
-    rm impact-utils.zip
-    rm mapio.zip
     exit
 fi
-
-# Clean up downloaded packages
-rm impact-utils.zip
-rm mapio.zip
 
 # This package
 echo "Installing pager..."
