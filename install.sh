@@ -32,7 +32,7 @@ fi
 conda --version
 res=$?
 echo "Conda: ${res}"
-if [ $? -ne 0 ] ; then
+if [ $res -ne 0 ] ; then
     wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh \
         -O miniconda.sh;
     bash miniconda.sh -f -b -p $HOME/miniconda
