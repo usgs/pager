@@ -16,7 +16,7 @@ dependencies:
   - bleach=2.1.3
   - blosc=1.14.0
   - boto3=1.7.14
-  - botocore=1.10.14
+  - botocore=1.10.15
   - bzip2=1.0.6
   - ca-certificates=2018.4.16
   - cartopy=0.16.0
@@ -91,7 +91,7 @@ dependencies:
   - libxslt=1.1.32
   - lxml=4.2.1
   - lzo=2.10
-  - mapio=0.7.5
+  - mapio=0.7.6
   - markupsafe=1.0
   - matplotlib=2.0.0b3
   - mccabe=0.6.1
@@ -123,7 +123,7 @@ dependencies:
   - pbr=4.0.2
   - pcre=8.41
   - pexpect=4.5.0
-  - phonenumbers=8.9.4
+  - phonenumbers=8.9.5
   - pickleshare=0.7.4
   - pillow=4.0.0
   - pip=9.0.3
@@ -171,7 +171,7 @@ dependencies:
   - six=1.11.0
   - snuggs=1.4.1
   - sqlalchemy=1.2.7
-  - sqlalchemy-utils=0.33.2
+  - sqlalchemy-utils=0.33.3
   - sqlite=3.13.0
   - terminado=0.8.1
   - testpath=0.3.1
