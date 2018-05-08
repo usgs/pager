@@ -15,12 +15,9 @@ from mapio.shake import getHeaderData
 from losspager.utils.config import read_config
 from losspager.utils.admin import PagerAdmin
 
-WHITELIST = ['us', 'ci', 'nc', 'nn', 'hv', 'uw', 'nn', 'uu', 'ak']
+WHITELIST = ['us', 'ci', 'nc', 'nn', 'uw', 'nn', 'uu', 'ak']
 NO_SHAKEMAPS = ['mb', 'ecx', 'tul', 'ismp', 'nm', 'se',
-                'ogso', 'pr', 'neic', 'ld', 'wy']
-
-# this is the dictionary of anss regions that do not make their own shakemaps
-ALLOWED_OVERRIDES = {'hv': 'us'}
+                'ogso', 'pr', 'neic', 'ld', 'wy', 'hv']
 
 MAG_THRESHOLD = 4.0
 ANSS_FLAG = 'anss'
@@ -106,9 +103,6 @@ def process_shakemap(args, config):
     authsrc = authsrc.lower()
     source = args.source.lower()
     is_authoritative = authsrc == source
-
-    if not is_authoritative:
-        is_authoritative = ALLOWED_OVERRIDES[authsrc] == source
 
     if not is_authoritative and authsrc.lower() not in NO_SHAKEMAPS:
         fmt = 'Source %s not authoritative for this region (%s is).  Exiting.'
