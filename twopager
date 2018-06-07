@@ -78,11 +78,19 @@ def main(args):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        description='Create HAZUS backpage PDF product.')
+    helptext = '''Create HAZUS backpage PDF product.
+
+Run this script after running `pager` on a grid.xml file.
+
+The hazdir argument can be either a directory or a URL containing 
+HAZUS output.
+'''
+    parser = argparse.ArgumentParser(description=helptext,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('eventid',
                         help='PAGER event ID')
-    parser.add_argument('hazdir', help='directory containing HAZUS output')
+    
+    parser.add_argument('hazdir', help='directory/url containing HAZUS output')
     parser.add_argument('-t', '--transfer', action='store_true', default=False,
                         help='transfer results to ComCat')
     pargs = parser.parse_args()
