@@ -38,7 +38,6 @@ from impactutils.textformat.text import round_to_nearest
 from impactutils.mapping.scalebar import draw_scale
 
 
-
 # define some constants
 WATERCOLOR = '#7AA1DA'
 FIGWIDTH = 7.0
@@ -73,6 +72,7 @@ MMI_LABELS = {'1': 'I',
               '9': 'IX',
               '10': 'X'}
 
+
 def _clip_bounds(bbox, filename):
     """Clip input fiona-compatible vector file to input bounding box.
 
@@ -87,7 +87,8 @@ def _clip_bounds(bbox, filename):
     shapes = list(f.items(bbox=bbox))
     xmin, ymin, xmax, ymax = bbox
     newshapes = []
-    bboxpoly = sPolygon([(xmin, ymax), (xmax, ymax), (xmax, ymin), (xmin, ymin), (xmin, ymax)])
+    bboxpoly = sPolygon([(xmin, ymax), (xmax, ymax),
+                         (xmax, ymin), (xmin, ymin), (xmin, ymax)])
     for tshape in shapes:
         myshape = sShape(tshape[1]['geometry'])
         intshape = myshape.intersection(bboxpoly)
@@ -96,6 +97,7 @@ def _clip_bounds(bbox, filename):
     gc = GeometryCollection(newshapes)
     f.close()
     return gc
+
 
 def _renderRow(row, ax, fontname=DEFAULT_FONT, fontsize=10, zorder=10, shadow=False):
     """Internal method to consistently render city names.
@@ -134,18 +136,19 @@ def _renderRow(row, ax, fontname=DEFAULT_FONT, fontsize=10, zorder=10, shadow=Fa
     data_x_offset = 0
     tx = row['lon'] + data_x_offset
     ty = row['lat']
-    if shadow:  
+    if shadow:
         th = ax.text(tx, ty, row['name'], fontname=fontname, color='black',
                      fontsize=fontsize, ha=ha, va=va, zorder=zorder,
                      transform=ccrs.Geodetic())
         th.set_path_effects([path_effects.Stroke(linewidth=2.0, foreground='white'),
                              path_effects.Normal()])
-    else:     
+    else:
         th = ax.text(tx, ty, row['name'], fontname=fontname,
                      fontsize=fontsize, ha=ha, va=va, zorder=zorder,
-                    transform=ccrs.Geodetic())
+                     transform=ccrs.Geodetic())
 
     return th
+
 
 def _get_open_corner(popgrid, ax, filled_corner=None, need_bottom=True):
     """Get the map corner (not already filled) with the lowest population.
@@ -172,19 +175,23 @@ def _get_open_corner(popgrid, ax, filled_corner=None, need_bottom=True):
     ax_rightleft = 1.0 - (ax_gap + ax_width)
     ax_bottombottom = ax_gap
     ax_topbottom = 1.0 - (ax_gap + ax_width)
-    
 
     axes2disp = ax.transAxes
     disp2fig = ax.figure.transFigure.inverted()
     # ll
-    leftleft, bottombottom = disp2fig.transform(axes2disp.transform((ax_leftleft, ax_bottombottom)))
+    leftleft, bottombottom = disp2fig.transform(
+        axes2disp.transform((ax_leftleft, ax_bottombottom)))
     # lr
-    rightleft, bottombottom = disp2fig.transform(axes2disp.transform((ax_rightleft, ax_bottombottom)))
+    rightleft, bottombottom = disp2fig.transform(
+        axes2disp.transform((ax_rightleft, ax_bottombottom)))
     # ur
-    rightleft, topbottom = disp2fig.transform(axes2disp.transform((ax_rightleft, ax_topbottom)))
+    rightleft, topbottom = disp2fig.transform(
+        axes2disp.transform((ax_rightleft, ax_topbottom)))
     # right edge of the left bottom corner rectangle
-    leftright, bottombottom = disp2fig.transform(axes2disp.transform((ax_leftleft+ax_width, ax_bottombottom)))
-    leftleft, bottomtop = disp2fig.transform(axes2disp.transform((ax_leftleft, ax_bottombottom+ax_height)))
+    leftright, bottombottom = disp2fig.transform(
+        axes2disp.transform((ax_leftleft+ax_width, ax_bottombottom)))
+    leftleft, bottomtop = disp2fig.transform(
+        axes2disp.transform((ax_leftleft, ax_bottombottom+ax_height)))
     width = leftright - leftleft
     height = bottomtop - bottombottom
 
@@ -196,16 +203,17 @@ def _get_open_corner(popgrid, ax, filled_corner=None, need_bottom=True):
 
     ulpopsum = popdata[0:int(nrows/4), 0:int(ncols/4)].sum()
     ulbounds = (leftleft, topbottom, width, height)
-        
+
     urpopsum = popdata[0:int(nrows/4), ncols - int(ncols/4):ncols-1].sum()
     urbounds = (rightleft, topbottom, width, height)
 
     llpopsum = popdata[nrows - int(nrows/4):nrows-1, 0:int(ncols/4)].sum()
     llbounds = (leftleft, bottombottom, width, height)
 
-    lrpopsum = popdata[nrows - int(nrows/4):nrows-1, ncols - int(ncols/4):ncols-1].sum()
+    lrpopsum = popdata[nrows - int(nrows/4):nrows-1,
+                       ncols - int(ncols/4):ncols-1].sum()
     lrbounds = (rightleft, bottombottom, width, height)
-    
+
     if filled_corner == 'll' and need_bottom:
         return lrbounds, 'lr'
 
@@ -222,7 +230,7 @@ def _get_open_corner(popgrid, ax, filled_corner=None, need_bottom=True):
     # get the population sums in each of the four corners
     allsums = np.array([llpopsum, lrpopsum, ulpopsum, urpopsum])
     isort = allsums.argsort()
-    
+
     if need_bottom:
         i = np.where(isort <= 1)[0]
         isort = isort[i]
@@ -240,6 +248,7 @@ def _get_open_corner(popgrid, ax, filled_corner=None, need_bottom=True):
         return ulbounds, 'ul'
     if imin == 3:
         return urbounds, 'ur'
+
 
 def draw_contour(shakegrid, popgrid, oceanfile, oceangridfile, cityfile, basename, borderfile=None, is_scenario=False):
     """Create a contour map showing population (greyscale) underneath contoured MMI.
@@ -280,7 +289,7 @@ def draw_contour(shakegrid, popgrid, oceanfile, oceangridfile, cityfile, basenam
     cities = allcities.limitByBounds((gd.xmin, gd.xmax, gd.ymin, gd.ymax))
 
     # define the map
-    # first cope with stupid 180 meridian 
+    # first cope with stupid 180 meridian
     height = (gd.ymax-gd.ymin)*111.191
     if gd.xmin < gd.xmax:
         width = (gd.xmax-gd.xmin)*np.cos(np.radians(center_lat))*111.191
@@ -288,7 +297,8 @@ def draw_contour(shakegrid, popgrid, oceanfile, oceangridfile, cityfile, basenam
     else:
         xmin, xmax, ymin, ymax = (gd.xmin, gd.xmax, gd.ymin, gd.ymax)
         xmax += 360
-        width = ((gd.xmax+360) - gd.xmin)*np.cos(np.radians(center_lat))*111.191
+        width = ((gd.xmax+360) - gd.xmin) * \
+            np.cos(np.radians(center_lat))*111.191
 
     aspect = width/height
 
@@ -303,7 +313,7 @@ def draw_contour(shakegrid, popgrid, oceanfile, oceangridfile, cityfile, basenam
         ymin = ymin + dh/111.191
         ymax = ymax - dh/111.191
         height = (ymax-ymin)*111.191
-        
+
     aspect = width/height
     figheight = FIGWIDTH/aspect
     bbox = (xmin, ymin, xmax, ymax)
@@ -316,8 +326,8 @@ def draw_contour(shakegrid, popgrid, oceanfile, oceangridfile, cityfile, basenam
     fig = mmap.figure
     ax = mmap.axes
     # this needs to be done here so that city label collision detection will work
-    fig.canvas.draw() 
-    
+    fig.canvas.draw()
+
     clon = xmin + (xmax-xmin)/2
     clat = ymin + (ymax-ymin)/2
     geoproj = mmap.geoproj
@@ -329,7 +339,7 @@ def draw_contour(shakegrid, popgrid, oceanfile, oceangridfile, cityfile, basenam
     popdata = popgrid_proj.getData()
     newgd = popgrid_proj.getGeoDict()
 
-    # Use our GMT-inspired palette class to create population and MMI colormaps 
+    # Use our GMT-inspired palette class to create population and MMI colormaps
     popmap = ColorPalette.fromPreset('pop')
     mmimap = ColorPalette.fromPreset('mmi')
 
@@ -339,7 +349,7 @@ def draw_contour(shakegrid, popgrid, oceanfile, oceangridfile, cityfile, basenam
                vmin=popmap.vmin, vmax=popmap.vmax, zorder=POP_ZORDER, interpolation='nearest')
 
     # draw 10m res coastlines
-    ax.coastlines(resolution="10m", zorder=COAST_ZORDER);
+    ax.coastlines(resolution="10m", zorder=COAST_ZORDER)
 
     states_provinces = cfeature.NaturalEarthFeature(
         category='cultural',
@@ -347,25 +357,26 @@ def draw_contour(shakegrid, popgrid, oceanfile, oceangridfile, cityfile, basenam
         scale='50m',
         facecolor='none')
 
-    ax.add_feature(states_provinces, edgecolor='black',zorder=COAST_ZORDER)
-    
+    ax.add_feature(states_provinces, edgecolor='black', zorder=COAST_ZORDER)
+
     # draw country borders using natural earth data set
     if borderfile is not None:
         borders = ShapelyFeature(Reader(borderfile).geometries(),
-                                    ccrs.PlateCarree())
-        ax.add_feature(borders, zorder=COAST_ZORDER, edgecolor='black', linewidth=2, facecolor='none')
-    
+                                 ccrs.PlateCarree())
+        ax.add_feature(borders, zorder=COAST_ZORDER,
+                       edgecolor='black', linewidth=2, facecolor='none')
+
     # clip the ocean data to the shakemap
     bbox = (gd.xmin, gd.ymin, gd.xmax, gd.ymax)
     oceanshapes = _clip_bounds(bbox, oceanfile)
 
-    ax.add_feature(ShapelyFeature(oceanshapes, crs=geoproj), facecolor=WATERCOLOR, zorder=OCEAN_ZORDER)
-
+    ax.add_feature(ShapelyFeature(oceanshapes, crs=geoproj),
+                   facecolor=WATERCOLOR, zorder=OCEAN_ZORDER)
 
     # It turns out that when presented with a map that crosses the 180 meridian,
     # the matplotlib/cartopy contouring routine thinks that the 180 meridian is a map boundary
     # and only plots one side of the contour.  Contouring the geographic MMI data and then
-    # projecting the resulting contour vectors does the trick.  Sigh. 
+    # projecting the resulting contour vectors does the trick.  Sigh.
 
     # define contour grid spacing
     contoury = np.linspace(ymin, ymax, gd.ny)
@@ -385,42 +396,45 @@ def draw_contour(shakegrid, popgrid, oceanfile, oceangridfile, cityfile, basenam
                                vmin=mmimap.vmin, vmax=mmimap.vmax,
                                levels=np.arange(0.5, 10.5, 1.0),
                                transform=geoproj)
-    
+
     ocean_contour = plt.contour(contourx, contoury, np.flipud(landmask), linewidths=2.0, linestyles='dashed',
                                 zorder=OCEANC_ZORDER, cmap=mmimap.cmap,
                                 vmin=mmimap.vmin, vmax=mmimap.vmax,
                                 levels=np.arange(0.5, 10.5, 1.0), transform=geoproj)
-    
+
     # the idea here is to plot invisible MMI contours at integer levels and then label them.
     # clabel method won't allow text to appear, which is this case is kind of ok, because
     # it allows us an easy way to draw MMI labels as roman numerals.
     cs_land = plt.contour(contourx, contoury, np.flipud(oceanmask),
-                          linewidths=0.0, levels=np.arange(0, 11),alpha=0.0,
+                          linewidths=0.0, levels=np.arange(0, 11), alpha=0.0,
                           zorder=CLABEL_ZORDER, transform=geoproj)
-    
-    clabel_text = ax.clabel(cs_land, np.arange(0, 11), colors='k', zorder=CLABEL_ZORDER, fmt='%.0f', fontsize=40)
+
+    clabel_text = ax.clabel(cs_land, cs_land.cvalues,
+                            colors='k', zorder=CLABEL_ZORDER,
+                            fmt='%.0f', fontsize=40)
     for clabel in clabel_text:
         x, y = clabel.get_position()
         label_str = clabel.get_text()
         roman_label = MMI_LABELS[label_str]
-        th=plt.text(x, y, roman_label, zorder=CLABEL_ZORDER, ha='center',
-                        va='center', color='black', weight='normal',
-                        size=16)
+        th = plt.text(x, y, roman_label, zorder=CLABEL_ZORDER, ha='center',
+                      va='center', color='black', weight='normal',
+                      size=16)
         th.set_path_effects([path_effects.Stroke(linewidth=2.0, foreground='white'),
                              path_effects.Normal()])
 
     cs_ocean = plt.contour(contourx, contoury, np.flipud(landmask),
-                          linewidths=0.0, levels=np.arange(0, 11),
-                          zorder=CLABEL_ZORDER, transform=geoproj)
-    
-    clabel_text = ax.clabel(cs_ocean, np.arange(0, 11), colors='k', zorder=CLABEL_ZORDER, fmt='%.0f', fontsize=40)
+                           linewidths=0.0, levels=np.arange(0, 11),
+                           zorder=CLABEL_ZORDER, transform=geoproj)
+
+    clabel_text = ax.clabel(cs_ocean, cs_ocean.cvalues, colors='k',
+                            zorder=CLABEL_ZORDER, fmt='%.0f', fontsize=40)
     for clabel in clabel_text:
         x, y = clabel.get_position()
         label_str = clabel.get_text()
         roman_label = MMI_LABELS[label_str]
-        th=plt.text(x, y, roman_label, zorder=CLABEL_ZORDER, ha='center',
-                        va='center', color='black', weight='normal',
-                        size=16)
+        th = plt.text(x, y, roman_label, zorder=CLABEL_ZORDER, ha='center',
+                      va='center', color='black', weight='normal',
+                      size=16)
         th.set_path_effects([path_effects.Stroke(linewidth=2.0, foreground='white'),
                              path_effects.Normal()])
 
@@ -443,7 +457,7 @@ def draw_contour(shakegrid, popgrid, oceanfile, oceangridfile, cityfile, basenam
 
     xlocs = np.linspace(gxmin, gxmax+0.5, num=5)
     ylocs = np.linspace(gymin, gymax+0.5, num=5)
-    
+
     gl.xlocator = mticker.FixedLocator(xlocs)
     gl.ylocator = mticker.FixedLocator(ylocs)
     gl.xformatter = LONGITUDE_FORMATTER
@@ -464,14 +478,15 @@ def draw_contour(shakegrid, popgrid, oceanfile, oceangridfile, cityfile, basenam
     axes_to_display = ax.transAxes
 
     # these are x,y coordinates in projected space
-    yleft, t1 = display_to_data.transform(axes_to_display.transform((dleft, 0.5)))
-    t2, xtop = display_to_data.transform(axes_to_display.transform((0.5, dtop)))
+    yleft, t1 = display_to_data.transform(
+        axes_to_display.transform((dleft, 0.5)))
+    t2, xtop = display_to_data.transform(
+        axes_to_display.transform((0.5, dtop)))
 
     # these are coordinates in lon,lat space
     yleft_dd, t1_dd = merc_to_dd(yleft, t1, inverse=True)
     t2_dd, xtop_dd = merc_to_dd(t2, xtop, inverse=True)
-    
-    
+
     # drawing our own tick labels INSIDE the plot, as Cartopy doesn't seem to support this.
     yrange = ymax - ymin
     xrange = xmax - xmin
@@ -491,7 +506,8 @@ def draw_contour(shakegrid, popgrid, oceanfile, oceangridfile, cityfile, basenam
     for yloc in gl.ylocator.locs:
         outside = yloc < gd.ymin or yloc > gd.ymax
         # don't draw labels when we're too close to either edge
-        near_edge = (yloc-gd.ymin) < (yrange*0.1) or (gd.ymax-yloc) < (yrange*0.1)
+        near_edge = (yloc-gd.ymin) < (yrange *
+                                      0.1) or (gd.ymax-yloc) < (yrange*0.1)
         if outside or near_edge:
             continue
         if yloc < 0:
@@ -503,10 +519,8 @@ def draw_contour(shakegrid, popgrid, oceanfile, oceangridfile, cityfile, basenam
                         fontname=DEFAULT_FONT,
                         transform=ccrs.Geodetic())
 
-
     # draw cities
     mapcities = mmap.drawCities(shadow=True, zorder=CITIES_ZORDER)
-
 
     # draw the figure border thickly
     # TODO - figure out how to draw map border
@@ -519,7 +533,7 @@ def draw_contour(shakegrid, popgrid, oceanfile, oceangridfile, cityfile, basenam
     # ax.spines['right'].set_linewidth(bwidth)
     # ax.spines['bottom'].set_linewidth(bwidth)
     # ax.spines['left'].set_linewidth(bwidth)
-    
+
     # Get the corner of the map with the lowest population
     corner_rect, filled_corner = _get_open_corner(popgrid, ax)
     clat2 = round_to_nearest(center_lat, 1.0)
@@ -545,20 +559,20 @@ def draw_contour(shakegrid, popgrid, oceanfile, oceangridfile, cityfile, basenam
 
     # Draw the epicenter as a black star
     plt.sca(ax)
-    plt.plot(center_lon, center_lat, 'k*', markersize=16, zorder=EPICENTER_ZORDER, transform=geoproj)
+    plt.plot(center_lon, center_lat, 'k*', markersize=16,
+             zorder=EPICENTER_ZORDER, transform=geoproj)
 
     if is_scenario:
         plt.text(center_lon, center_lat, 'SCENARIO', fontsize=64,
                  zorder=WATERMARK_ZORDER, transform=geoproj,
                  alpha=0.2, color='red', horizontalalignment='center')
-    
+
     # create pdf and png output file names
     pdf_file = basename+'.pdf'
     png_file = basename+'.png'
-    
+
     # save to pdf
     plt.savefig(pdf_file)
     plt.savefig(png_file)
-    
-    return (pdf_file, png_file, mapcities)
 
+    return (pdf_file, png_file, mapcities)

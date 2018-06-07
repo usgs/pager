@@ -66,6 +66,7 @@ conda deactivate
 
 # Create a conda virtual environment
 echo "Creating the $VENV virtual environment:"
+echo "conda env create -f $env_file --force"
 conda env create -f $env_file --force
 
 if [ $? -ne 0 ]; then

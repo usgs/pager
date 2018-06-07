@@ -2,222 +2,95 @@
 
 # stdlib imports
 import os.path
-import sys
-import tempfile
-import shutil
-from datetime import datetime
 import numpy as np
 import pandas as pd
+import tempfile
+import shutil
 
 from mapio.shake import ShakeGrid
 
-# hack the path so that I can debug these functions if I need to
-homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
-pagerdir = os.path.abspath(os.path.join(homedir, '..', '..'))
-sys.path.insert(0, pagerdir)  # put this at the front of the system path, ignoring any installed shakemap stuff
-
 # local imports
-from losspager.io.hazus import HazusInfo, get_loss_string, _get_comment_str
+from losspager.io.hazus import HazusInfo
+
 
 def test_map():
-    fname = os.path.join(os.path.expanduser('~'),'test_map.pdf')
-    homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
-    shakefile = os.path.join(homedir, '..', 'data', 'm5.8.nyc.grid.xml')
-    shakegrid = ShakeGrid.load(shakefile)
+    tdir = tempfile.mkdtemp()
+    try:
+        mapname = os.path.join(tdir, 'test_map.pdf')
+        # where is this script?
+        homedir = os.path.dirname(os.path.abspath(__file__))
+        datadir = os.path.join(homedir, '..', 'data', 'nyc')
+        shakefile = os.path.join(datadir, 'm5.8.nyc.grid.xml')
+        shakegrid = ShakeGrid.load(shakefile)
 
-    countyfile = os.path.join(homedir, '..', 'data', 'NYC_M52_sce_peak_County.shp')
-    tractfile = os.path.join(homedir, '..', 'data', 'NYC_M52_sce_peak_Tract.shp')
-    csvfile = os.path.join(homedir, '..', 'data', 'DamagebyCountyOccupancy.csv')
-    typefile = os.path.join(homedir, '..', 'data', 'DamagebyCountyBuildingType.csv')
-    hazinfo = HazusInfo(tractfile,countyfile,csvfile,typefile)
-    
-    hazinfo.drawHazusMap(shakegrid,fname)
+        countyfile = os.path.join(datadir, 'county_results.txt')
+        tractfile = os.path.join(datadir, 'tract_results.txt')
+        damage_occupancy = os.path.join(datadir, 'building_damage_occup.txt')
+        hazinfo = HazusInfo(tdir, tractfile, countyfile, damage_occupancy)
+        green, yellow, red = hazinfo.createTaggingTables()
 
-def test_comment():
-    few_injuries = pd.DataFrame({'CountyName':'Napa',
-                                 'State':'CA',
-                                 'Population':136000,
-                                 'NonFatal5p':7},index=[0])
-    
-    several_injuries = pd.DataFrame({'CountyName':'Napa',
-                                    'State':'CA',
-                                    'Population':136000,
-                                    'NonFatal5p':17},index=[0])
-    
-    dozens_injuries = pd.DataFrame({'CountyName':'Napa',
-                                    'State':'CA',
-                                    'Population':136000,
-                                    'NonFatal5p':77},index=[0])
-    
-    hundreds_injuries = pd.DataFrame({'CountyName':'Napa',
-                                    'State':'CA',
-                                    'Population':136000,
-                                    'NonFatal5p':777},index=[0])
-    
-    thousands_injuries = pd.DataFrame({'CountyName':'Napa',
-                                    'State':'CA',
-                                    'Population':136000,
-                                    'NonFatal5p':7777},index=[0])
+        green_table = '\\begin{tabularx}{3.4cm}{lr}\n& \\\\\n\\multicolumn{2}{c}{\\textbf{INSPECTED}} \\\\\n\\textbf{Occupancy} & \\textbf{\\# of tags}  \\\\\nResidential & 15k \\\\\nSingle Family & 20k \\\\\nCommercial & 4k \\\\\nIndustrial & 900 \\\\\nEducation & 158 \\\\\nAgriculture & 94 \\\\\nGovernment & 77 \\\\\n\\end{tabularx}'
 
-    total_pop = 100000 #use this for all shelter tests
-    minimal_shelter = pd.DataFrame({'CountyName' : 'Napa',
-                                   'State' : 'CA',
-                                   'Households' : 49000,
-                                   'DisplHouse' : 267,
-                                   'Shelter' : 75},index=[0])
+        yellow_table = '\\begin{tabularx}{3.4cm}{lr}\n& \\\\\n\\multicolumn{2}{c}{\\textbf{RESTRICTED USE}} \\\\\n\\textbf{Occupancy} & \\textbf{\\# of tags}  \\\\\nResidential & 516 \\\\\nSingle Family & 501 \\\\\nCommercial & 161 \\\\\nIndustrial & 30 \\\\\nEducation & 5 \\\\\nAgriculture & 2 \\\\\nGovernment & 2 \\\\\n\\end{tabularx}'
 
-    considerable_shelter = pd.DataFrame({'CountyName' : 'Napa',
-                                   'State' : 'CA',
-                                   'Households' : 49000,
-                                   'DisplHouse' : 267,
-                                   'Shelter' : 750},index=[0])
-    
-    extensive_shelter = pd.DataFrame({'CountyName' : 'Napa',
-                                   'State' : 'CA',
-                                   'Households' : 49000,
-                                   'DisplHouse' : 267,
-                                   'Shelter' : 7500},index=[0])
+        red_table = '\\begin{tabularx}{3.4cm}{lr}\n& \\\\\n\\multicolumn{2}{c}{\\textbf{UNSAFE}} \\\\\n\\textbf{Occupancy} & \\textbf{\\# of tags}  \\\\\nResidential & 50 \\\\\nSingle Family & 51 \\\\\nCommercial & 12 \\\\\nIndustrial & 1 \\\\\nEducation & 0 \\\\\nAgriculture & 0 \\\\\nGovernment & 0 \\\\\n\\end{tabularx}'
 
-    loss_thousands = pd.DataFrame({'CountyName':'Napa',
-                                   'State':'CA',
-                                   'Population':136000,
-                                   'EconLoss':1234},index=[0])
-    
-    loss_tens_thousands = pd.DataFrame({'CountyName':'Napa',
-                                       'State':'CA',
-                                       'Population':136000,
-                                       'EconLoss':12345},index=[0])
+        assert green == green_table
+        assert yellow == yellow_table
+        assert red == red_table
 
-    loss_hundreds_thousands = pd.DataFrame({'CountyName':'Napa',
-                                            'State':'CA',
-                                            'Population':136000,
-                                            'EconLoss':123456},index=[0])
-    
-    loss_millions = pd.DataFrame({'CountyName':'Napa',
-                                  'State':'CA',
-                                  'Population':136000,
-                                  'EconLoss':1234567},index=[0])
+        print('Green:')
+        print(green)
+        print()
+        print('Yellow:')
+        print(yellow)
+        print()
+        print('Red:')
+        print(red)
 
-    print('Shelter Tests')
-    print('--------------------------------------------')
-    for shelter_table in [minimal_shelter,
-                          considerable_shelter,
-                          extensive_shelter]:
-        comment_str = _get_comment_str(loss_thousands,few_injuries, shelter_table,
-                                       total_pop, 7)
-        print(comment_str)
-    print('--------------------------------------------')
-    print()
+        loss = hazinfo.createEconTable()
+        loss_table = '\\begin{tabularx}{\\barwidth}{lc*{1}{>{\\raggedleft\\arraybackslash}X}}\n\\hline\n\\textbf{County} & \\textbf{State} & \\textbf{Total (\\textdollar M)} \\\\\n\\hline\nKings & NY & 3,183 \\\\\nRichmond & NY & 493 \\\\\nNew York & NY & 272 \\\\\nQueens & NY & 202 \\\\\nHudson & NJ & 132 \\\\\nUnion & NJ & 93 \\\\\nMonmouth & NJ & 74 \\\\\n\\multicolumn{2}{l}{\\textbf{Total (19 counties)}} & \\multicolumn{1}{>{\\raggedleft}X}{\\textbf{4,643}} \\\\\n\\hline\n\\end{tabularx}'
+        assert loss == loss_table
+        print()
+        print('Econ Losses:')
+        print(loss)
 
-    print('Loss Tests')
-    print('--------------------------------------------')
-    for loss_table in [loss_thousands,
-                       loss_tens_thousands,
-                       loss_hundreds_thousands,
-                       loss_millions]:
-        comment_str = _get_comment_str(loss_table,few_injuries, shelter_table,
-                                       total_pop, 7)
-        print(comment_str)
-    print('--------------------------------------------')
-    print()
+        injury = hazinfo.createInjuryTable()
+        injury_table = '\\begin{tabularx}{\\barwidth}{lc*{2}{>{\\raggedleft\\arraybackslash}X}}\n\\hline\n\\textbf{County} & \\textbf{State} & \\textbf{Population} & \\textbf{Total NFI} \\\\\n\\hline\nKings & NY & 2,505k & 302 \\\\\nRichmond & NY & 469k & 36 \\\\\nNew York & NY & 1,586k & 15 \\\\\nQueens & NY & 2,231k & 32 \\\\\nHudson & NJ & 634k & 12 \\\\\nUnion & NJ & 536k & 10 \\\\\nMonmouth & NJ & 630k & 7 \\\\\n\\multicolumn{2}{l}{\\textbf{Total (19 counties)}} & \\multicolumn{1}{>{\\raggedleft}X}{\\textbf{18,517k}} & \\multicolumn{1}{>{\\raggedleft}X}{\\textbf{447}} \\\\\n\\hline\n\\end{tabularx}'
+        assert injury == injury_table
+        print()
+        print('Injuries:')
+        print(injury)
 
-    print('Injury Tests')
-    print('--------------------------------------------')
-    for injury_table in [few_injuries,
-                         several_injuries,
-                         dozens_injuries,
-                         hundreds_injuries,
-                         thousands_injuries]:
-        comment_str = _get_comment_str(loss_table,injury_table, shelter_table,
-                                       total_pop, 7)
-        print(comment_str)
-    print('--------------------------------------------')
-    print()
-    
+        shelter = hazinfo.createShelterTable()
+        shelter_table = '\\begin{tabularx}{\\barwidth}{lc*{3}{>{\\raggedleft\\arraybackslash}X}}\n\\hline\n\\               &                 & \\textbf{Total}  & \\textbf{Displ}  & \\textbf{People}  \\\\\n\\               &                 & \\textbf{House-} & \\textbf{House-} & \\textbf{Needing} \\\\\n\\textbf{County} & \\textbf{State} & \\textbf{holds}  & \\textbf{holds}  & \\textbf{Shelter} \\\\\n\\hline\nKings & NY & 917k & 2k & 2k \\\\\nRichmond & NY & 166k & 162 & 106 \\\\\nNew York & NY & 764k & 102 & 52 \\\\\nQueens & NY & 780k & 146 & 106 \\\\\nHudson & NJ & 246k & 72 & 46 \\\\\nUnion & NJ & 188k & 44 & 36 \\\\\nMonmouth & NJ & 234k & 18 & 10 \\\\\n\\multicolumn{2}{l}{\\textbf{Total (19 counties)}} & \\multicolumn{1}{>{\\raggedleft}X}{\\textbf{6,794k}} & \\multicolumn{1}{>{\\raggedleft}X}{\\textbf{3k}} & \\multicolumn{1}{>{\\raggedleft}X}{\\textbf{2k}} \\\\\n\\hline\n\\end{tabularx}'
+        assert shelter == shelter_table
 
-def test_loss_string():
-    loss, units = get_loss_string(1) # ones
-    assert loss == '1' and units == ''
+        print()
+        print('Shelter Needs:')
+        print(loss)
 
-    loss, units = get_loss_string(7) # ones
-    assert loss == '7' and units == ''
-    
-    loss, units = get_loss_string(12) # tens
-    assert loss == '12' and units == ''
-    
-    loss, units = get_loss_string(123) # hundreds
-    assert loss == '123' and units == ''
-    
-    loss, units = get_loss_string(1234) # thousands
-    assert loss == '1.2' and units == 'K'
-    
-    loss, units = get_loss_string(12345) # tens of thousands
-    assert loss == '12' and units == 'K'
-    
-    loss, units = get_loss_string(123456) # hundreds of thousands
-    assert loss == '123' and units == 'K'
-    
-    loss, units = get_loss_string(1234567) # millions
-    assert loss == '1.2' and units == 'M'
+        debris = hazinfo.createDebrisTable()
+        debris_table = '\\begin{tabularx}{\\barwidth}{l*{1}{>{\\raggedleft\\arraybackslash}X}}\n\\hline\n\\                 & \\textbf{Tons}      \\\\\n\\textbf{Category} & \\textbf{(millions)} \\\\\n\\hline\nBrick / Wood & 0.449 \\\\\nReinforced Concrete / Steel & 0.149 \\\\\n\\textbf{Total} & \\textbf{0.598} \\\n&  \\\\\n&  \\\\\n\\textbf{Truck Loads (@25 tons/truck)} & \\textbf{23,908} \\\n\\end{tabularx}'
+        assert debris == debris_table
 
-    loss, units = get_loss_string(1234567890) # billions
-    assert loss == '1.2' and units == 'B'
+        print()
+        print('Debris:')
+        print(debris)
 
-    loss, units = get_loss_string(1234567890123) # trillions
-    assert loss == '1.2' and units == 'T'
+        model_config = {}
+        model_config['states'] = os.path.join(datadir, 'nyc_states.shp')
+        model_config['counties'] = os.path.join(datadir, 'nyc_counties.shp')
+        model_config['tracts'] = os.path.join(datadir, 'nyc_tracts.shp')
+        model_config['ocean_vectors'] = os.path.join(datadir, 'nyc_oceans.shp')
+        hazinfo.drawHazusMap(shakegrid, mapname, model_config)
+        assert os.path.isfile(mapname)
 
-def test_hazus():
-    homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
-    countyfile = os.path.join(homedir, '..', 'data', 'NYC_M52_sce_peak_County.shp')
-    tractfile = os.path.join(homedir, '..', 'data', 'NYC_M52_sce_peak_Tract.shp')
-    occfile = os.path.join(homedir, '..', 'data', 'DamagebyCountyOccupancy.csv')
-    typefile = os.path.join(homedir, '..', 'data', 'DamagebyCountyBuildingType.csv')
-    hazinfo = HazusInfo(tractfile,countyfile,occfile,typefile)
-    
-    losstable,losstotals = hazinfo.getLosses()
-    assert np.round(losstotals) == 4643
-    
-    injtable,injtotals = hazinfo.getInjuries()
-    assert np.round(injtotals['Injuries']) == 448
-    
-    sheltable,sheltotals = hazinfo.getShelterNeeds()
-    assert np.round(sheltotals['Shelter']) == 1942
-    assert np.round(sheltotals['Households']) == 6793976
-    assert np.round(sheltotals['DisplHouse']) == 2655
-    
-    debtable,debtotals = hazinfo.getDebris()
-    assert np.round(debtotals['megatons']) == 598
-    assert np.round(debtotals['truckloads']) == 23908
+    except Exception as e:
+        assert 1 == 2
+    finally:
+        shutil.rmtree(tdir)
 
-    loss_table = hazinfo.getLossTable()
-    print('Losses')
-    print('"%s"' % loss_table)
-    print()
-    
-    hurt_table = hazinfo.getInjuryTable()
-    print('Injuries')
-    print('"%s"' % hurt_table)
-    print()
-    
-    shel_table = hazinfo.getShelterTable()
-    print('Shelter')
-    print('"%s"' % shel_table)
-    print()
-    
-    deb_table = hazinfo.getDebrisTable()
-    print('Debris')
-    print('"%s"' % deb_table)
-    print()
 
-    fname = os.path.join(os.path.expanduser('~'),'test_occ.pdf')
-    hazinfo.plotTagging(fname)
-
-    fname = os.path.join(os.path.expanduser('~'),'test_type.pdf')
-    hazinfo.plotTypeTagging(fname)
-    
-    
 if __name__ == '__main__':
     test_map()
-    test_comment()
-    test_loss_string()
-    test_hazus()
