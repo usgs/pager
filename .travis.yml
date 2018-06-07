@@ -7,7 +7,7 @@ install:
     # Install pager and requirements
     - bash install.sh
     - . $HOME/miniconda/etc/profile.d/conda.sh
-    - source activate pager
+    - conda activate pager
 before_script:
     # This is to take care of Invalid DISPLAY variable
     - "export DISPLAY=:99.0"
