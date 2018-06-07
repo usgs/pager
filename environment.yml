@@ -17,8 +17,6 @@ dependencies:
 - impactutils
 - jupyter
 - mapio
-# Need to restrict matplotlib to <2.0
-# because of a change in how contour works
 - matplotlib
 - mock
 - nose

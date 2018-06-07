@@ -9,6 +9,7 @@ import pandas as pd
 
 # local imports
 
+
 def sort_data_frame(df, columns, ascending=True):
     """Sort a Pandas dataframe, taking into account the version of Pandas being used.
 
@@ -27,6 +28,7 @@ def sort_data_frame(df, columns, ascending=True):
         df = df.sort_values(by=columns, ascending=ascending)
     return df
 
+
 def _flag_map_cities(rows, mapcities):
     on_map = np.zeros(len(rows))
     mapnames = mapcities._dataframe['name']
@@ -39,6 +41,7 @@ def _flag_map_cities(rows, mapcities):
     rows['on_map'] = on_map
     return rows
 
+
 class PagerCities(object):
     def __init__(self, cities, mmigrid):
         """Create a PagerCities object with a MapIO Cities instance and a Grid2 object containing MMI data.
@@ -49,9 +52,10 @@ class PagerCities(object):
           Grid2 object containing MMI data from a ShakeMap.
         """
         xmin, xmax, ymin, ymax = mmigrid.getBounds()
-        dataframe = cities.limitByBounds((xmin, xmax, ymin, ymax)).getDataFrame()
-        lat = dataframe['lat'].as_matrix()
-        lon = dataframe['lon'].as_matrix()
+        dataframe = cities.limitByBounds(
+            (xmin, xmax, ymin, ymax)).getDataFrame()
+        lat = dataframe['lat'].values
+        lon = dataframe['lon'].values
         mmi = mmigrid.getValue(lat, lon)
         dataframe['mmi'] = mmi
         self._cities = Cities(dataframe)
@@ -59,7 +63,7 @@ class PagerCities(object):
     def getCityTable(self, mapcities):
         """
         Return a list of cities suitable for the onePAGER table of cities.
-        
+
         The PAGER city sorting algorithm can be defined as follows.
         1. Sort cities by inverse intensity.  Select N (up to 6) from beginning of list.  If N < 6, return.
         2. Sort cities by capital status and population, and select M (up to 5) from beginning of the list that are not in the first list.
@@ -73,7 +77,7 @@ class PagerCities(object):
         :returns: DataFrame of up to 11 cities, sorted by algorithm described above.  'on_map' column indicates 
                   whether the city also was found in the input mapcities.
         """
-        # pandas changed how dataframes get sorted, so we have a convenience function here to hide the 
+        # pandas changed how dataframes get sorted, so we have a convenience function here to hide the
         # ugliness
         # 1. Sort cities by inverse intensity.  Select N (up to 6) from beginning of list.  If N < 6, return.
         df = self._cities.getDataFrame()
@@ -103,7 +107,7 @@ class PagerCities(object):
             rows = _flag_map_cities(rows, mapcities)
             return rows
 
-        # 3. If N+M < 11, sort cities by inverse population, then select (up to) P= 11 - (M+N) cities that are 
+        # 3. If N+M < 11, sort cities by inverse population, then select (up to) P= 11 - (M+N) cities that are
         #    not already in the list.  Combine list of P cities with list of N and list of M.
         df = sort_data_frame(df, 'pop', ascending=False)
         MN = len(df)
@@ -116,4 +120,3 @@ class PagerCities(object):
         # Add a column indicating whether the city was rendered on the map
         rows = _flag_map_cities(rows, mapcities)
         return rows
-        

@@ -45,6 +45,7 @@ TIMES = {'day': 'CasualtyDay',
          'transit': 'CasualtyDay',
          'night': 'CasualtyNight'}
 
+
 def add_dicts(dict1, dict2):
     """Sum the values of two dictionaries.
 
@@ -73,6 +74,7 @@ def add_dicts(dict1, dict2):
             result[key] += value
     return result
 
+
 def pop_dist(popi, workforce, time, dclass):
     """
     Calculate population distribution (residential, non-residential, and outdoor).
@@ -99,7 +101,8 @@ def pop_dist(popi, workforce, time, dclass):
         FDNRWFI = 0.89
         FDNRWFS = 0.89
         FDNRWFA = 0.34
-        FDNRSCH = 0.25  # EDUCATIONAL SERVICES FRACTION NOT ACCOUNTED IN WORKFORCE DIST.
+        # EDUCATIONAL SERVICES FRACTION NOT ACCOUNTED IN WORKFORCE DIST.
+        FDNRSCH = 0.25
 
         FDOWF = 0.35
         FDOWFI = 0.1
@@ -146,7 +149,8 @@ def pop_dist(popi, workforce, time, dclass):
         FDNRWFI = 0.85
         FDNRWFS = 0.85
         FDNRWFA = 0.04
-        FDNRSCH = 0.25  # EDUCATIONAL SERVICES FRACTION NOT ACCOUNTED IN WORKFORCE DIST.
+        # EDUCATIONAL SERVICES FRACTION NOT ACCOUNTED IN WORKFORCE DIST.
+        FDNRSCH = 0.25
 
         FDOWF = 0.35
         FDOWFI = 0.1
@@ -182,46 +186,47 @@ def pop_dist(popi, workforce, time, dclass):
         FNOWFI = 0.01
         FNOWFS = 0.01
         FNOWFA = 0.001
-    
+
     if time == 'day':
-        respop = popi * (FDRWF * fnwf + 
-            FDRWFI * fwf * f_ind + 
-            FDRWFS * fwf * fser + 
-            FDRWFA * fwf * fagr)
-        nrpop = popi * (FDNRWFI * fwf * f_ind + 
-            FDNRWFS * fwf * fser + FDNRWFA * fwf * fagr + FDNRSCH * fnwf)
-        outpop = popi * (FDOWF * fnwf + 
-            FDOWFI * fwf * f_ind + 
-            FDOWFS * fwf * fser + 
-            FDOWFA * fwf * fagr)
+        respop = popi * (FDRWF * fnwf +
+                         FDRWFI * fwf * f_ind +
+                         FDRWFS * fwf * fser +
+                         FDRWFA * fwf * fagr)
+        nrpop = popi * (FDNRWFI * fwf * f_ind +
+                        FDNRWFS * fwf * fser + FDNRWFA * fwf * fagr + FDNRSCH * fnwf)
+        outpop = popi * (FDOWF * fnwf +
+                         FDOWFI * fwf * f_ind +
+                         FDOWFS * fwf * fser +
+                         FDOWFA * fwf * fagr)
     elif time == 'transit':
-        respop = popi * (FTRWF * fnwf + 
-            FTRWFI * fwf * f_ind + 
-            FTRWFS * fwf * fser + 
-            FTRWFA * fwf * fagr)
-        nrpop = popi * (FTNRWFI * fwf * f_ind + 
-            FTNRWFS * fwf * fser + FTNRWFA * fwf * fagr)
-        outpop = popi * (FTOWF * fnwf + 
-            FTOWFI * fwf * f_ind + 
-            FTOWFS * fwf * fser + 
-            FTOWFA * fwf * fagr)
-        
+        respop = popi * (FTRWF * fnwf +
+                         FTRWFI * fwf * f_ind +
+                         FTRWFS * fwf * fser +
+                         FTRWFA * fwf * fagr)
+        nrpop = popi * (FTNRWFI * fwf * f_ind +
+                        FTNRWFS * fwf * fser + FTNRWFA * fwf * fagr)
+        outpop = popi * (FTOWF * fnwf +
+                         FTOWFI * fwf * f_ind +
+                         FTOWFS * fwf * fser +
+                         FTOWFA * fwf * fagr)
+
     elif time == 'night':
-        respop = popi * (FNRWF * fnwf + 
-            FNRWFI * fwf * f_ind + 
-            FNRWFS * fwf * fser + 
-            FNRWFA * fwf * fagr)
-        nrpop = popi * (FNNRWFI * fwf * f_ind + 
-            FNNRWFS * fwf * fser + FNNRWFA * fwf * fagr)
-        outpop = popi * (FNOWF * fnwf + 
-            FNOWFI * fwf * f_ind + 
-            FNOWFS * fwf * fser + 
-            FNOWFA * fwf * fagr)
-        
+        respop = popi * (FNRWF * fnwf +
+                         FNRWFI * fwf * f_ind +
+                         FNRWFS * fwf * fser +
+                         FNRWFA * fwf * fagr)
+        nrpop = popi * (FNNRWFI * fwf * f_ind +
+                        FNNRWFS * fwf * fser + FNNRWFA * fwf * fagr)
+        outpop = popi * (FNOWF * fnwf +
+                         FNOWFI * fwf * f_ind +
+                         FNOWFS * fwf * fser +
+                         FNOWFA * fwf * fagr)
+
     respop = np.atleast_1d(np.squeeze(respop))
     nrpop = np.atleast_1d(np.squeeze(nrpop))
     outpop = np.atleast_1d(np.squeeze(outpop))
     return (respop, nrpop, outpop)
+
 
 def load_panel_from_excel(excelfile):
     """Load a pandas Panel object by reading it from an Excel spreadsheet.
@@ -238,6 +243,7 @@ def load_panel_from_excel(excelfile):
         paneldict[sheet] = frame
     panel = pd.Panel(paneldict)
     return panel
+
 
 def get_time_of_day(dtime, lon):
     """Determine time of day (one of 'day','night', or 'transit'), and event year and hour.
@@ -258,16 +264,21 @@ def get_time_of_day(dtime, lon):
     if event_hour >= DAY_START_HOUR and event_hour < DAY_END_HOUR:
         timeofday = 'day'
 
-    transit1 = (event_hour >= TRANSIT_START_HOUR_MORNING and event_hour < TRANSIT_END_HOUR_MORNING)
-    transit2 = (event_hour >= TRANSIT_START_HOUR_EVENING and event_hour < TRANSIT_END_HOUR_EVENING)
+    transit1 = (event_hour >= TRANSIT_START_HOUR_MORNING and event_hour <
+                TRANSIT_END_HOUR_MORNING)
+    transit2 = (event_hour >= TRANSIT_START_HOUR_EVENING and event_hour <
+                TRANSIT_END_HOUR_EVENING)
     if transit1 or transit2:
         timeofday = 'transit'
 
-    night1 = (event_hour >= NIGHT_START_HOUR_EVENING and event_hour <= NIGHT_END_HOUR_EVENING)
-    night2 = (event_hour >= NIGHT_START_HOUR_MORNING and event_hour <= NIGHT_END_HOUR_MORNING)
+    night1 = (event_hour >= NIGHT_START_HOUR_EVENING and event_hour <=
+              NIGHT_END_HOUR_EVENING)
+    night2 = (event_hour >= NIGHT_START_HOUR_MORNING and event_hour <=
+              NIGHT_END_HOUR_MORNING)
     if night1 or night2:
         timeofday = 'night'
     return (timeofday, event_year, event_hour)
+
 
 def make_test_semi_model(ccode, timeofday, density, popvalue, mmi):
     """Run the semi-empirical model for a single value of input.  Intended for testing purposes.
@@ -291,7 +302,8 @@ def make_test_semi_model(ccode, timeofday, density, popvalue, mmi):
     country = Country()
     cdict = country.getCountry(ccode)
     ucode = cdict['ISON']
-    geodict = GeoDict({'xmin': 0.5, 'xmax': 4.5, 'ymin': 0.5, 'ymax': 4.5, 'dx': 1.0, 'dy': 1.0, 'nx': 5, 'ny': 5})
+    geodict = GeoDict({'xmin': 0.5, 'xmax': 4.5, 'ymin': 0.5,
+                       'ymax': 4.5, 'dx': 1.0, 'dy': 1.0, 'nx': 5, 'ny': 5})
     if timeofday == 'day':
         etime = datetime(2016, 1, 1, 12, 0, 0)  # noon
     elif timeofday == 'transit':
@@ -319,7 +331,8 @@ def make_test_semi_model(ccode, timeofday, density, popvalue, mmi):
     isodata = np.ones((2, 2), dtype=np.int16)*ucode
     urbdata = np.ones((2, 2), dtype=np.int16)*density
     mmidata = np.ones((2, 2), dtype=np.float32)*mmi
-    geodict = GeoDict({'xmin': 0.5, 'xmax': 1.5, 'ymin': 0.5, 'ymax': 1.5, 'dx': 1.0, 'dy': 1.0, 'nx': 2, 'ny': 2})
+    geodict = GeoDict({'xmin': 0.5, 'xmax': 1.5, 'ymin': 0.5,
+                       'ymax': 1.5, 'dx': 1.0, 'dy': 1.0, 'nx': 2, 'ny': 2})
     popgrid = GMTGrid(popdata, geodict)
     isogrid = GMTGrid(isodata, geodict)
     urbgrid = GMTGrid(urbdata, geodict)
@@ -340,12 +353,12 @@ def make_test_semi_model(ccode, timeofday, density, popvalue, mmi):
         os.close(f)
         f, shakefile = tempfile.mkstemp()
         os.close(f)
-        
+
         popgrid.save(popfile)
         isogrid.save(isofile)
         urbgrid.save(urbfile)
         mmigrid.save(shakefile)
-        
+
         semi = SemiEmpiricalFatality.fromDefault()
         semi.setGlobalFiles(popfile, popyear, urbfile, isofile)
         t, resfat, nonresfat = semi.getLosses(shakefile)
@@ -370,6 +383,7 @@ def make_test_semi_model(ccode, timeofday, density, popvalue, mmi):
                 os.remove(fname)
     return (popsum, newresfat, newnonresfat)
 
+
 class SemiEmpiricalFatality(object):
     def __init__(self, inventory, collapse, casualty, workforce, growth):
         """Create Semi-Empirical Fatality Model object.
@@ -381,7 +395,7 @@ class SemiEmpiricalFatality(object):
            - 'RuralResidential'
            - 'UrbanNonResidential'
            - 'UrbanResidential'
-           
+
            where BuildingTypes is a Dataframe with columns: 
              - Code: Building Code ('A','S','C1',etc.)
              - ShortDescription:  A short description of building type (i.e, 'adobe block').
@@ -391,7 +405,7 @@ class SemiEmpiricalFatality(object):
             - CountryCode: Two letter ISO country code ('US',etc.)
             - CountryName: Name of country.
             - Building Codes, as listed and described in BuildingTypes Dataframe.
-            
+
         :param collapse:
           Pandas Panel, where first index is country (by two-letter country code), columns are: 
             - BuildingCode:  Building code as above.
@@ -413,7 +427,7 @@ class SemiEmpiricalFatality(object):
             - WorkforceServices Fraction of the total workforce employed in services.
         :param growth:
           PopulationGrowth object.
-        
+
         """
         self._inventory = inventory
         self._collapse = collapse
@@ -424,13 +438,18 @@ class SemiEmpiricalFatality(object):
 
     @classmethod
     def fromDefault(cls):
-        homedir = os.path.dirname(os.path.abspath(__file__))  # where is this module?
-        inventory_file = os.path.join(homedir, '..', 'data', 'semi_inventory.hdf')
-        collapse_file = os.path.join(homedir, '..', 'data', 'semi_collapse_mmi.hdf')
-        casualty_file = os.path.join(homedir, '..', 'data', 'semi_casualty.hdf')
-        workforce_file = os.path.join(homedir, '..', 'data', 'semi_workforce.hdf')
+        homedir = os.path.dirname(os.path.abspath(
+            __file__))  # where is this module?
+        inventory_file = os.path.join(
+            homedir, '..', 'data', 'semi_inventory.hdf')
+        collapse_file = os.path.join(
+            homedir, '..', 'data', 'semi_collapse_mmi.hdf')
+        casualty_file = os.path.join(
+            homedir, '..', 'data', 'semi_casualty.hdf')
+        workforce_file = os.path.join(
+            homedir, '..', 'data', 'semi_workforce.hdf')
         return cls.fromFiles(inventory_file, collapse_file, casualty_file, workforce_file)
-    
+
     @classmethod
     def fromFiles(cls, inventory_file, collapse_file, casualty_file, workforce_file):
         """Create SemiEmpiricalFatality object from a number of input files.
@@ -505,8 +524,7 @@ class SemiEmpiricalFatality(object):
         else:
             return row['LongDescription']
         return None
-            
-        
+
     def getWorkforce(self, ccode):
         """Get the workforce data corresponding to a given country code.
         :param ccode:
@@ -520,7 +538,7 @@ class SemiEmpiricalFatality(object):
         except:
             wforce = None
         return wforce
-        
+
     def getCollapse(self, ccode, mmi, inventory):
         """Return the collapse rates for a given country,intensity, and inventory.
 
@@ -554,7 +572,7 @@ class SemiEmpiricalFatality(object):
         timecol = TIMES[timeofday]
         fatrates = fatalframe.loc[inventory.index][timecol]
         return fatrates
-        
+
     def getInventories(self, ccode, density):
         """Return two pandas Series objects corresponding to the urban or rural inventory for given country.
 
@@ -572,8 +590,9 @@ class SemiEmpiricalFatality(object):
             resinv = self._inventory.RuralResidential
             nresinv = self._inventory.RuralNonResidential
         resrow = resinv.loc[ccode]  # pandas series of residential inventory
-        nresrow = nresinv.loc[ccode]  # pandas series of non-residential inventory
-        # remove the indices that aren't building type codes - these are present because 
+        # pandas series of non-residential inventory
+        nresrow = nresinv.loc[ccode]
+        # remove the indices that aren't building type codes - these are present because
         # Panels have the same columns in every dataframe
         resrow = resrow.drop(['ShortDescription', 'OperationalDescription', 'LongDescription',
                               'CountryName'])
@@ -588,8 +607,6 @@ class SemiEmpiricalFatality(object):
 
         return (resrow, nresrow)
 
-    
-    
     def getLosses(self, shakefile):
         """Calculate number of fatalities using semi-empirical approach.
 
@@ -621,22 +638,24 @@ class SemiEmpiricalFatality(object):
             urbgrid = self._urban_class.load(self._urbanfile)
         else:
             sampledict = popdict.getBoundsWithin(shakedict)
-            shakegrid = ShakeGrid.load(shakefile, samplegeodict=sampledict, resample=True, method='linear', adjust='res')
-            popgrid = self._pop_class.load(self._popfile, samplegeodict=sampledict, resample=False)
+            shakegrid = ShakeGrid.load(
+                shakefile, samplegeodict=sampledict, resample=True, method='linear', adjust='res')
+            popgrid = self._pop_class.load(
+                self._popfile, samplegeodict=sampledict, resample=False)
             isogrid = self._iso_class.load(self._isofile, samplegeodict=sampledict, resample=True,
                                            method='nearest', doPadding=True, padValue=0)
             urbgrid = self._urban_class.load(self._urbanfile, samplegeodict=sampledict, resample=True,
                                              method='nearest', doPadding=True, padValue=RURAL)
-        
+
         # determine the local apparent time of day (based on longitude)
         edict = shakegrid.getEventDict()
         etime = edict['event_timestamp']
         elon = edict['lon']
         time_of_day, event_year, event_hour = get_time_of_day(etime, elon)
 
-        # round off our MMI data to nearest 0.5 (5.5 should stay 5.5, 5.4 
+        # round off our MMI data to nearest 0.5 (5.5 should stay 5.5, 5.4
         # should become 5.5, 5.24 should become 5.0, etc.)
-        # TODO:  Someday, make this more general to include perhaps grids of all IMT values, or 
+        # TODO:  Someday, make this more general to include perhaps grids of all IMT values, or
         # at least the ones we have collapse data for.
         mmidata = np.round(shakegrid.getLayer('mmi').getData()/0.5)*0.5
 
@@ -644,14 +663,15 @@ class SemiEmpiricalFatality(object):
         popdata = popgrid.getData()
         isodata = isogrid.getData()
         urbdata = urbgrid.getData()
-        
+
         # modify the population values for growth rate by country
         ucodes = np.unique(isodata)
         for ccode in ucodes:
             cidx = (isodata == ccode)
-            popdata[cidx] = self._popgrowth.adjustPopulation(popdata[cidx], ccode, self._popyear, event_year)
+            popdata[cidx] = self._popgrowth.adjustPopulation(
+                popdata[cidx], ccode, self._popyear, event_year)
 
-        # create a dictionary containing indoor populations by building type (in cells where MMI >= 6) 
+        # create a dictionary containing indoor populations by building type (in cells where MMI >= 6)
         #popbystruct = get_indoor_pop(mmidata,popdata,urbdata,isodata,time_of_day)
 
         # find all mmi values greater than 9, set them to 9
@@ -679,7 +699,7 @@ class SemiEmpiricalFatality(object):
             if wforce is None:
                 print('No workforce data for %s.  Skipping.' % (cdict['Name']))
                 continue
-            
+
             # loop over MMI values 6-9
             for mmi in np.arange(6, 9.5, 0.5):
                 c1 = (mmidata == mmi)
@@ -690,25 +710,29 @@ class SemiEmpiricalFatality(object):
                     c3 = (urbdata == dclass)
 
                     # get the population data in those cells at MMI, in country, and density class
-                    popcells = popdata[c1 & c2 & c3]  # I think I want an AND condition here
+                    # I think I want an AND condition here
+                    popcells = popdata[c1 & c2 & c3]
 
                     # get the population distribution across residential, non-residential, and outdoor.
-                    res, nonres, outside = pop_dist(popcells, wforce, time_of_day, dclass)
+                    res, nonres, outside = pop_dist(
+                        popcells, wforce, time_of_day, dclass)
 
                     # get the inventory for urban residential
                     resrow, nresrow = self.getInventories(ccode, dclass)
                     # now multiply the residential/non-residential population through the inventory data
                     numres = len(resrow)
                     numnonres = len(nresrow)
-                    resmat = np.reshape(resrow.as_matrix(), (numres, 1)).astype(np.float32)
-                    nresmat = np.reshape(nresrow.as_matrix(), (numnonres, 1)).astype(np.float32)
+                    resmat = np.reshape(
+                        resrow.values, (numres, 1)).astype(np.float32)
+                    nresmat = np.reshape(
+                        nresrow.values, (numnonres, 1)).astype(np.float32)
                     popres = np.tile(res, (numres, 1))
                     popnonres = np.tile(nonres, (numnonres, 1))
                     popresbuilding = (popres * resmat)
                     popnonresbuilding = (popnonres * nresmat)
 
-                    # now we have the residential and non-residental population 
-                    # distributed through the building types for each cell that matches 
+                    # now we have the residential and non-residental population
+                    # distributed through the building types for each cell that matches
                     # MMI,country, and density criteria.
                     # popresbuilding rows are building types, columns are population cells
 
@@ -716,17 +740,23 @@ class SemiEmpiricalFatality(object):
                     # and multiply them by the population by building.
                     collapse_res = self.getCollapse(ccode, mmi, resrow)
                     collapse_nonres = self.getCollapse(ccode, mmi, nresrow)
-                    resrates = np.reshape(collapse_res.as_matrix().astype(np.float32), (numres, 1))
-                    nonresrates = np.reshape(collapse_nonres.as_matrix().astype(np.float32), (numnonres, 1))
+                    resrates = np.reshape(
+                        collapse_res.values.astype(np.float32), (numres, 1))
+                    nonresrates = np.reshape(
+                        collapse_nonres.values.astype(np.float32), (numnonres, 1))
                     rescollapse = popresbuilding * resrates
                     nonrescollapse = popnonresbuilding * nonresrates
 
-                    # get the fatality rates given collapse by building type and 
+                    # get the fatality rates given collapse by building type and
                     # multiply through the result of collapse*population per building
-                    resfatalcol = self.getFatalityRates(ccode, time_of_day, resrow)
-                    nonresfatalcol = self.getFatalityRates(ccode, time_of_day, nresrow)
-                    resfatal = np.reshape(resfatalcol.as_matrix().astype(np.float32), (numres, 1))
-                    nonresfatal = np.reshape(nonresfatalcol.as_matrix().astype(np.float32), (numnonres, 1))
+                    resfatalcol = self.getFatalityRates(
+                        ccode, time_of_day, resrow)
+                    nonresfatalcol = self.getFatalityRates(
+                        ccode, time_of_day, nresrow)
+                    resfatal = np.reshape(
+                        resfatalcol.values.astype(np.float32), (numres, 1))
+                    nonresfatal = np.reshape(
+                        nonresfatalcol.values.astype(np.float32), (numnonres, 1))
                     resfat = rescollapse * resfatal
                     nonresfat = nonrescollapse * nonresfatal
 
@@ -738,29 +768,29 @@ class SemiEmpiricalFatality(object):
                         resfat[np.isnan(resfat)] = 0.0
                     try:
                         if len(nonresfat) and len(nonresfat[0]):
-                            nonresfat[np.ma.masked_less(nonresfat, 1).mask] = 0.0
+                            nonresfat[np.ma.masked_less(
+                                nonresfat, 1).mask] = 0.0
                     except:
                         nonresfat[np.isnan(nonresfat)] = 0.0
 
                     # sum the fatalities per building through all cells
                     resfatbybuilding = np.nansum(resfat, axis=1)
                     nonresfatbybuilding = np.nansum(nonresfat, axis=1)
-                    resfdict = dict(zip(resrow.index, resfatbybuilding.tolist()))
-                    nonresfdict = dict(zip(nresrow.index, nonresfatbybuilding.tolist()))
-                    res_fatal_by_btype = add_dicts(res_fatal_by_btype, resfdict)
-                    nonres_fatal_by_btype = add_dicts(nonres_fatal_by_btype, nonresfdict)
+                    resfdict = dict(
+                        zip(resrow.index, resfatbybuilding.tolist()))
+                    nonresfdict = dict(
+                        zip(nresrow.index, nonresfatbybuilding.tolist()))
+                    res_fatal_by_btype = add_dicts(
+                        res_fatal_by_btype, resfdict)
+                    nonres_fatal_by_btype = add_dicts(
+                        nonres_fatal_by_btype, nonresfdict)
 
             # add the fatalities by building type to the dictionary containing fatalities by country
             res_fatal_by_ccode[ccode] = res_fatal_by_btype.copy()
             nonres_fatal_by_ccode[ccode] = nonres_fatal_by_btype.copy()
 
             # increment the total number of fatalities
-            ntotal += int(sum(res_fatal_by_btype.values()) + sum(nonres_fatal_by_btype.values()))
-                
+            ntotal += int(sum(res_fatal_by_btype.values()) +
+                          sum(nonres_fatal_by_btype.values()))
+
         return (ntotal, res_fatal_by_ccode, nonres_fatal_by_ccode)
-                    
-                    
-                    
-                    
-        
-        

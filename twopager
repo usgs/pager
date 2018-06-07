@@ -1,0 +1,90 @@
+#!/usr/bin/env python
+
+# stdlib imports
+import argparse
+import os.path
+import glob
+from urllib.request import urlopen
+import sys
+
+# neic imports
+from mapio.shake import ShakeGrid
+
+# local imports
+from losspager.io.hazus import HazusInfo, fetch_hazus
+from losspager.io.pagerdata import PagerData
+from losspager.io.twopager import create_twopager
+from losspager.utils.config import read_config
+from losspager.models.exposure import Exposure
+
+
+def main(args):
+    eventid = args.eventid
+    hazdir = args.hazdir
+
+    # is hazdir a directory or a url?
+    isdir = True
+    isurl = False
+    if not os.path.isdir(hazdir):
+        try:
+            urlopen(hazdir)
+            isurl = True
+            isdir = False
+        except:
+            print('Input %s is neither a valid URL or local directory.' % hazdir)
+            sys.exit(1)
+    else:
+        isdir = False
+
+    config = read_config()
+
+    outfolder = config['output_folder']
+    versions = glob.glob(os.path.join(outfolder, '%s_*' %
+                                      eventid, 'version.*'))
+    vfolder = sorted(versions)[-1]
+    gridxml = os.path.join(vfolder, 'grid.xml')
+
+    popfile = config['model_data']['population_data'][0]['population_grid']
+    popyear = config['model_data']['population_data'][0]['population_year']
+    isofile = config['model_data']['country_grid']
+    expomodel = Exposure(popfile, popyear, isofile)
+    exposure = expomodel.calcExposure(gridxml)
+    exposure.keys()
+
+    shakegrid = expomodel.getShakeGrid()
+
+    jsondir = os.path.join(vfolder, 'json')
+    pdata = PagerData()
+    pdata.loadFromJSON(jsondir)
+
+    hazus_files = fetch_hazus(hazdir, vfolder)
+
+    countyfile = hazus_files['county']
+    tractfile = hazus_files['tract']
+    bldg_damage = hazus_files['occupancy']
+    hazinfo = HazusInfo(vfolder, tractfile, countyfile, bldg_damage)
+
+    map_file = os.path.join(vfolder, 'hazus_map.pdf')
+    model_config = config['model_data']
+    hazinfo.drawHazusMap(shakegrid, map_file, model_config)
+    output_pdf, msg = create_twopager(pdata, hazinfo, vfolder)
+    if output_pdf is None:
+        print('PDF conversion failed: \n%s' % msg)
+        sys.exit(1)
+    else:
+        fmt = 'Created PDF file %s. Additional messages: \n%s'
+        print(fmt % (output_pdf, msg))
+        sys.exit(0)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description='Create HAZUS backpage PDF product.')
+    parser.add_argument('eventid',
+                        help='PAGER event ID')
+    parser.add_argument('hazdir', help='directory containing HAZUS output')
+    parser.add_argument('-t', '--transfer', action='store_true', default=False,
+                        help='transfer results to ComCat')
+    pargs = parser.parse_args()
+
+    main(pargs)

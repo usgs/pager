@@ -6,8 +6,8 @@ python:
 install:
     # Install pager and requirements
     - bash install.sh
-    - export PATH="$HOME/miniconda/bin:$PATH"
-    - source activate pager
+    - . $HOME/miniconda/etc/profile.d/conda.sh
+    - conda activate pager
 before_script:
     # This is to take care of Invalid DISPLAY variable
     - "export DISPLAY=:99.0"
