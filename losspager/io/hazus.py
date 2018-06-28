@@ -413,12 +413,12 @@ class HazusInfo(object):
             tract_fips = county_fips + tract['properties']['TRACTCE10']
             econloss = 0.0
             if tract_fips in self._tract_loss:
-                econloss = self._tract_loss[tract_fips]*1e6
-            if econloss < 1e6:
+                econloss = self._tract_loss[tract_fips]
+            if econloss < 1e3:
                 color = GREEN
-            elif econloss >= 1e6 and econloss < 1e8:
+            elif econloss >= 1e3 and econloss < 1e5:
                 color = YELLOW
-            elif econloss >= 1e8 and econloss < 1e9:
+            elif econloss >= 1e5 and econloss < 1e6:
                 color = ORANGE
             else:
                 color = RED
