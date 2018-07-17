@@ -13,6 +13,7 @@ import cartopy.feature as cfeature
 from cartopy.io.shapereader import Reader
 
 from mapio.gdal import GDALGrid
+from mapio.grid2d import Grid2D
 
 from shapely.geometry import shape as sShape
 from shapely.geometry import Polygon as sPolygon
@@ -377,39 +378,44 @@ def draw_contour(shakegrid, popgrid, oceanfile, oceangridfile, cityfile,
     ax.add_feature(ShapelyFeature(oceanshapes, crs=geoproj),
                    facecolor=WATERCOLOR, zorder=OCEAN_ZORDER)
 
-    # It turns out that when presented with a map that crosses the
-    # 180 meridian, the matplotlib/cartopy contouring routine
-    # thinks that the 180 meridian is a map boundary and only
-    # plots one side of the contour.  Contouring the geographic
-    # MMI data and then projecting the resulting contour
-    # vectors does the trick.  Sigh.
+    # So here we're going to project the MMI data to
+    # our mercator map, then smooth and contour that
+    # projected grid.
 
-    # define contour grid spacing
-    contoury = np.linspace(ymin, ymax, gd.ny)
-    contourx = np.linspace(xmin, xmax, gd.nx)
-
-    # smooth the MMI data for contouring
+    # smooth the MMI data for contouring, themn project
     mmi = shakegrid.getLayer('mmi').getData()
     smoothed_mmi = gaussian_filter(mmi, FILTER_SMOOTH)
+    newgd = shakegrid.getGeoDict().copy()
+    smooth_grid = Grid2D(data=smoothed_mmi, geodict=newgd)
+    smooth_grid_merc = smooth_grid.project(projstr)
+    newgd2 = smooth_grid_merc.getGeoDict()
 
-    # create masked arrays of the ocean grid
-    landmask = np.ma.masked_where(oceangrid._data == 0.0, smoothed_mmi)
-    oceanmask = np.ma.masked_where(oceangrid._data == 1.0, smoothed_mmi)
+    # project the ocean grid
+    oceangrid_merc = oceangrid.project(projstr)
+
+    # create masked arrays using the ocean grid
+    data_xmin, data_xmax = newgd2.xmin, newgd2.xmax
+    data_ymin, data_ymax = newgd2.ymin, newgd2.ymax
+    smooth_data = smooth_grid_merc.getData()
+    landmask = np.ma.masked_where(oceangrid_merc._data == 0.0, smooth_data)
+    oceanmask = np.ma.masked_where(oceangrid_merc._data == 1.0, smooth_data)
 
     # contour the data
-    plt.contour(contourx, contoury, np.flipud(oceanmask),
-                linewidths=3.0, linestyles='solid',
-                zorder=LANDC_ZORDER, cmap=mmimap.cmap,
-                vmin=mmimap.vmin, vmax=mmimap.vmax,
-                levels=np.arange(0.5, 10.5, 1.0),
-                transform=geoproj)
+    contourx = np.linspace(data_xmin, data_xmax, newgd2.nx)
+    contoury = np.linspace(data_ymin, data_ymax, newgd2.ny)
+    ax.contour(contourx, contoury, np.flipud(oceanmask),
+               linewidths=3.0, linestyles='solid',
+               zorder=1000, cmap=mmimap.cmap,
+               vmin=mmimap.vmin, vmax=mmimap.vmax,
+               levels=np.arange(0.5, 10.5, 1.0),
+               )
 
-    plt.contour(contourx, contoury, np.flipud(landmask),
-                linewidths=2.0, linestyles='dashed',
-                zorder=OCEANC_ZORDER, cmap=mmimap.cmap,
-                vmin=mmimap.vmin, vmax=mmimap.vmax,
-                levels=np.arange(0.5, 10.5, 1.0),
-                transform=geoproj)
+    ax.contour(contourx, contoury, np.flipud(landmask),
+               linewidths=2.0, linestyles='dashed',
+               zorder=OCEANC_ZORDER, cmap=mmimap.cmap,
+               vmin=mmimap.vmin, vmax=mmimap.vmax,
+               levels=np.arange(0.5, 10.5, 1.0),
+               )
 
     # the idea here is to plot invisible MMI contours at integer levels
     # and then label them. clabel method won't allow text to appear,
@@ -417,7 +423,7 @@ def draw_contour(shakegrid, popgrid, oceanfile, oceangridfile, cityfile,
     # easy way to draw MMI labels as roman numerals.
     cs_land = plt.contour(contourx, contoury, np.flipud(oceanmask),
                           linewidths=0.0, levels=np.arange(0, 11), alpha=0.0,
-                          zorder=CLABEL_ZORDER, transform=geoproj)
+                          zorder=CLABEL_ZORDER, )
 
     clabel_text = ax.clabel(cs_land, cs_land.cvalues,
                             colors='k', zorder=CLABEL_ZORDER,
@@ -435,7 +441,7 @@ def draw_contour(shakegrid, popgrid, oceanfile, oceangridfile, cityfile,
 
     cs_ocean = plt.contour(contourx, contoury, np.flipud(landmask),
                            linewidths=0.0, levels=np.arange(0, 11),
-                           zorder=CLABEL_ZORDER, transform=geoproj)
+                           zorder=CLABEL_ZORDER, )
 
     clabel_text = ax.clabel(cs_ocean, cs_ocean.cvalues, colors='k',
                             zorder=CLABEL_ZORDER, fmt='%.0f', fontsize=40)
@@ -592,7 +598,3 @@ def draw_contour(shakegrid, popgrid, oceanfile, oceangridfile, cityfile,
     plt.savefig(png_file)
 
     return (pdf_file, png_file, mapcities)
-
-
-def _plot_contours(gd, shakegrid, oceangrid, oceanmask, mmimap, landmask, geoproj):
-    pass
