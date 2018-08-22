@@ -24,7 +24,7 @@ echo $PATH
 VENV=pager
 
 # Is the reset flag set?
-reset=0
+reset=1
 while getopts r FLAG; do
   case $FLAG in
     r)
