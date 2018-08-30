@@ -2,39 +2,40 @@
 
 # stdlib imports
 import argparse
-import configparser
 import os.path
 import sys
-import pprint
 import locale
-import json
+import warnings
+
+warnings.simplefilter("ignore")
 
 # third party imports
 import pandas as pd
 import numpy as np
 from mapio.shake import getHeaderData
-import yaml
 
 # local imports
 from losspager.models.exposure import Exposure
 from losspager.models.econexposure import EconExposure
 from losspager.models.emploss import EmpiricalLoss
 from losspager.models.semimodel import SemiEmpiricalFatality
-from losspager.models.growth import PopulationGrowth
 from losspager.utils.country import Country
 from losspager.utils.config import read_config
+
 
 COUNTRY = Country()
 TIMEFMT = '%Y-%m-%d %H:%M:%S'
 
+
 def pandify_semi(fatbystruct):
-    """Turn the fatalities by structure (either residential or non-residential) into DataFrame suitable for printing.
+    """Turn the fatalities by structure into DataFrame suitable for printing.
 
     :param fatbystruct:
-      Dictionary of country code, fatality dictionary, where fatality dictionary has:
+      Dictionary of country code, fatality dictionary:
         - (key,value) of (building type,number of fatalities)
     :returns:
-      pandas DataFrame with columns (Country Code,Building Type 1,Building Type 2, ...) and index of country codes.
+      pandas DataFrame with columns (Country Code,Building Type 1,
+             Building Type 2, ...) and index of country codes.
     """
     # figure out what all of the unique building types are...
     utypes = []
@@ -56,9 +57,9 @@ def pandify_semi(fatbystruct):
             else:
                 newfatbystruct[utype].append((fatstruct[utype]))
 
-        
     d1 = pd.DataFrame(newfatbystruct, index=ccodes)
     return d1
+
 
 def pandify_exposure(exposure, human_readable=False):
     """Turn the exposure dictionary into a DataFrame suitable for printing.
@@ -66,7 +67,8 @@ def pandify_exposure(exposure, human_readable=False):
     :param exposure:
       exposure dictionary as returned by Exposure.calcExposure().
     :param human_readable:
-      Boolean indicating whether exposure values should be printed as human readable (i.e, "1,234" not "1234").
+      Boolean indicating whether exposure values should be printed as human
+      readable (i.e, "1,234" not "1234").
     :returns:
       Pandas DataFrame containing the rows of exposure to shaking.
     """
@@ -89,7 +91,8 @@ def pandify_exposure(exposure, human_readable=False):
     df = pd.DataFrame(rows, columns=columns, dtype=np.int64)
     df = df.set_index('Country Code')
 
-    # shuffle the rows so that they are sorted by country codes, then total at the end
+    # shuffle the rows so that they are sorted by country codes,
+    # then total at the end
     ccols = df.index.tolist()
     is_economic = False
     if ccols.count('TotalExposure'):
@@ -103,14 +106,16 @@ def pandify_exposure(exposure, human_readable=False):
     else:
         ccols += ['TotalExposure']
     df = df.reindex(ccols)
-    
+
     if human_readable:
-        locale.setlocale(locale.LC_ALL, '')  # set the locale to that specified by the system
+        # set the locale to that specified by the system
+        locale.setlocale(locale.LC_ALL, '')
         sep = locale.localeconv()['thousands_sep']
         fmt = '{:%sd}' % sep
         for mmicol in mmi:
             df[mmicol] = df[mmicol].map(fmt.format)
     return df
+
 
 def pandify_losses(lossdict, losstype='fatality', human_readable=False):
     """Turn the loss dictionaries into DataFrames suitable for printing.
@@ -120,7 +125,8 @@ def pandify_losses(lossdict, losstype='fatality', human_readable=False):
     :param losstype:
       One of 'fatality','economic'.
     :param human_readable:
-      Boolean indicating whether exposure values should be printed as human readable (i.e, "1,234" not "1234").
+      Boolean indicating whether exposure values should be printed as human
+      readable (i.e, "1,234" not "1234").
     :returns:
       Pandas DataFrame containing the rows of losses due to shaking.
     """
@@ -143,27 +149,29 @@ def pandify_losses(lossdict, losstype='fatality', human_readable=False):
         rows[losscol].append(lossvalue)
     df = pd.DataFrame(rows, columns=columns, dtype=np.uint64)
     df = df.set_index('Country Code')
-    # shuffle the rows so that they are sorted by country codes, then total at the end
+    # shuffle the rows so that they are sorted by country codes,
+    # then total at the end
     ccols = df.index.tolist()
     ccols.remove(totalrow)
     ccols.sort()
     ccols += [totalrow]
     df = df.reindex(ccols)
     if human_readable:
-        locale.setlocale(locale.LC_ALL, '')  # set the locale to that specified by the system
+        # set the locale to that specified by the system
+        locale.setlocale(locale.LC_ALL, '')
         sep = locale.localeconv()['thousands_sep']
         fmt = '{:%sd}' % sep
         df[losscol] = df[losscol].map(fmt.format)
 
     return df
-                
+
 
 def main(pargs, config):
     # Make sure grid.xml file exists
     if not os.path.isfile(pargs.gridfile):
         print('ShakeMap Grid file %s does not exist.' % pargs.gridfile)
         sys.exit(1)
-    
+
     # get all the basic event information and print it, if requested
     shake_tuple = getHeaderData(pargs.gridfile)
     etime = shake_tuple[1]['event_timestamp']
@@ -182,10 +190,10 @@ def main(pargs, config):
         print('Depth : %.1f' % edepth)
         print('Magnitude : %.1f' % emag)
         print('Event ID : %s' % eid)
-    
+
     # get the year of the event
     event_year = shake_tuple[1]['event_timestamp'].year
-    
+
     # find the population data collected most closely to the event_year
     pop_year = None
     tmin = 10000000
@@ -202,41 +210,50 @@ def main(pargs, config):
             popfile = popgrid
 
     if pargs.debug:
-        sys.stderr.write('Population year: %i Population file: %s\n' % (pop_year, popfile))
+        sys.stderr.write(
+            'Population year: %i Population file: %s\n' % (pop_year, popfile))
 
-        
     # Get exposure results
     isofile = config['model_data']['country_grid']
     expomodel = Exposure(popfile, pop_year, isofile)
     try:
         exposure = expomodel.calcExposure(pargs.gridfile)
     except Exception as e:
-        sys.stderr.write('Failed to calculate exposure using {} as input:  "{}"\n'.format(pargs.gridfile, e))
+        sys.stderr.write(
+            'Failed to calculate exposure using {} as input:  "{}"\n'.format(pargs.gridfile, e))
         sys.exit(0)
     expdf = pandify_exposure(exposure, human_readable=pargs.readable)
-    print('Population Exposure to Shaking:\n')
-    print(expdf)
-    print()
-    
+    if not args.total_exposure:
+        print('Population Exposure to Shaking:\n')
+        print(expdf)
+        print()
+    else:
+        exposures = [str(col) for col in expdf.iloc[-1].tolist()]
+        row = ','.join([eid] + exposures)
+        print(row)
+
     # get fatality results, if requested
     if pargs.fatalities:
         fatmodel = EmpiricalLoss.fromDefaultFatality()
         fatdict = fatmodel.getLosses(exposure)
-        fatdf = pandify_losses(fatdict, losstype='fatality', human_readable=pargs.readable)
+        fatdf = pandify_losses(fatdict, losstype='fatality',
+                               human_readable=pargs.readable)
         print('Fatalities Due to Shaking:\n')
         print(fatdf)
         print()
-    
+
     # get economic results, if requested
     if pargs.econloss:
         econexpmodel = EconExposure(popfile, popyear, isofile)
         ecomodel = EmpiricalLoss.fromDefaultEconomic()
         econexposure = econexpmodel.calcExposure(pargs.gridfile)
-        econexpdf = pandify_exposure(econexposure, human_readable=pargs.readable)
+        econexpdf = pandify_exposure(
+            econexposure, human_readable=pargs.readable)
         print('Population Economic Exposure to Shaking:\n')
         print(econexpdf)
         ecodict = ecomodel.getLosses(econexposure)
-        ecodf = pandify_losses(ecodict, losstype='economic', human_readable=pargs.readable)
+        ecodf = pandify_losses(ecodict, losstype='economic',
+                               human_readable=pargs.readable)
         print('Dollar Losses Due to Shaking:\n')
         print(ecodf)
 
@@ -256,13 +273,13 @@ def main(pargs, config):
         d2 = pandify_semi(nonresfat)
         print('\nFatalities by non-residential building types:\n')
         print(d2)
-                  
-    
+
+
 if __name__ == '__main__':
     desc = '''Calculate PAGER exposures and losses (fatalities or economic).
 
-    This program presumes that you have a configuration file in ~/.losspager/config.json,
-    consisting of the following entries:
+    This program presumes that you have a configuration file in
+    ~/.losspager/config.json, consisting of the following entries:
 
     {
       "model_data": {
@@ -283,8 +300,7 @@ if __name__ == '__main__':
         "url": "sqlite:////Users/user/.losspager/losspager_schema.db"
       }
     }
-    
-    
+
     Example usage:
     %(prog)s grid.xml
 
@@ -328,14 +344,16 @@ if __name__ == '__main__':
     PK            1000000
     TotalDollars  2000000
     '''
+    formatter = argparse.RawDescriptionHelpFormatter
     parser = argparse.ArgumentParser(description=desc,
-                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+                                     formatter_class=formatter)
     parser.add_argument('gridfile',
                         help='The path to a ShakeMap grid.xml file')
     parser.add_argument('-f', '--fatalities', action='store_true',
                         default=False, help='Calculate empirical fatalities')
     parser.add_argument('-e', '--econloss', action='store_true',
-                        default=False, help='Calculate empirical economic exposures and losses')
+                        default=False,
+                        help='Calculate empirical economic exposures and losses')
     parser.add_argument('-s', '--semiloss', action='store_true',
                         default=False, help='Calculate semi-empirical fatalities')
     parser.add_argument('-r', '--readable', action='store_true',
@@ -344,7 +362,9 @@ if __name__ == '__main__':
                         default=False, help='Print debug information (mostly useful to developers)')
     parser.add_argument('-i', '--eventinfo', action='store_false',
                         default=True, help='Turn off printing of basic event information')
-    
+    parser.add_argument('-t', '--total-exposure', action='store_true',
+                        default=False, help='Print only exposure information, comma separated')
+
     args = parser.parse_args()
 
     pd.set_option('display.width', 1000)
@@ -352,7 +372,7 @@ if __name__ == '__main__':
 
     # read config file
     config = read_config()
-    
+
     # Make sure model_data section exists
     try:
         config['model_data']['population_data'][0]['population_year']
@@ -363,5 +383,5 @@ if __name__ == '__main__':
         errmsg = 'Config file %s is missing some or all of the required information.  See the help for the required format.\n'
         sys.stderr.write(errmsg)
         sys.exit(1)
-    
+
     main(args, config)
