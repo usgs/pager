@@ -17,7 +17,7 @@ dependencies:
 - impactutils
 - jupyter
 - mapio
-- matplotlib
+- matplotlib<2.3
 - mock
 - nose
 - openpyxl
