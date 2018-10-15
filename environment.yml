@@ -1,7 +1,5 @@
-name: pager
 channels:
 - conda-forge
-- defaults  
 dependencies:
 - beautifulsoup4
 - cartopy

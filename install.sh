@@ -98,9 +98,53 @@ fi
 echo "Activate base virtual environment"
 conda activate base
 
+# Remove any existing pager environments
+conda remove -y --name $VENV --all
+
+# define the list of packages
+package_list='
+  beautifulsoup4
+  cartopy
+  cython
+  decorator
+  descartes
+  docutils
+  fiona
+  flake8
+  gdal
+  h5py
+  hypothesis
+  impactutils
+  jupyter
+  mapio
+  matplotlib<2.3
+  mock
+  nose
+  openpyxl
+  openquake.engine
+  pandas
+  paramiko
+  psutil
+  pycrypto
+  pyproj
+  pytables
+  python=3.5
+  pytest
+  pytest-cov
+  pytest-mpl
+  pyyaml
+  rasterio
+  rtree
+  scipy
+  shapely
+  sqlalchemy
+  sqlalchemy-utils
+  xlrd
+  xlwt'
+
 # Create a conda virtual environment
 echo "Creating the $VENV virtual environment:"
-conda env create -f $env_file --force
+conda create -n $VENV -y --force -c conda-forge --channel-priority $package_list
 
 # Bail out at this point if the conda create command fails.
 # Clean up zip files we've downloaded
