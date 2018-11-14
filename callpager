@@ -85,6 +85,17 @@ def process_shakemap(args, config):
         logfile.close()
         sys.exit(1)
 
+    logfile.write('Checking ShakeMap code version...\n\n')
+    code_version = args.property_shakemap_code_version
+    skip_code_version = config['skip_code_version']
+    if code_version.startswith(skip_code_version):
+        fmt = 'Skipping events from ShakeMap code version %s:  Exiting.'
+        msg = fmt % code_version
+        print(msg)
+        logfile.write(msg+'\n\n')
+        logfile.close()
+        sys.exit(1)
+
     # Use lat,lon and source to exclude ShakeMap providers who are playing
     # outside their sandbox
     logfile.write('Checking for authoritativeness...\n\n')
@@ -177,7 +188,7 @@ def process_shakemap(args, config):
 #             sys.exit(1)
 #         print('Release of event %s successful with message "%s".' % (eventid, stdout))
 #         sys.exit(0)
-#        
+#
 #     if args.action == 'switch-status':
 #         admin_cmd1 = '%s --status check' % (admin_path)
 #         res, stdout, stderr = get_command_output(admin_cmd1)
@@ -195,7 +206,7 @@ def process_shakemap(args, config):
 #             sys.exit(1)
 #         print('Successfully switched system status to %s.' % (new_status))
 #         sys.exit(0)
-#        
+#
 #     if args.action == 'cancel':
 #         pager_cmd = '%s --cancel %s' % (pager_path, eventid)
 #         res, stdout, stderr = get_command_output(admin_cmd2)
@@ -204,10 +215,10 @@ def process_shakemap(args, config):
 #             sys.exit(1)
 #         print('Successfully sent cancel message for %s.' % (eventid))
 #         sys.exit(0)
-#        
+#
 #     if args.action == 'renotify':
 #         pass
-#    
+#
 #     if args.action == 'stop':
 #         admin_cmd = '%s --stop %s' % (admin_path, eventid)
 #         res, stdout, stderr = get_command_output(admin_cmd)
@@ -216,7 +227,7 @@ def process_shakemap(args, config):
 #             sys.exit(1)
 #         print('Successfully stopped processing for %s.' % (eventid))
 #         sys.exit(0)
-#        
+#
 #     if args.action == 'unstop':
 #         admin_cmd = '%s --unstop %s' % (admin_path, eventid)
 #         res, stdout, stderr = get_command_output(admin_cmd)
@@ -285,5 +296,7 @@ callpager itself.
                            dest='magnitude')
     argparser.add_argument("--preferred-eventtime",
                            help="Event time", metavar='TIME', dest='time')
+    argparser.add_argument('--property-shakemap-code-version',
+                           metavar='CODE_VERSION', default='3.5')
     pargs, unknown = argparser.parse_known_args()
     main(pargs)
