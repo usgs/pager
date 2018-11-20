@@ -121,10 +121,10 @@ class HazusInfo(object):
         homedir = os.path.dirname(os.path.abspath(__file__))
         datadir = os.path.join(homedir, '..', 'data')
         fipsfile = os.path.join(datadir, 'fips_codes.xlsx')
-        fips = pd.read_excel(fipsfile, dtype={'FIPS': object})
+        fips = pd.read_excel(fipsfile, dtype={'FIPS': object, })
         self._county_dict = {}
         for idx, row in fips.iterrows():
-            key = row['FIPS']
+            key = int(row['FIPS'])
             county = row['County'].replace('County', '').strip()
             state = row['StateAbbrev']
             value = (county, state)
@@ -160,7 +160,8 @@ class HazusInfo(object):
         ntotal = len(self._dataframe)
         for i in range(0, self._ncounties):
             row = self._dataframe.iloc[i]
-            county_name, state_abbrev = self._county_dict[row['CountyFips']]
+            fips = int(row['CountyFips'])
+            county_name, state_abbrev = self._county_dict[fips]
             loss_str = pop_round_short(row['EconLoss'])[0:-1]
             line = '%s & %s & %s \\\\' % (county_name, state_abbrev, loss_str)
             table_lines.append(line)
@@ -184,7 +185,8 @@ class HazusInfo(object):
         ncounties = len(self._dataframe)
         for i in range(0, self._ncounties):
             row = self._dataframe.iloc[i]
-            county_name, state_abbrev = self._county_dict[row['CountyFips']]
+            fips = int(row['CountyFips'])
+            county_name, state_abbrev = self._county_dict[fips]
             pop = pop_round_short(row['Population'])
             injuries = pop_round_short(row['NonFatal5p'])
             fmt = '%s & %s & %s & %s \\\\'
@@ -216,7 +218,8 @@ class HazusInfo(object):
         table_lines.append('\\hline')
         for i in range(0, self._ncounties):
             row = self._dataframe.iloc[i]
-            county_name, state_abbrev = self._county_dict[row['CountyFips']]
+            fips = int(row['CountyFips'])
+            county_name, state_abbrev = self._county_dict[fips]
             households = pop_round_short(row['Households'])
             displaced = pop_round_short(row['DisplHouse'])
             shelter = pop_round_short(row['Shelter'])
