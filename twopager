@@ -59,6 +59,17 @@ def main(args):
 
     hazus_files = fetch_hazus(hazdir, vfolder)
 
+    errors = []
+    for key, fname in hazus_files.items():
+        if isinstance(fname, bool) and not fname:
+            errors.append(key)
+    if len(errors):
+        print('Files for the following items could not be found:')
+        for error in errors:
+            print('\t%s' % error)
+        print('\nExiting.')
+        sys.exit(1)
+
     countyfile = hazus_files['county']
     tractfile = hazus_files['tract']
     bldg_damage = hazus_files['occupancy']
@@ -89,7 +100,7 @@ HAZUS output.
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('eventid',
                         help='PAGER event ID')
-    
+
     parser.add_argument('hazdir', help='directory/url containing HAZUS output')
     parser.add_argument('-t', '--transfer', action='store_true', default=False,
                         help='transfer results to ComCat')
