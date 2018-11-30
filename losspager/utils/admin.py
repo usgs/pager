@@ -44,7 +44,7 @@ def unset_pending(version_folder):
     jdict = json.load(f)
     f.close()
     if jdict['pager']['alert_level'] == jdict['pager']['true_alert_level']:
-        return false
+        return False
     jdict['pager']['alert_level'] = jdict['pager']['true_alert_level']
     f = open(eventfile, 'wt')
     json.dump(jdict, f)

@@ -75,7 +75,7 @@ def main(args):
     bldg_damage = hazus_files['occupancy']
     hazinfo = HazusInfo(vfolder, tractfile, countyfile, bldg_damage)
 
-    map_file = os.path.join(vfolder, 'hazus_map.pdf')
+    map_file = os.path.join(vfolder, 'hazus_map.png')
     model_config = config['model_data']
     hazinfo.drawHazusMap(shakegrid, map_file, model_config)
     output_pdf, msg = create_twopager(pdata, hazinfo, vfolder)

@@ -114,14 +114,14 @@ class HazusInfo(object):
 
         # parse the county level data file
         self._dataframe = pd.read_csv(county_file,
-                                      dtype={'CountyFips': object})
+                                      dtype={'CountyFips': int})
         self._dataframe = self._dataframe.sort_values('EconLoss',
                                                       ascending=False)
         self._ncounties = min(MAX_TABLE_ROWS, len(self._dataframe))
         homedir = os.path.dirname(os.path.abspath(__file__))
         datadir = os.path.join(homedir, '..', 'data')
         fipsfile = os.path.join(datadir, 'fips_codes.xlsx')
-        fips = pd.read_excel(fipsfile, dtype={'FIPS': object, })
+        fips = pd.read_excel(fipsfile, dtype={'FIPS': int, })
         self._county_dict = {}
         for idx, row in fips.iterrows():
             key = int(row['FIPS'])
@@ -324,7 +324,7 @@ class HazusInfo(object):
             county_shape = sShape(county['geometry'])
             state_fips = county['properties']['STATEFP10']
             county_fips = county['properties']['COUNTYFP10']
-            fips = state_fips + county_fips
+            fips = int(state_fips + county_fips)
             df = self._dataframe
             weight = 1
             if (df['CountyFips'] == fips).any():
@@ -358,6 +358,13 @@ class HazusInfo(object):
         fig = mmap.figure
         ax = mmap.axes
         geoproj = mmap.geoproj
+        proj = mmap.proj
+
+        # this is a workaround to an occasional problem where some vector layers
+        # are not rendered. See
+        # https://github.com/SciTools/cartopy/issues/1155#issuecomment-432941088
+        proj._threshold /= 6
+
         # this needs to be done here so that city label collision
         # detection will work
         fig.canvas.draw()
@@ -411,7 +418,7 @@ class HazusInfo(object):
             state_fips = tract['properties']['STATEFP10']
             county_fips = state_fips + tract['properties']['COUNTYFP10']
             fips_column = self._dataframe['CountyFips']
-            if not fips_column.str.contains(county_fips).any():
+            if not fips_column.isin([county_fips]).any():
                 continue
             tract_fips = county_fips + tract['properties']['TRACTCE10']
             econloss = 0.0
@@ -436,7 +443,7 @@ class HazusInfo(object):
         # save our map out to a file
         print('Saving to %s' % filename)
         t0 = time.time()
-        plt.savefig(filename)
+        plt.savefig(filename, dpi=300)
         t1 = time.time()
         print('Done saving map - %.2f seconds' % (t1-t0))
 
