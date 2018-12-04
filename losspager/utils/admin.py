@@ -283,7 +283,7 @@ class PagerAdmin(object):
           String path to event folder.
         """
         eventfolders = glob.glob(os.path.join(
-            self._pager_folder, '*%s*' % eventid))
+            self._pager_folder, '*%s_*' % eventid))
         if len(eventfolders):
             return eventfolders[0]
 
