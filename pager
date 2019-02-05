@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
 # local imports
+from impactutils.transfer.emailsender import EmailSender
+from impactutils.comcat.query import ComCatInfo
+from mapio.shake import getHeaderData
 from losspager.models.exposure import Exposure
 from losspager.models.econexposure import EconExposure
 from losspager.models.emploss import EmpiricalLoss
@@ -42,10 +45,6 @@ import matplotlib
 # this allows us to have a non-interactive backend - essential on systems
 # without a display
 matplotlib.use('Agg')
-
-from mapio.shake import getHeaderData
-from impactutils.comcat.query import ComCatInfo
-from impactutils.transfer.emailsender import EmailSender
 
 
 COUNTRY = Country()
@@ -564,7 +563,14 @@ def main(pargs, config):
             message_pager(config, onepager_pdf, doc)
 
         # run transfer, as appropriate and as specified by config
-        res, msg = transfer(config, doc, authid, authsource,
+        # the PAGER product eventsource and eventsourcecode should
+        # match the input ShakeMap settings for these properties.
+        # This can possibly cause confusion if a regional ShakeMap is
+        # trumped with one from NEIC, but this should happen less often
+        # than an NEIC origin being made authoritative over a regional one.
+        eventsource = network
+        eventsourcecode = eid
+        res, msg = transfer(config, doc, eventsourcecode, eventsource,
                             version_folder, is_scenario=is_scenario)
         _print_message(plog, msg)
         if not res:

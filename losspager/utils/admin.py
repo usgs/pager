@@ -111,6 +111,8 @@ def transfer(config, pagerdata, authid, authsource, version_folder,
                     params = config['transfer'][method]
                     if is_scenario:
                         params['type'] = 'losspager-scenario'
+                    if renotify:
+                        params['type'] = 'losspager-admin'
                     if 'remote_directory' in params:
                         vpath, vfolder = os.path.split(version_folder)
                         # append the event id and version folder to our pre-specified output directory
