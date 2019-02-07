@@ -8,12 +8,7 @@ from collections import OrderedDict
 import warnings
 import shutil
 
-# hack the path so that I can debug these functions if I need to
-homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
-pagerdir = os.path.abspath(os.path.join(homedir, '..', '..'))
-sys.path.insert(0, pagerdir)  # put this at the front of the system path, ignoring any installed shakemap stuff
-
-# third party imports 
+# third party imports
 import numpy as np
 
 # non-interactive backend
@@ -30,21 +25,22 @@ from losspager.models.exposure import Exposure, calc_exposure
 
 
 def test(outfolder=None):
+    homedir = os.path.dirname(os.path.abspath(__file__))
     topdata = os.path.abspath(os.path.join(homedir, '..', 'data'))
     datadir = os.path.abspath(os.path.join(topdata, 'eventdata', 'northridge'))
-    
+
     cityfile = os.path.join(topdata, 'cities1000.txt')
     oceanfile = os.path.join(datadir, 'northridge_ocean.json')
     shakefile = os.path.join(datadir, 'northridge_grid.xml')
     popfile = os.path.join(datadir, 'northridge_gpw.flt')
     ogridfile = os.path.join(datadir, 'northridge_ocean.bil')
     isofile = os.path.join(datadir, 'northridge_isogrid.bil')
-    
+
     exp = Exposure(popfile, 2012, isofile)
     results = exp.calcExposure(shakefile)
     shakegrid = exp.getShakeGrid()
     popgrid = exp.getPopulationGrid()
-    
+
     print('Testing to see if PAGER can successfully create contour map...')
     hasfolder = False
     if outfolder is not None:
@@ -53,7 +49,8 @@ def test(outfolder=None):
         if not hasfolder:
             outfolder = tempfile.mkdtemp()
         basefile = os.path.join(outfolder, 'output')
-        pdffile, pngfile, mapcities = draw_contour(shakegrid, popgrid, oceanfile, ogridfile, cityfile, basefile)
+        pdffile, pngfile, mapcities = draw_contour(
+            shakegrid, popgrid, oceanfile, ogridfile, cityfile, basefile)
         print('Output pdf is %s, output png is %s.' % (pdffile, pngfile))
 
         assert os.path.isfile(pngfile) and os.path.isfile(pdffile)
@@ -63,7 +60,8 @@ def test(outfolder=None):
         if os.path.isdir(outfolder) and not hasfolder:
             shutil.rmtree(outfolder)
     print('Passed.')
-     
+
+
 if __name__ == '__main__':
     warnings.filterwarnings("ignore")
     outfolder = os.path.expanduser('~')

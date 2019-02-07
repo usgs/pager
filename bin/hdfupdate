@@ -10,39 +10,30 @@ import glob
 
 # third party imports
 import pandas as pd
+import openpyxl
+from impactutils.io.container import HDFContainer
 from impactutils.io.cmd import get_command_output
 
 
-sheets = {'BuildingTypes': 'Code',
-          'RuralNonResidential': 'CountryCode',
-          'RuralResidential': 'CountryCode',
-          'UrbanNonResidential': 'CountryCode',
-          'UrbanResidential': 'CountryCode',
-          'Workforce': 'CountryCode'}
-files = {'collapse': 'BuildingCode',
-         'casualty': 'BuildingCode'}
+def load_container_from_excel(excelfile, outfile):
+    container = HDFContainer.create(outfile)
+    wb = openpyxl.load_workbook(excelfile)
+    sheets = wb.sheetnames
+    wb.close()
+    for sheet in sheets:
+        df = pd.read_excel(excelfile, sheet_name=sheet)
+        container.setDataFrame(sheet, df)
 
-def load_panel_from_excel(excelfile):
-    paneldict = {}
-    xl = pd.ExcelFile(excelfile)
-    for sheet in xl.sheet_names:
-        frame = pd.read_excel(excelfile, sheetname=sheet)
-        if sheet in sheets:
-            frame = frame.set_index(sheets[sheet])
-        else:
-            for freg in files.keys():
-                if excelfile.find(freg) > -1:
-                    frame = frame.set_index(files[freg])
-                    break
-        paneldict[sheet] = frame.copy()
-        #print(sheet,'ShortDescription' in frame.columns)
-    panel = pd.Panel(paneldict.copy())
-    return panel
+    container.close()
+
 
 def main(args):
-    homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
-    excelfiles = glob.glob(os.path.join(homedir, 'losspager', 'data', 'semi_*.xlsx'))
-    hdffiles = glob.glob(os.path.join(homedir, 'losspager', 'data', 'semi_*.hdf'))
+    homedir = os.path.dirname(os.path.abspath(
+        __file__))  # where is this script?
+    excelfiles = glob.glob(os.path.join(
+        homedir, '..', 'losspager', 'data', 'semi_*.xlsx'))
+    hdffiles = glob.glob(os.path.join(
+        homedir, '..', 'losspager', 'data', 'semi_*.hdf'))
     if args.undo:
         cmd = 'git checkout %s' % (' '.join(hdffiles))
         res, stdout, stderr = get_command_output(cmd)
@@ -52,21 +43,17 @@ def main(args):
         else:
             print('HDF files have been reverted back to their previous state.')
         sys.exit(0)
-                
+
     if args.convert:
         for excelfile in excelfiles:
             fpath, fname = os.path.split(excelfile)
-            fbase, fext = os.path.splitext(fname)
-            outfile = os.path.join(fpath, fbase+'.hdf')
-            print('Loading data from %s...' % fname)
-            panel = load_panel_from_excel(excelfile)
-            print('Updating %s to %s' % (fname, fbase+'hdf'))
-            panel.to_hdf(outfile, fbase, mode='w')
+            fbase, _ = os.path.splitext(fname)
+            outfile = os.path.join(fpath, fbase + '.hdf')
+            print('Converting data from %s to HDF...' % fname)
+            load_container_from_excel(excelfile, outfile)
         print('Done.  Do not forget to commit these changes.')
         sys.exit(0)
 
-    
-        
 
 if __name__ == '__main__':
     desc = '''This script is intended for developers and scientists involved
@@ -87,6 +74,3 @@ if __name__ == '__main__':
         parser.print_help()
         sys.exit(0)
     main(pargs)
-    
-
-        

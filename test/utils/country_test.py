@@ -6,22 +6,20 @@ import tempfile
 import os.path
 import sys
 
-# hack the path so that I can debug these functions if I need to
-homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
-pagerdir = os.path.abspath(os.path.join(homedir, '..', '..'))
-sys.path.insert(0, pagerdir)  # put this at the front of the system path, ignoring any installed shakemap stuff
-
-# third party imports 
+# third party imports
 import numpy as np
 
 # local imports
 from losspager.utils.country import Country
 
+
 def test():
-    homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
-    countryfile = os.path.abspath(os.path.join(homedir, '..', '..', 'data', 'countries.csv'))
-    testdict = {'ISON': 840, 'ISO3': 'USA', 
-                'ISO2': 'US', 'LongName': 'United States', 
+    homedir = os.path.dirname(os.path.abspath(
+        __file__))  # where is this script?
+    countryfile = os.path.abspath(os.path.join(
+        homedir, '..', '..', 'data', 'countries.csv'))
+    testdict = {'ISON': 840, 'ISO3': 'USA',
+                'ISO2': 'US', 'LongName': 'United States',
                 'Name': 'United States', 'Population': 324515000}
 
     print('Test creating Country object from CSV file...')
@@ -61,11 +59,11 @@ def test():
 
     # test multiple kinds of numbers...
     print('Make sure all kinds of numpy numbers are supported...')
-    numbers = [840,840.0,
-               np.int16(840),np.uint16(840),
-               np.int32(840),np.uint32(840),
-               np.int64(840),np.uint64(840),
-               np.float32(840),np.float64(840)]
+    numbers = [840, 840.0,
+               np.int16(840), np.uint16(840),
+               np.int32(840), np.uint32(840),
+               np.int64(840), np.uint64(840),
+               np.float32(840), np.float64(840)]
     for number in numbers:
         row_t = country.getCountry(number)
         assert row_t == testdict

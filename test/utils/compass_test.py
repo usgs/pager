@@ -6,16 +6,12 @@ import tempfile
 import os.path
 import sys
 
-# hack the path so that I can debug these functions if I need to
-homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
-pagerdir = os.path.abspath(os.path.join(homedir, '..', '..'))
-sys.path.insert(0, pagerdir)  # put this at the front of the system path, ignoring any installed shakemap stuff
-
-# third party imports 
+# third party imports
 import numpy as np
 
 # local imports
 from losspager.utils import compass
+
 
 def test():
     print('Testing various different compass angles...')
@@ -29,6 +25,7 @@ def test():
     assert compass.get_compass_dir(0, 0, -1, -1, format='short') == 'SW'
     assert compass.get_compass_dir(0, 0, -1, 1, format='short') == 'SE'
     print('Passed.')
+
 
 if __name__ == '__main__':
     test()

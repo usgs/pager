@@ -12,6 +12,8 @@ from mapio.shake import ShakeGrid
 from mapio.gmt import GMTGrid
 from mapio.geodict import GeoDict
 
+# neic imports
+from impactutils.io.container import HDFContainer
 
 # local imports
 from .growth import PopulationGrowth
@@ -256,8 +258,8 @@ def get_time_of_day(dtime, lon):
       Tuple of time of day,local event year, and local event hour
     """
     # inputs datetime in utc, and local longitude
-    toffset = lon/15
-    event_time = dtime + timedelta(0, toffset*3600)
+    toffset = lon / 15
+    event_time = dtime + timedelta(0, toffset * 3600)
     event_year = event_time.year
     event_hour = event_time.hour
     timeofday = None
@@ -327,10 +329,10 @@ def make_test_semi_model(ccode, timeofday, density, popvalue, mmi):
                  'map_status': 'RELEASED',
                  'shakemap_event_type': 'SCENARIO'}
     uncdict = {'mmi': (1.0, 1)}
-    popdata = np.ones((2, 2), dtype=np.float32)*(popvalue)/4
-    isodata = np.ones((2, 2), dtype=np.int16)*ucode
-    urbdata = np.ones((2, 2), dtype=np.int16)*density
-    mmidata = np.ones((2, 2), dtype=np.float32)*mmi
+    popdata = np.ones((2, 2), dtype=np.float32) * (popvalue) / 4
+    isodata = np.ones((2, 2), dtype=np.int16) * ucode
+    urbdata = np.ones((2, 2), dtype=np.int16) * density
+    mmidata = np.ones((2, 2), dtype=np.float32) * mmi
     geodict = GeoDict({'xmin': 0.5, 'xmax': 1.5, 'ymin': 0.5,
                        'ymax': 1.5, 'dx': 1.0, 'dy': 1.0, 'nx': 2, 'ny': 2})
     popgrid = GMTGrid(popdata, geodict)
@@ -368,13 +370,13 @@ def make_test_semi_model(ccode, timeofday, density, popvalue, mmi):
         for key, value in resfat[ccode].items():
             if value < 1:
                 value = np.floor(value)
-            newresfat[ccode][key] = value/4.0
-            popsum += value/4.0
+            newresfat[ccode][key] = value / 4.0
+            popsum += value / 4.0
         for key, value in nonresfat[ccode].items():
-            newnonresfat[ccode][key] = value/4.0
+            newnonresfat[ccode][key] = value / 4.0
             if value < 1:
                 value = np.floor(value)
-            popsum += value/4.0
+            popsum += value / 4.0
         popsum = int(popsum)
     finally:
         files = [popfile, isofile, urbfile, shakefile]
@@ -389,7 +391,7 @@ class SemiEmpiricalFatality(object):
         """Create Semi-Empirical Fatality Model object.
 
         :param inventory:
-          Pandas Panel, containing DataFrames named: 
+          HDFContainer, containing DataFrames named: 
            - 'BuildingTypes',
            - 'RuralNonResidential'
            - 'RuralResidential'
@@ -407,18 +409,18 @@ class SemiEmpiricalFatality(object):
             - Building Codes, as listed and described in BuildingTypes Dataframe.
 
         :param collapse:
-          Pandas Panel, where first index is country (by two-letter country code), columns are: 
+          HDFContainer, where first index is country (by two-letter country code), columns are: 
             - BuildingCode:  Building code as above.
             - (IMT)_6.0 -> (IMT)_9.0 Columns with collapse rates at each (IMT) interval, where (IMT) could be MMI,PGA,PGV,PSA1.0, etc.
 
         :param casualty:
-          Pandas panel, where first index is country (by two-letter country code), columns are: 
+          HDFContainer, where first index is country (by two-letter country code), columns are: 
             - BuildingCode:  Building code as above.
             - CasualtyDay:   Casualty rate, given collapse, during the day.
             - CasualtyNight: Casualty rate, given collapse, during the night.
 
         :param workforce:
-          Pandas panel consisting of a single dataframe, where rows are by country, and columns are:
+          HDFContainer consisting of a single dataframe, where rows are by country, and columns are:
             - CountryCode two letter ISO country code.
             - CountryCode name of country.
             - WorkforceTotal Fraction of the country population in the workforce.
@@ -455,24 +457,26 @@ class SemiEmpiricalFatality(object):
         """Create SemiEmpiricalFatality object from a number of input files.
 
         :param inventory_file:
-          HDF5 file containing Semi-Empirical building inventory data in a Pandas Panel. (described in __init__).
+          HDF5 file containing Semi-Empirical building inventory data in an HDFContainer. (described in __init__).
         :param collapse_file:
-          HDF5 file containing Semi-Empirical collapse rate data  in a Pandas Panel. (described in __init__).
+          HDF5 file containing Semi-Empirical collapse rate data  in an HDFContainer. (described in __init__).
         :param casualty_file:
-          HDF5 file containing Semi-Empirical casualty rate data in a Pandas Panel.(described in __init__).
+          HDF5 file containing Semi-Empirical casualty rate data in an HDFContainer.(described in __init__).
         :param workforce_file:
-          HDF5 file containing Semi-Empirical workforce data in a Pandas Panel. (described in __init__).
+          HDF5 file containing Semi-Empirical workforce data in an HDFContainer. (described in __init__).
         :param growth_file:
           Excel spreadsheet containing population growth rate data (described in PopulationGrowth.fromUNSpreadsheet()).
         :returns:
           SemiEmpiricalFatality object.
         """
         # turn the inventory,collapse, and casualty spreadsheets into Panels...
-        inventory = pd.read_hdf(inventory_file)
-        collapse = pd.read_hdf(collapse_file)
-        casualty = pd.read_hdf(casualty_file)
-        workforce = pd.read_hdf(workforce_file)
-        workforce = workforce.Workforce  # extract the one dataframe from the Panel
+        inventory = HDFContainer.load(inventory_file)
+        collapse = HDFContainer.load(collapse_file)
+        casualty = HDFContainer.load(casualty_file)
+        workforce = HDFContainer.load(workforce_file)
+        # extract the one dataframe from the Panel
+        workforce = workforce.getDataFrame('Workforce')
+        workforce = workforce.set_index('CountryCode')
 
         # read the growth spreadsheet into a PopulationGrowth object...
         popgrowth = PopulationGrowth.fromDefault()
@@ -515,7 +519,8 @@ class SemiEmpiricalFatality(object):
         :returns:
           Either a short, operational, or long description of building types.
         """
-        bsheet = self._inventory.BuildingTypes
+        bsheet = self._inventory.getDataFrame('BuildingTypes')
+        bsheet = bsheet.set_index('Code')
         row = bsheet.loc[btype]
         if desctype == 'short':
             return row['ShortDescription']
@@ -551,7 +556,9 @@ class SemiEmpiricalFatality(object):
         :returns:
           Pandas Series object containing the collapse rates for given building types, ccode, and MMI.
         """
-        collapse_frame = self._collapse.loc[ccode].loc[inventory.index]
+        collapse_frame = self._collapse.getDataFrame(ccode)
+        collapse_frame = collapse_frame.set_index('BuildingCode')
+        collapse_frame = collapse_frame.loc[inventory.index]
         mmicol = 'MMI_%s' % str(mmi)
         collapse = collapse_frame[mmicol]
         return collapse
@@ -568,7 +575,8 @@ class SemiEmpiricalFatality(object):
         :returns:
           Pandas Series object containing fatality rates for given country, time of day, and inventory.
         """
-        fatalframe = self._casualty[ccode]
+        fatalframe = self._casualty.getDataFrame(ccode)
+        fatalframe = fatalframe.set_index('BuildingCode')
         timecol = TIMES[timeofday]
         fatrates = fatalframe.loc[inventory.index][timecol]
         return fatrates
@@ -584,20 +592,20 @@ class SemiEmpiricalFatality(object):
           Two Pandas Series: 1) Residential Inventory and 2) Non-Residential Inventory.
         """
         if density == URBAN:
-            resinv = self._inventory.UrbanResidential
-            nresinv = self._inventory.UrbanNonResidential
+            resinv = self._inventory.getDataFrame('UrbanResidential')
+            nresinv = self._inventory.getDataFrame('UrbanNonResidential')
         else:
-            resinv = self._inventory.RuralResidential
-            nresinv = self._inventory.RuralNonResidential
-        resrow = resinv.loc[ccode]  # pandas series of residential inventory
+            resinv = self._inventory.getDataFrame('RuralResidential')
+            nresinv = self._inventory.getDataFrame('RuralNonResidential')
+        resinv = resinv.set_index('CountryCode')
+        nresinv = nresinv.set_index('CountryCode')
+
+        # pandas series of residential inventory
+        resrow = resinv.loc[ccode]
+        resrow = resrow.drop('CountryName')
         # pandas series of non-residential inventory
         nresrow = nresinv.loc[ccode]
-        # remove the indices that aren't building type codes - these are present because
-        # Panels have the same columns in every dataframe
-        resrow = resrow.drop(['ShortDescription', 'OperationalDescription', 'LongDescription',
-                              'CountryName'])
-        nresrow = nresrow.drop(['ShortDescription', 'OperationalDescription', 'LongDescription',
-                                'CountryName'])
+        nresrow = nresrow.drop('CountryName')
 
         # now trim down the series to only include finite and non-zero values
         resrow = resrow[resrow.notnull()]
@@ -657,7 +665,7 @@ class SemiEmpiricalFatality(object):
         # should become 5.5, 5.24 should become 5.0, etc.)
         # TODO:  Someday, make this more general to include perhaps grids of all IMT values, or
         # at least the ones we have collapse data for.
-        mmidata = np.round(shakegrid.getLayer('mmi').getData()/0.5)*0.5
+        mmidata = np.round(shakegrid.getLayer('mmi').getData() / 0.5) * 0.5
 
         # get arrays from our other grids
         popdata = popgrid.getData()

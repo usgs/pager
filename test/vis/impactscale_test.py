@@ -8,12 +8,7 @@ from collections import OrderedDict
 import hashlib
 import shutil
 
-# hack the path so that I can debug these functions if I need to
-homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
-pagerdir = os.path.abspath(os.path.join(homedir, '..', '..'))
-sys.path.insert(0, pagerdir)  # put this at the front of the system path, ignoring any installed shakemap stuff
-
-# third party imports 
+# third party imports
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
@@ -23,8 +18,9 @@ from losspager.vis.impactscale import drawImpactScale
 
 matplotlib.use('Agg')
 
+
 def img_test():
-    # NOTE:  This isn't a great test, so I am turning it off for now, 
+    # NOTE:  This isn't a great test, so I am turning it off for now,
     # until I can find a more reliable way to test images.
     testhash1 = b'\\\x03\xa9\x04\xe6\x8e\x99\x87r\xf2\xd9\xb9\xd9\xf8T\x83'
     testhash2 = b'\xe0\x19\xee$\x1a\xdcp\xdfX\x16\x8c\xb4\x95!t\xe0'
@@ -49,14 +45,14 @@ def img_test():
         print('Testing first economic plot is consistent with prior results...')
         assert m.digest() == testhash1
         print('Passed.')
-        
+
         ranges = OrderedDict([('0-1', 0.8),
-                          ('1-10', 0.1),
-                          ('10-100', 0.05),
-                          ('100-1000', 0.03),
-                          ('1000-10000', 0.02),
-                          ('10000-100000', 0.0),
-                          ('100000-10000000', 0.0)])
+                              ('1-10', 0.1),
+                              ('10-100', 0.05),
+                              ('100-1000', 0.03),
+                              ('1000-10000', 0.02),
+                              ('10000-100000', 0.0),
+                              ('100000-10000000', 0.0)])
         f = drawImpactScale(ranges, 'fatality', debug=False)
         outfile = os.path.join(homedir, 'test2.png')
         f.savefig(outfile)
@@ -69,12 +65,12 @@ def img_test():
         print('Passed.')
 
         ranges = OrderedDict([('0-1', 0.1),
-                          ('1-10', 0.6),
-                          ('10-100', 0.25),
-                          ('100-1000', 0.03),
-                          ('1000-10000', 0.02),
-                          ('10000-100000', 0.0),
-                          ('100000-10000000', 0.0)])
+                              ('1-10', 0.6),
+                              ('10-100', 0.25),
+                              ('100-1000', 0.03),
+                              ('1000-10000', 0.02),
+                              ('10000-100000', 0.0),
+                              ('100000-10000000', 0.0)])
         f = drawImpactScale(ranges, 'fatality', debug=False)
         outfile = os.path.join(homedir, 'test3.png')
         f.savefig(outfile)
@@ -87,12 +83,12 @@ def img_test():
         print('Passed.')
 
         ranges = OrderedDict([('0-1', 0.1),
-                          ('1-10', 0.6),
-                          ('10-100', 0.25),
-                          ('100-1000', 0.03),
-                          ('1000-10000', 0.0),
-                          ('10000-100000', 0.45),
-                          ('100000-10000000', 0.)])
+                              ('1-10', 0.6),
+                              ('10-100', 0.25),
+                              ('100-1000', 0.03),
+                              ('1000-10000', 0.0),
+                              ('10000-100000', 0.45),
+                              ('100000-10000000', 0.)])
         f = drawImpactScale(ranges, 'fatality', debug=False)
         outfile = os.path.join(homedir, 'test4.png')
         f.savefig(outfile)
@@ -103,12 +99,13 @@ def img_test():
         print('Testing third fatality plot is consistent with prior results...')
         assert m.digest() == testhash4
         print('Passed.')
-        
+
     except Exception as error:
         raise error
     finally:
         if os.path.isdir(homedir):
             shutil.rmtree(homedir)
+
 
 if __name__ == '__main__':
     img_test()
