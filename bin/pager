@@ -52,13 +52,6 @@ TIMEFMT = '%Y-%m-%d %H:%M:%S'
 TSUNAMI_MAG_THRESH = 7.3
 
 
-def _print_message(plog, message):
-    if plog is not None:
-        plog.Logger.info(message)
-    else:
-        print(message)
-
-
 def _is_url(gridfile):
     try:
         fh = request.urlopen(gridfile)
@@ -126,7 +119,7 @@ def _get_release_status(pargs, config,
     # Are we past the release threshold?
     event_time = shake_tuple[1]['event_timestamp']
     threshold_hours = datetime.timedelta(
-        seconds=config['release_threshold']*3600)
+        seconds=config['release_threshold'] * 3600)
     time_threshold = event_time + threshold_hours
     if datetime.datetime.utcnow() > time_threshold:
         is_released = True
@@ -182,8 +175,8 @@ def _get_pop_year(event_year, popyears):
         if not os.path.isfile(popgrid):
             print('Population grid file %s does not exist.' % popgrid)
             sys.exit(1)
-        if abs(popyear-event_year) < tmin:
-            tmin = abs(popyear-event_year)
+        if abs(popyear - event_year) < tmin:
+            tmin = abs(popyear - event_year)
             pop_year = popyear
             popfile = popgrid
     return (pop_year, popfile)
@@ -286,8 +279,6 @@ def _cancel(eventid, config):
 def main(pargs, config):
     # get the users home directory
     homedir = os.path.expanduser('~')
-    script_dir = os.path.dirname(
-        os.path.abspath(__file__))  # where is this script?
 
     # handle cancel messages
     if pargs.cancel:
@@ -315,21 +306,15 @@ def main(pargs, config):
 
     admin = PagerAdmin(pager_folder, pager_archive)
 
-    plog = None
-
-    # TODO: figure out how may make the stdout/stderr redirect functionality
-    # work again.  Turned off for now.
-    if not pargs.debug:
-        # stdout will now be logged as INFO, stderr will be logged as WARNING
-        mail_hosts = config['mail_hosts']
-        mail_from = config['mail_from']
-        logfile = os.path.join(pager_folder, 'pager.log')
-        #print('Writing content to %s' % logfile)
-        plog = PagerLogger(logfile, redirect=False,
-                           from_address=mail_from,
-                           mail_hosts=mail_hosts)
-        # failover email alert system
-        plog.addEmailHandler(config['developers'])
+    # stdout will now be logged as INFO, stderr will be logged as WARNING
+    mail_host = config['mail_hosts'][0]
+    mail_from = config['mail_from']
+    developers = config['developers']
+    logfile = os.path.join(pager_folder, 'pager.log')
+    # print('Writing content to %s' % logfile)
+    plog = PagerLogger(logfile, developers, mail_from,
+                       mail_host, debug=pargs.debug)
+    logger = plog.getLogger()
 
     try:
         eid = None
@@ -381,19 +366,17 @@ def main(pargs, config):
 
         if is_scenario:
             if re.search('scenario', location.lower()) is None:
-                location = 'Scenario '+location
+                location = 'Scenario ' + location
 
         # create the event directory (if it does not exist), and start logging there
-        _print_message(plog, 'Creating event directory')
+        logger.info('Creating event directory')
         event_folder = admin.createEventFolder(authid, etime)
 
         # Stop processing if there is a "stop" file in the event folder
         stopfile = os.path.join(event_folder, 'stop')
         if os.path.isfile(stopfile):
-            _print_message(
-                plog, '"stop" file found in %s.  Stopping processing, returning with 1.' % (event_folder))
-            print('"stop" file found in %s.  Stopping processing, returning with 1.' % (
-                event_folder))
+            fmt = '"stop" file found in %s.  Stopping processing, returning with 1.'
+            logger.info(fmt % (event_folder))
             sys.exit(1)
 
         pager_version = get_pager_version(event_folder)
@@ -401,8 +384,10 @@ def main(pargs, config):
             event_folder, 'version.%03d' % pager_version)
         os.makedirs(version_folder)
         event_logfile = os.path.join(version_folder, 'event.log')
-        if plog is not None:
-            plog.switchToEventFileHandler(event_logfile)
+
+        # this will turn off the global rotating log file
+        # and switch to the one in the version folder.
+        plog.setVersionHandler(event_logfile)
 
         # Copy the grid.xml file to the version folder
         # sometimes (usu when testing) the input grid isn't called grid.xml.  Rename it here.
@@ -419,7 +404,6 @@ def main(pargs, config):
         etime = shake_tuple[1]['event_timestamp']
         elat = shake_tuple[1]['lat']
         elon = shake_tuple[1]['lon']
-        edepth = shake_tuple[1]['depth']
         emag = shake_tuple[1]['magnitude']
 
         # get the year of the event
@@ -428,11 +412,11 @@ def main(pargs, config):
         # find the population data collected most closely to the event_year
         pop_year, popfile = _get_pop_year(
             event_year, config['model_data']['population_data'])
-        _print_message(
-            plog, 'Population year: %i Population file: %s\n' % (pop_year, popfile))
+        logger.info('Population year: %i Population file: %s\n' %
+                    (pop_year, popfile))
 
         # Get exposure results
-        _print_message(plog, 'Calculating population exposure.')
+        logger.info('Calculating population exposure.')
         isofile = config['model_data']['country_grid']
         expomodel = Exposure(popfile, pop_year, isofile)
         exposure = None
@@ -446,15 +430,15 @@ def main(pargs, config):
         else:
             ccode = cdict['ISO2']
 
-        _print_message(plog, 'Country code at epicenter is %s' % ccode)
+        logger.info('Country code at epicenter is %s' % ccode)
 
         # get fatality results, if requested
-        _print_message(plog, 'Calculating empirical fatalities.')
+        logger.info('Calculating empirical fatalities.')
         fatmodel = EmpiricalLoss.fromDefaultFatality()
         fatdict = fatmodel.getLosses(exposure)
 
         # get economic results, if requested
-        _print_message(plog, 'Calculating economic exposure.')
+        logger.info('Calculating economic exposure.')
         econexpmodel = EconExposure(popfile, pop_year, isofile)
         ecomodel = EmpiricalLoss.fromDefaultEconomic()
         econexposure = econexpmodel.calcExposure(gridfile)
@@ -462,7 +446,7 @@ def main(pargs, config):
         shakegrid = econexpmodel.getShakeGrid()
 
         # Get semi-empirical losses
-        _print_message(plog, 'Calculating semi-empirical fatalities.')
+        logger.info('Calculating semi-empirical fatalities.')
         urbanfile = config['model_data']['urban_rural_grid']
         if not os.path.isfile(urbanfile):
             raise PagerException(
@@ -473,7 +457,7 @@ def main(pargs, config):
         semiloss, resfat, nonresfat = semi.getLosses(gridfile)
 
         # get all of the other components of PAGER
-        _print_message(plog, 'Getting all comments.')
+        logger.info('Getting all comments.')
         # get the fatality and economic comments
         impact1, impact2 = get_impact_comments(
             fatdict, ecodict, econexposure, event_year, ccode)
@@ -486,14 +470,14 @@ def main(pargs, config):
             elat, elon, emag, exposure, fatdict)
 
         # generate the probability plots
-        _print_message(plog, 'Drawing probability plots.')
+        logger.info('Drawing probability plots.')
         fat_probs_file, eco_probs_file = _draw_probs(fatmodel, fatdict,
                                                      ecomodel, ecodict,
                                                      version_folder)
 
         # generate the exposure map
         exposure_base = os.path.join(version_folder, 'exposure')
-        _print_message(plog, 'Generating exposure map...')
+        logger.info('Generating exposure map...')
         oceanfile = config['model_data']['ocean_vectors']
         oceangrid = config['model_data']['ocean_grid']
         cityfile = config['model_data']['city_file']
@@ -503,7 +487,7 @@ def main(pargs, config):
         pdf_file, png_file, mapcities = draw_contour(shake_grid, pop_grid,
                                                      oceanfile, oceangrid, cityfile,
                                                      exposure_base, borderfile, is_scenario=is_scenario)
-        _print_message(plog, 'Generated exposure map %s' % pdf_file)
+        logger.info('Generated exposure map %s' % pdf_file)
 
         # figure out whether this event has been "released".
         is_released = _get_release_status(pargs, config,
@@ -513,24 +497,24 @@ def main(pargs, config):
 
         # Create a data object to encapsulate everything we know about the PAGER
         # results, and then serialize that to disk in the form of a number of JSON files.
-        _print_message(plog, 'Making PAGER Data object.')
+        logger.info('Making PAGER Data object.')
         doc = PagerData()
         timezone_file = config['model_data']['timezones_file']
         elapsed = pargs.elapsed
         doc.setInputs(shakegrid, timezone_file, pager_version, shakegrid.getEventDict()['event_id'],
                       authid, tsunami, location, is_released, elapsed=elapsed)
-        _print_message(plog, 'Setting inputs.')
+        logger.info('Setting inputs.')
         doc.setExposure(exposure, econexposure)
-        _print_message(plog, 'Setting exposure.')
+        logger.info('Setting exposure.')
         doc.setModelResults(fatmodel, ecomodel,
                             fatdict, ecodict,
                             semiloss, resfat, nonresfat)
-        _print_message(plog, 'Setting comments.')
+        logger.info('Setting comments.')
         doc.setComments(impact1, impact2, struct_comment,
                         historical_comment, secondary_comment)
-        _print_message(plog, 'Setting map info.')
+        logger.info('Setting map info.')
         doc.setMapInfo(cityfile, mapcities)
-        _print_message(plog, 'Validating.')
+        logger.info('Validating.')
         doc.validate()
 
         # if we have determined that the event is a scenario (origin time is in the future)
@@ -541,12 +525,12 @@ def main(pargs, config):
 
         json_folder = os.path.join(version_folder, 'json')
         os.makedirs(json_folder)
-        _print_message(plog, 'Saving output to JSON.')
+        logger.info('Saving output to JSON.')
         doc.saveToJSON(json_folder)
-        _print_message(plog, 'Saving output to XML.')
+        logger.info('Saving output to XML.')
         doc.saveToLegacyXML(version_folder)
 
-        _print_message(plog, 'Creating onePAGER pdf...')
+        logger.info('Creating onePAGER pdf...')
         onepager_pdf, error = create_onepager(doc, version_folder)
         if onepager_pdf is None:
             raise PagerException(
@@ -572,40 +556,30 @@ def main(pargs, config):
         eventsourcecode = eid
         res, msg = transfer(config, doc, eventsourcecode, eventsource,
                             version_folder, is_scenario=is_scenario)
-        _print_message(plog, msg)
+        logger.info(msg)
         if not res:
-            pass
-            # TODO: figure out what's broken with logging, send log email here
+            logger.critical('Error transferring PAGER content. "%s"' % msg)
 
-        if plog is not None:
-            plog.stopLogging()
-        print('Created onePAGER pdf %s' % onepager_pdf)
+        logger.info('Created onePAGER pdf %s' % onepager_pdf)
 
-        print('Done.')
+        logger.info('Done.')
         sys.exit(0)
     except Exception as e:
-        if plog is not None:
-            f = io.StringIO()
-            traceback.print_exc(file=f)
-            msg = e
-            msg = '%s\n %s' % (str(msg), f.getvalue())
-            hostname = socket.gethostname()
-            msg = msg + '\n' + 'Error occurred on %s\n' % (hostname)
-            if gridfile is not None:
-                msg = msg + '\n' + 'Error on file: %s\n' % (gridfile)
-            if eid is not None:
-                msg = msg + '\n' + 'Error on event: %s\n' % (eid)
-            if pager_version is not None:
-                msg = msg + '\n' + 'Error on version: %i\n' % (pager_version)
-            f.close()
-            plog.scream(msg)
-            plog.stopLogging()
-            print('Sent error to email')
-
-        else:
-            sys.stderr.write(str(e)+'\n')
-            traceback.print_exc()
-        print('Something bad happened!')
+        f = io.StringIO()
+        traceback.print_exc(file=f)
+        msg = e
+        msg = '%s\n %s' % (str(msg), f.getvalue())
+        hostname = socket.gethostname()
+        msg = msg + '\n' + 'Error occurred on %s\n' % (hostname)
+        if gridfile is not None:
+            msg = msg + '\n' + 'Error on file: %s\n' % (gridfile)
+        if eid is not None:
+            msg = msg + '\n' + 'Error on event: %s\n' % (eid)
+        if pager_version is not None:
+            msg = msg + '\n' + 'Error on version: %i\n' % (pager_version)
+        f.close()
+        logger.critical(msg)
+        logger.info('Sent error to email')
         sys.exit(1)
 
 
