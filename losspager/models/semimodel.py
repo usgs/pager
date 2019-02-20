@@ -4,6 +4,7 @@
 from datetime import datetime, timedelta
 import os.path
 import tempfile
+import logging
 
 # third party imports
 import pandas as pd
@@ -190,39 +191,39 @@ def pop_dist(popi, workforce, time, dclass):
         FNOWFA = 0.001
 
     if time == 'day':
-        respop = popi * (FDRWF * fnwf +
-                         FDRWFI * fwf * f_ind +
-                         FDRWFS * fwf * fser +
-                         FDRWFA * fwf * fagr)
-        nrpop = popi * (FDNRWFI * fwf * f_ind +
-                        FDNRWFS * fwf * fser + FDNRWFA * fwf * fagr + FDNRSCH * fnwf)
-        outpop = popi * (FDOWF * fnwf +
-                         FDOWFI * fwf * f_ind +
-                         FDOWFS * fwf * fser +
-                         FDOWFA * fwf * fagr)
+        respop = popi * (FDRWF * fnwf
+                         + FDRWFI * fwf * f_ind
+                         + FDRWFS * fwf * fser
+                         + FDRWFA * fwf * fagr)
+        nrpop = popi * (FDNRWFI * fwf * f_ind
+                        + FDNRWFS * fwf * fser + FDNRWFA * fwf * fagr + FDNRSCH * fnwf)
+        outpop = popi * (FDOWF * fnwf
+                         + FDOWFI * fwf * f_ind
+                         + FDOWFS * fwf * fser
+                         + FDOWFA * fwf * fagr)
     elif time == 'transit':
-        respop = popi * (FTRWF * fnwf +
-                         FTRWFI * fwf * f_ind +
-                         FTRWFS * fwf * fser +
-                         FTRWFA * fwf * fagr)
-        nrpop = popi * (FTNRWFI * fwf * f_ind +
-                        FTNRWFS * fwf * fser + FTNRWFA * fwf * fagr)
-        outpop = popi * (FTOWF * fnwf +
-                         FTOWFI * fwf * f_ind +
-                         FTOWFS * fwf * fser +
-                         FTOWFA * fwf * fagr)
+        respop = popi * (FTRWF * fnwf
+                         + FTRWFI * fwf * f_ind
+                         + FTRWFS * fwf * fser
+                         + FTRWFA * fwf * fagr)
+        nrpop = popi * (FTNRWFI * fwf * f_ind
+                        + FTNRWFS * fwf * fser + FTNRWFA * fwf * fagr)
+        outpop = popi * (FTOWF * fnwf
+                         + FTOWFI * fwf * f_ind
+                         + FTOWFS * fwf * fser
+                         + FTOWFA * fwf * fagr)
 
     elif time == 'night':
-        respop = popi * (FNRWF * fnwf +
-                         FNRWFI * fwf * f_ind +
-                         FNRWFS * fwf * fser +
-                         FNRWFA * fwf * fagr)
-        nrpop = popi * (FNNRWFI * fwf * f_ind +
-                        FNNRWFS * fwf * fser + FNNRWFA * fwf * fagr)
-        outpop = popi * (FNOWF * fnwf +
-                         FNOWFI * fwf * f_ind +
-                         FNOWFS * fwf * fser +
-                         FNOWFA * fwf * fagr)
+        respop = popi * (FNRWF * fnwf
+                         + FNRWFI * fwf * f_ind
+                         + FNRWFS * fwf * fser
+                         + FNRWFA * fwf * fagr)
+        nrpop = popi * (FNNRWFI * fwf * f_ind
+                        + FNNRWFS * fwf * fser + FNNRWFA * fwf * fagr)
+        outpop = popi * (FNOWF * fnwf
+                         + FNOWFI * fwf * f_ind
+                         + FNOWFS * fwf * fser
+                         + FNOWFA * fwf * fagr)
 
     respop = np.atleast_1d(np.squeeze(respop))
     nrpop = np.atleast_1d(np.squeeze(nrpop))
@@ -266,17 +267,17 @@ def get_time_of_day(dtime, lon):
     if event_hour >= DAY_START_HOUR and event_hour < DAY_END_HOUR:
         timeofday = 'day'
 
-    transit1 = (event_hour >= TRANSIT_START_HOUR_MORNING and event_hour <
-                TRANSIT_END_HOUR_MORNING)
-    transit2 = (event_hour >= TRANSIT_START_HOUR_EVENING and event_hour <
-                TRANSIT_END_HOUR_EVENING)
+    transit1 = (event_hour >= TRANSIT_START_HOUR_MORNING and event_hour
+                < TRANSIT_END_HOUR_MORNING)
+    transit2 = (event_hour >= TRANSIT_START_HOUR_EVENING and event_hour
+                < TRANSIT_END_HOUR_EVENING)
     if transit1 or transit2:
         timeofday = 'transit'
 
-    night1 = (event_hour >= NIGHT_START_HOUR_EVENING and event_hour <=
-              NIGHT_END_HOUR_EVENING)
-    night2 = (event_hour >= NIGHT_START_HOUR_MORNING and event_hour <=
-              NIGHT_END_HOUR_MORNING)
+    night1 = (event_hour >= NIGHT_START_HOUR_EVENING and event_hour
+              <= NIGHT_END_HOUR_EVENING)
+    night2 = (event_hour >= NIGHT_START_HOUR_MORNING and event_hour
+              <= NIGHT_END_HOUR_MORNING)
     if night1 or night2:
         timeofday = 'night'
     return (timeofday, event_year, event_hour)
@@ -705,7 +706,8 @@ class SemiEmpiricalFatality(object):
             # get the workforce Series data for the current country
             wforce = self.getWorkforce(ccode)
             if wforce is None:
-                print('No workforce data for %s.  Skipping.' % (cdict['Name']))
+                logging.info('No workforce data for %s.  Skipping.' %
+                             (cdict['Name']))
                 continue
 
             # loop over MMI values 6-9
@@ -798,7 +800,7 @@ class SemiEmpiricalFatality(object):
             nonres_fatal_by_ccode[ccode] = nonres_fatal_by_btype.copy()
 
             # increment the total number of fatalities
-            ntotal += int(sum(res_fatal_by_btype.values()) +
-                          sum(nonres_fatal_by_btype.values()))
+            ntotal += int(sum(res_fatal_by_btype.values())
+                          + sum(nonres_fatal_by_btype.values()))
 
         return (ntotal, res_fatal_by_ccode, nonres_fatal_by_ccode)

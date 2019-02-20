@@ -8,6 +8,7 @@ import shutil
 import json
 import getpass
 from distutils.spawn import find_executable
+import logging
 
 # local imports
 from losspager.utils.exception import PagerException
@@ -102,7 +103,7 @@ def transfer(config, pagerdata, authid, authsource, version_folder,
     if 'status' in config and config['status'] == 'primary':
         if 'transfer' in config:
             if 'methods' in config['transfer']:
-                print('Running transfer.')
+                logging.info('Running transfer.')
                 for method in config['transfer']['methods']:
                     if method not in config['transfer']:
                         sys.stderr.write(
@@ -333,6 +334,18 @@ class PagerAdmin(object):
                 event_folders.append(event_folder)
         return event_folders
 
+    def getEventsBeforeDate(self, beforedate):
+        events = []
+        event_folders = self.getAllEventFolders()
+        for event_folder in event_folders:
+            version_folder = self.getLastVersion(event_folder)
+            json_folder = os.path.join(version_folder,'json')
+            pdata = PagerData()
+            pdata.loadFromJSON(json_folder)
+            if pdata.time < beforedate:
+                events.append(pdata.id)
+        return events
+
     def getAllEvents(self):
         """Get a list of event IDs from PAGER folder.
 
@@ -379,25 +392,15 @@ class PagerAdmin(object):
                 else:
                     nerrors += 1
         else:
+            if not len(events):
+                events = self.getEventsBeforeDate(events_before)
             for eventid in events:
                 eventfolder = self.getEventFolder(eventid)
-                if events_before is not None:
-                    t, etimestr = eventfolder.split('_')
-                    etime = datetime.datetime.strptime(etimestr, DATETIMEFMT)
-                    if etime < events_before:
-                        result = self.archiveEvent(eventid)
-                        if result:
-                            narchived += 1
-                        else:
-                            nerrors += 1
-                    else:
-                        continue
+                result = self.archiveEvent(eventid)
+                if result:
+                    narchived += 1
                 else:
-                    result = self.archiveEvent(eventid)
-                    if result:
-                        narchived += 1
-                    else:
-                        nerrors += 1
+                    nerrors += 1
 
         return (narchived, nerrors)
 
@@ -764,7 +767,10 @@ class PagerAdmin(object):
 
             if not pdata._is_validated:
                 broken.append(jsonfolder)
-            meetsLevel = levels[pdata.summary_alert] >= levels[alert_threshold]
+            try:
+              meetsLevel = levels[pdata.summary_alert] >= levels[alert_threshold]
+            except Exception as e:
+              x = 1
             meetsMag = pdata.magnitude >= mag_threshold
             if pdata.time >= start_time and pdata.time <= end_time and meetsLevel and meetsMag:
                 row = pdata.toSeries(processtime=do_process_time)

@@ -38,6 +38,7 @@ import textwrap
 from urllib import request
 import tempfile
 import socket
+import logging
 
 # third party imports
 import matplotlib
@@ -173,7 +174,8 @@ def _get_pop_year(event_year, popyears):
         popyear = popdict['population_year']
         popgrid = popdict['population_grid']
         if not os.path.isfile(popgrid):
-            print('Population grid file %s does not exist.' % popgrid)
+            logging.warning(
+                'Population grid file %s does not exist.' % popgrid)
             sys.exit(1)
         if abs(popyear - event_year) < tmin:
             tmin = abs(popyear - event_year)
@@ -311,7 +313,6 @@ def main(pargs, config):
     mail_from = config['mail_from']
     developers = config['developers']
     logfile = os.path.join(pager_folder, 'pager.log')
-    # print('Writing content to %s' % logfile)
     plog = PagerLogger(logfile, developers, mail_from,
                        mail_host, debug=pargs.debug)
     logger = plog.getLogger()
@@ -362,7 +363,8 @@ def main(pargs, config):
         # flag the event as a scenario and yell about it.
         if etime > datetime.datetime.utcnow():
             is_scenario = True
-            print('Event origin time is in the future! Flagging this as a scenario.')
+            logger.warning(
+                'Event origin time is in the future! Flagging this as a scenario.')
 
         if is_scenario:
             if re.search('scenario', location.lower()) is None:
@@ -560,6 +562,7 @@ def main(pargs, config):
         if not res:
             logger.critical('Error transferring PAGER content. "%s"' % msg)
 
+        print('Created onePAGER pdf %s' % onepager_pdf)
         logger.info('Created onePAGER pdf %s' % onepager_pdf)
 
         logger.info('Done.')

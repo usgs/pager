@@ -1,5 +1,6 @@
 # stdlib imports
 import re
+import logging
 
 # third party imports
 from scipy.special import erf
@@ -115,7 +116,8 @@ def get_gdp_comment(ecodict, ecomodel, econexposure, event_year, epicode):
     gdp_obj = GDP.fromDefault()
     gdp, outccode = gdp_obj.getGDP(dccode, event_year)
     country = Country()
-    print('ccode: %s, dccode: %s, outccode: %s' % (ccode, dccode, outccode))
+    logging.info('ccode: %s, dccode: %s, outccode: %s' %
+                 (ccode, dccode, outccode))
     cinfo = country.getCountry(outccode)
     if cinfo != 'UK':
         pop = cinfo['Population']
@@ -125,10 +127,10 @@ def get_gdp_comment(ecodict, ecomodel, econexposure, event_year, epicode):
     if T == 0:
         return ''
     percent = erf(1 / np.sqrt(2))
-    plow = round(np.exp(np.log(max(expected, EPS)) -
-                        eco_gvalue * invphi(percent)))
-    phigh = round(np.exp(eco_gvalue * invphi(percent) +
-                         np.log(max(expected, EPS))))
+    plow = round(np.exp(np.log(max(expected, EPS))
+                        - eco_gvalue * invphi(percent)))
+    phigh = round(np.exp(eco_gvalue * invphi(percent)
+                         + np.log(max(expected, EPS))))
     if plow != 0:
         ptlow = int(plow * 1e2 / T)
     else:

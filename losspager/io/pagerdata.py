@@ -3,6 +3,7 @@ from collections import OrderedDict
 from datetime import datetime
 import os.path
 import json
+import logging
 
 # third party libraries
 from lxml import etree
@@ -215,11 +216,11 @@ class PagerData(object):
         self._pagerdict['population_exposure'] = self._setPopulationExposure()
         self._pagerdict['economic_exposure'] = self._setEconomicExposure()
         self._pagerdict['model_results'] = self._setModelResults()
-        print('In pagerdata, getting city table.')
+        logging.info('In pagerdata, getting city table.')
         self._pagerdict['city_table'], self._pagerdict['map_cities'] = self._getCityTable()
-        print('In pagerdata, getting historical earthquakes.')
+        logging.info('In pagerdata, getting historical earthquakes.')
         self._pagerdict['historical_earthquakes'] = self._getHistoricalEarthquakes()
-        print('In pagerdata, getting comments.')
+        logging.info('In pagerdata, getting comments.')
         self._pagerdict['comments'] = self._getComments()
         self._is_validated = True
     #########Setters########
@@ -1205,13 +1206,13 @@ class PagerData(object):
         # if we're re-running an older event, don't include more recent events than that in the table.
         expocat.excludeFutureEvents(self.time)
         clat, clon = self._event_dict['lat'], self._event_dict['lon']
-        print('Select events by radius.')
+        logging.info('Select events by radius.')
         inbounds = expocat.selectByRadius(clat, clon, EVENT_RADIUS)
         maxmmi = self._pagerdict['pager']['maxmmi']
         nmmi = self._nmmi
         deaths = self._fatmodel_results['TotalFatalities']
         etime = self._event_dict['event_timestamp']
-        print('Select historical earthquakes.')
+        logging.info('Select historical earthquakes.')
         eventlist = inbounds.getHistoricalEvents(
             maxmmi, nmmi, deaths, clat, clon)
         for event in eventlist:

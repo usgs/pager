@@ -34,6 +34,7 @@ class PagerLogger(object):
         self._global_handler.setLevel(self._level)
 
         # set up logger
+        logging.captureWarnings(True)
         self._logger = logging.getLogger()
         self._logger.setLevel(self._level)
         if debug:
