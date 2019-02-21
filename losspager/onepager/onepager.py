@@ -2,6 +2,7 @@
 import os
 from datetime import datetime
 from collections import OrderedDict
+import logging
 
 # third party imports
 from impactutils.textformat.text import pop_round_short, round_to_nearest
@@ -27,13 +28,15 @@ LATEX_SPECIAL_CHARACTERS = OrderedDict([('\\', '\\textbackslash{}'),
 DEFAULT_PAGER_URL = 'http://earthquake.usgs.gov/data/pager/'
 MIN_DISPLAY_POP = 1000
 
+
 def texify(text):
     newtext = text
     for original, replacement in LATEX_SPECIAL_CHARACTERS.items():
         newtext = newtext.replace(original, replacement)
     return newtext
 
-def create_onepager(pdata, version_dir, debug = False):
+
+def create_onepager(pdata, version_dir, debug=False):
     """
     :param pdata:
       PagerData object.
@@ -43,9 +46,9 @@ def create_onepager(pdata, version_dir, debug = False):
       bool for whether or not to add textpos boxes to onepager.
     """
 
-    #---------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------
     # Sort out some paths
-    #---------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------
 
     # Locaiton of this module
     mod_dir, dummy = os.path.split(__file__)
@@ -62,27 +65,27 @@ def create_onepager(pdata, version_dir, debug = False):
     # Onepager latex template file
     template_file = os.path.join(data_dir, 'onepager2.tex')
 
-    #---------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------
     # Read in pager data and latex template
-    #---------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------
 
     json_dir = os.path.join(version_dir, 'json')
     pdict = pdata._pagerdict
     edict = pdata.getEventInfo()
-    
+
     with open(template_file, 'r') as f:
         template = f.read()
 
-    #---------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------
     # Fill in template values
-    #---------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------
 
     # Sort out origin time
     olat = edict['lat']
     olon = edict['lon']
     otime_utc = edict['time']
     date_utc = datetime.strptime(otime_utc, "%Y-%m-%d %H:%M:%S")
-    
+
     date_local = pdata.local_time
     DoW = date_local.strftime('%a')
     otime_local = date_local.strftime('%H:%M:%S')
@@ -123,14 +126,16 @@ def create_onepager(pdata, version_dir, debug = False):
 
     # Tsunami warning? --- need to fix to be a function of tsunamic flag
     if edict['tsunami']:
-        template = template.replace("[TSUNAMI]", "FOR TSUNAMI INFORMATION, SEE: tsunami.gov")
+        template = template.replace(
+            "[TSUNAMI]", "FOR TSUNAMI INFORMATION, SEE: tsunami.gov")
     else:
         template = template.replace("[TSUNAMI]", "")
 
     if pdata.isScenario():
         elapse = ''
     else:
-        elapse = "Created: " + pdict['pager']['elapsed_time'] + " after earthquake"
+        elapse = "Created: " + \
+            pdict['pager']['elapsed_time'] + " after earthquake"
     template = template.replace("[ELAPSED]", elapse)
     template = template.replace("[IMPACT1]",
                                 texify(pdict['comments']['impact1']))
@@ -138,7 +143,6 @@ def create_onepager(pdata, version_dir, debug = False):
                                 texify(pdict['comments']['impact2']))
     template = template.replace("[STRUCTCOMMENT]",
                                 texify(pdict['comments']['struct_comment']))
-
 
     # Summary alert color
     template = template.replace("[SUMMARYCOLOR]",
@@ -151,7 +155,7 @@ def create_onepager(pdata, version_dir, debug = False):
     explist = pdata.getTotalExposure()
     pophold = 0
     for mmi in range(1, 11):
-        iexp = mmi-1
+        iexp = mmi - 1
         if mmi == 2:
             pophold += explist[iexp]
             continue
@@ -169,12 +173,10 @@ def create_onepager(pdata, version_dir, debug = False):
             else:
                 if pop < 1000:
                     pop = round_to_nearest(pop, round_value=1000)
-                popstr = pop_round_short(pop)+'*'
+                popstr = pop_round_short(pop) + '*'
         else:
             popstr = pop_round_short(pop)
         template = template.replace(macro, popstr)
-            
-
 
     # MMI color pal
     pal = ColorPalette.fromPreset('mmi')
@@ -206,16 +208,16 @@ def create_onepager(pdata, version_dir, debug = False):
             mag = str(htab[i]['Magnitude'])
             mmi = dec_to_roman(np.round(htab[i]['MaxMMI'], 0))
             col = pal.getDataColor(htab[i]['MaxMMI'])
-            texcol = "%s,%s,%s" %(col[0], col[1], col[2])
+            texcol = "%s,%s,%s" % (col[0], col[1], col[2])
             nmmi = pop_round_short(htab[i]['NumMaxMMI'])
-            mmicell = '%s(%s)' %(mmi, nmmi)
+            mmicell = '%s(%s)' % (mmi, nmmi)
             shakedeath = htab[i]['ShakingDeaths']
             if np.isnan(shakedeath):
                 death = "--"
             else:
                 death = pop_round_short(shakedeath)
             row = '%s & %s & %s & \cellcolor[rgb]{%s} %s & %s \\\\ '\
-                  '\n' %(date, dist, mag, texcol, mmicell, death)
+                  '\n' % (date, dist, mag, texcol, mmicell, death)
             tabledata = tabledata + row
         htex = htex.replace("[TABLEDATA]", tabledata)
     template = template.replace("[HISTORICAL_BLOCK]", htex)
@@ -239,23 +241,24 @@ def create_onepager(pdata, version_dir, debug = False):
             pop = '$<$1k'
         else:
             if ctab['pop'].iloc[i] < 1000:
-                popnum = round_to_nearest(ctab['pop'].iloc[i], round_value=1000)
+                popnum = round_to_nearest(
+                    ctab['pop'].iloc[i], round_value=1000)
             else:
                 popnum = ctab['pop'].iloc[i]
             pop = pop_round_short(popnum)
         col = pal.getDataColor(ctab['mmi'].iloc[i])
-        texcol = "%s,%s,%s" %(col[0], col[1], col[2])
+        texcol = "%s,%s,%s" % (col[0], col[1], col[2])
         if ctab['on_map'].iloc[i] == 1:
             if ctab['pop'].iloc[i] == 0:
                 pop = '\\boldmath$<$\\textbf{1k}'
                 row = '\\rowcolor[rgb]{%s}\\textbf{%s} & \\textbf{%s} & '\
-                      '%s\\\\ \n' %(texcol, mmi, city, pop)
+                      '%s\\\\ \n' % (texcol, mmi, city, pop)
             else:
                 row = '\\rowcolor[rgb]{%s}\\textbf{%s} & \\textbf{%s} & '\
-                      '\\textbf{%s}\\\\ \n' %(texcol, mmi, city, pop)
+                      '\\textbf{%s}\\\\ \n' % (texcol, mmi, city, pop)
         else:
             row = '\\rowcolor[rgb]{%s}%s & %s & '\
-                  '%s\\\\ \n' %(texcol, mmi, city, pop)
+                  '%s\\\\ \n' % (texcol, mmi, city, pop)
         tabledata = tabledata + row
     ctex = ctex.replace("[TABLEDATA]", tabledata)
     template = template.replace("[CITYTABLE]", ctex)
@@ -267,7 +270,7 @@ def create_onepager(pdata, version_dir, debug = False):
     try:
         ccinfo = ComCatInfo(eventid)
         eventid, allids = ccinfo.getAssociatedIds()
-        event_url = ccinfo.getURL()+'#pager'
+        event_url = ccinfo.getURL() + '#pager'
     except:
         event_url = DEFAULT_PAGER_URL
 
@@ -285,8 +288,9 @@ def create_onepager(pdata, version_dir, debug = False):
     try:
         cwd = os.getcwd()
         os.chdir(version_dir)
-        cmd = '%s -interaction nonstopmode --output-directory %s %s' % (LATEX_TO_PDF_BIN, version_dir, tex_output)
-        print('Running %s...' % cmd)
+        cmd = '%s -interaction nonstopmode --output-directory %s %s' % (
+            LATEX_TO_PDF_BIN, version_dir, tex_output)
+        logging.info('Running %s...' % cmd)
         res, stdout, stderr = get_command_output(cmd)
         os.chdir(cwd)
         if not res:

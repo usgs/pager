@@ -1,5 +1,6 @@
 # stdlib imports
 import re
+import logging
 
 # third party imports
 from scipy.special import erf
@@ -65,6 +66,7 @@ RED_ECON_EQUAL = '[GDPCOMMENT]'
 EPS = 1e-12  # if expected value is zero, take the log of this instead
 SEARCH_RADIUS = 400  # kilometer radius to search for historical earthquakes
 
+
 def get_gdp_comment(ecodict, ecomodel, econexposure, event_year, epicode):
     """Create a comment on the GDP impact of a given event in the most impacted country.
 
@@ -89,8 +91,8 @@ def get_gdp_comment(ecodict, ecomodel, econexposure, event_year, epicode):
     # get the country code of the country with the highest losses
     dccode = ''
     dmax = 0
-    expected = ecodict['TotalDollars']/1e6
-    if ecodict['TotalDollars'] > 0:    
+    expected = ecodict['TotalDollars'] / 1e6
+    if ecodict['TotalDollars'] > 0:
         for ccode, value in ecodict.items():
             if ccode == 'TotalDollars':
                 continue
@@ -114,24 +116,27 @@ def get_gdp_comment(ecodict, ecomodel, econexposure, event_year, epicode):
     gdp_obj = GDP.fromDefault()
     gdp, outccode = gdp_obj.getGDP(dccode, event_year)
     country = Country()
-    print('ccode: %s, dccode: %s, outccode: %s' % (ccode, dccode, outccode))
+    logging.info('ccode: %s, dccode: %s, outccode: %s' %
+                 (ccode, dccode, outccode))
     cinfo = country.getCountry(outccode)
     if cinfo != 'UK':
         pop = cinfo['Population']
     else:
         pop = 0
-    T = (pop * gdp)/1e6
+    T = (pop * gdp) / 1e6
     if T == 0:
         return ''
-    percent = erf(1/np.sqrt(2))
-    plow = round(np.exp(np.log(max(expected, EPS))-eco_gvalue * invphi(percent)))
-    phigh =round(np.exp(eco_gvalue * invphi(percent) + np.log(max(expected, EPS))))
+    percent = erf(1 / np.sqrt(2))
+    plow = round(np.exp(np.log(max(expected, EPS))
+                        - eco_gvalue * invphi(percent)))
+    phigh = round(np.exp(eco_gvalue * invphi(percent)
+                         + np.log(max(expected, EPS))))
     if plow != 0:
-        ptlow = int(plow*1e2/T)
+        ptlow = int(plow * 1e2 / T)
     else:
         ptlow = 0
     if phigh != 0:
-        pthigh = int(phigh*1e2/T)
+        pthigh = int(phigh * 1e2 / T)
     else:
         pthigh = 0
     if dccode in ['XF', 'EU', 'WU']:
@@ -152,9 +157,10 @@ def get_gdp_comment(ecodict, ecomodel, econexposure, event_year, epicode):
         if pthigh >= 100:
             strtxt = 'Estimated economic losses may exceed the GDP of %s.' % cname
         else:
-            strtxt = 'Estimated economic losses are %i-%i%% GDP of %s.' % (ptlow, pthigh, cname)
+            strtxt = 'Estimated economic losses are %i-%i%% GDP of %s.' % (
+                ptlow, pthigh, cname)
     return strtxt
-    
+
 
 def get_impact_comments(fatdict, ecodict, econexposure, event_year, ccode):
     """Create comments for a given event, describing economic and human (fatality) impacts.
@@ -176,7 +182,7 @@ def get_impact_comments(fatdict, ecodict, econexposure, event_year, ccode):
       of these will be the first string.  Under certain situations, the second comment could be blank.
     """
     # first, figure out what the alert levels are for each loss result
-    
+
     fatmodel = EmpiricalLoss.fromDefaultFatality()
     ecomodel = EmpiricalLoss.fromDefaultEconomic()
     fatlevel = fatmodel.getAlertLevel(fatdict)
@@ -185,7 +191,8 @@ def get_impact_comments(fatdict, ecodict, econexposure, event_year, ccode):
     rlevels = {0: 'green', 1: 'yellow', 2: 'orange', 3: 'red'}
     fat_higher = levels[fatlevel] > levels[ecolevel]
     eco_higher = levels[ecolevel] > levels[fatlevel]
-    gdpcomment = get_gdp_comment(ecodict, ecomodel, econexposure, event_year, ccode)
+    gdpcomment = get_gdp_comment(
+        ecodict, ecomodel, econexposure, event_year, ccode)
 
     if fat_higher:
         if fatlevel == 'green':
@@ -249,6 +256,7 @@ def get_impact_comments(fatdict, ecodict, econexposure, event_year, ccode):
     impact2 = impact2.replace('\n', ' ')
     return (impact1, impact2)
 
+
 def _add_dicts(d1, d2):
     """Add two dictionaries of losses per building type together.  Dictionaries must contain identical keys.
 
@@ -265,6 +273,7 @@ def _add_dicts(d1, d2):
     df3 = df1 + df2
     df4 = df3.sort_values('fats', axis=1, ascending=False)
     return df4.loc['fats']
+
 
 def get_structure_comment(resfat, nonresfat, semimodel):
     """Create a paragraph describing the vulnerability of buildings in the most impacted country.
@@ -297,28 +306,29 @@ def get_structure_comment(resfat, nonresfat, semimodel):
         RURAL = 1
         URBAN = 2
         semi = SemiEmpiricalFatality.fromDefault()
-        all_collapse_by_btype = pd.Series({})
-        #get the inventories in this ccode for both densities and
-        #both residency classes
-        res_urban_inv,non_res_urban_inv = semi.getInventories(maxccode,URBAN)
-        res_rural_inv,non_res_rural_inv = semi.getInventories(maxccode,RURAL)
-        #find unique building types from these four Series
-        urban_inv_keys = set(res_urban_inv.index).union(set(non_res_urban_inv.index))
-        rural_inv_keys = set(res_rural_inv.index).union(set(non_res_rural_inv.index))
+        # get the inventories in this ccode for both densities and
+        # both residency classes
+        res_urban_inv, non_res_urban_inv = semi.getInventories(maxccode, URBAN)
+        res_rural_inv, non_res_rural_inv = semi.getInventories(maxccode, RURAL)
+        # find unique building types from these four Series
+        urban_inv_keys = set(res_urban_inv.index).union(
+            set(non_res_urban_inv.index))
+        rural_inv_keys = set(res_rural_inv.index).union(
+            set(non_res_rural_inv.index))
         inv_keys = set(urban_inv_keys).union(set(rural_inv_keys))
-        null_inventory = pd.Series(dict.fromkeys(inv_keys,0.0))
-        collapse_by_btype = pd.Series(dict.fromkeys(inv_keys,0.0))
-        for mmi in np.arange(6.0,9.5,0.5):
-            collapse = semi.getCollapse(ccode,mmi,null_inventory)
+        null_inventory = pd.Series(dict.fromkeys(inv_keys, 0.0))
+        collapse_by_btype = pd.Series(dict.fromkeys(inv_keys, 0.0))
+        for mmi in np.arange(6.0, 9.5, 0.5):
+            collapse = semi.getCollapse(ccode, mmi, null_inventory)
             collapse_by_btype += collapse
 
-        collapse_by_btype.sort_values(ascending=False,inplace=True)
+        collapse_by_btype.sort_values(ascending=False, inplace=True)
         stypes = collapse_by_btype[0:2]
     else:
-        # get a pandas Series of all the unique building types in the 
+        # get a pandas Series of all the unique building types in the
         # country of greatest impact, sorted by losses (high to low).
         stypes = _add_dicts(resfat[maxccode], nonresfat[maxccode])
-        
+
     pregions = PagerRegions()
     regioncode = pregions.getRegion(maxccode)
     default = pregions.getComment(regioncode)
@@ -328,7 +338,8 @@ def get_structure_comment(resfat, nonresfat, semimodel):
         else:
             return 'There are likely to be no affected structures in this region.'
 
-    tstarts = ['W*', 'S*', 'C*', 'P*', 'RM*', 'MH', 'M*', 'A*', 'RE', 'RS*', 'DS*', 'UFB*', 'UCB', 'MS', 'TU', 'INF', 'UNK']
+    tstarts = ['W*', 'S*', 'C*', 'P*', 'RM*', 'MH', 'M*', 'A*',
+               'RE', 'RS*', 'DS*', 'UFB*', 'UCB', 'MS', 'TU', 'INF', 'UNK']
     categories = []
     btypes = []
     for stype in stypes.index:
@@ -360,6 +371,7 @@ def get_structure_comment(resfat, nonresfat, semimodel):
         b1 = semimodel.getBuildingDesc(btypes[0])
         regtext = fmt1 % b1
     return default + '  ' + regtext
+
 
 def get_secondary_hazards(expocat, mag):
     WAVETHRESH = .50
@@ -399,6 +411,7 @@ def get_secondary_hazards(expocat, mag):
 
     return hazards
 
+
 def get_secondary_comment(lat, lon, mag):
     expocat = ExpoCat.fromDefault()
     expocat = expocat.selectByRadius(lat, lon, SEARCH_RADIUS)
@@ -422,6 +435,7 @@ def get_secondary_comment(lat, lon, mag):
     hazcomm = sfmt % fstr
     return hazcomm
 
+
 def get_historical_comment(lat, lon, mag, expodict, fatdict):
     default = """There were no earthquakes with significant population exposure to shaking within a 400 km radius of this event."""
     expocat = ExpoCat.fromDefault()
@@ -430,8 +444,9 @@ def get_historical_comment(lat, lon, mag, expodict, fatdict):
     df = expocat.getDataFrame()
 
     # sort df by totaldeaths (inverse), then by maxmmmi, then by nmaxmmi.
-    df = df.sort_values(['TotalDeaths', 'MaxMMI', 'NumMaxMMI'], ascending=False)
-    
+    df = df.sort_values(
+        ['TotalDeaths', 'MaxMMI', 'NumMaxMMI'], ascending=False)
+
     if len(df) == 0:
         return default
     if len(df) >= 1:
@@ -439,22 +454,25 @@ def get_historical_comment(lat, lon, mag, expodict, fatdict):
         desc = get_quake_desc(worst_event, lat, lon, True)
         return desc
 
+
 def get_quake_desc(event, lat, lon, isMainEvent):
     ndeaths = event['TotalDeaths']
     # summarize the exposure values
     exposures = np.array([event['MMI1'], event['MMI2'], event['MMI3'], event['MMI4'], event['MMI5'],
-                         event['MMI6'], event['MMI7'], event['MMI8'], event['MMI9+']])
+                          event['MMI6'], event['MMI7'], event['MMI8'], event['MMI9+']])
     exposures = np.array([round_to_nearest(exp, 1000) for exp in exposures])
     # get the highest two exposures greater than zero
     iexp = np.where(exposures > 0)[0][::-1]
 
-    romans = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX or greater']
+    romans = ['I', 'II', 'III', 'IV', 'V',
+              'VI', 'VII', 'VIII', 'IX or greater']
     if len(iexp) >= 2:
         exposures = [exposures[iexp[1]], exposures[iexp[0]]]
         ilevels = [romans[iexp[1]], romans[iexp[0]]]
         expfmt = ', with estimated population exposures of %s at intensity'
         expfmt = expfmt + ' %s and %s at intensity %s'
-        exptxt = expfmt % (commify(int(exposures[0])), ilevels[0], commify(int(exposures[1])), ilevels[1])
+        exptxt = expfmt % (commify(int(exposures[0])), ilevels[0], commify(
+            int(exposures[1])), ilevels[1])
     else:
         exptxt = ''
 
@@ -466,7 +484,8 @@ def get_quake_desc(event, lat, lon, isMainEvent):
     etime = re.sub(' 0', ' ', etime)
     country = Country()
     if pd.isnull(event['Name']):
-        if event['CountryCode'] == 'UM' and event['Lat'] > 40:  # hack for persistent error in expocat
+        # hack for persistent error in expocat
+        if event['CountryCode'] == 'UM' and event['Lat'] > 40:
             cdict = country.getCountry('US')
         else:
             cdict = country.getCountry(event['CountryCode'])
@@ -476,19 +495,21 @@ def get_quake_desc(event, lat, lon, isMainEvent):
             cname = 'in the open ocean'
     else:
         cname = event['Name'].replace('"', '')
-        
+
     cdist = round(geodetic_distance(event['Lat'], event['Lon'], lat, lon))
-    cdir = get_compass_dir(lat, lon, event['Lat'], event['Lon'], format='long').lower()
+    cdir = get_compass_dir(
+        lat, lon, event['Lat'], event['Lon'], format='long').lower()
     if ndeaths and str(ndeaths) != "nan":
         dfmt = dfmt + ', resulting in a reported %s %s.'
-        
+
         if ndeaths > 1:
             dstr = 'fatalities'
         else:
             dstr = 'fatality'
 
         ndeathstr = commify(int(ndeaths))
-        eqdesc = dfmt % (mag, cdist, cdir, cname, etime, exptxt, ndeathstr, dstr)
+        eqdesc = dfmt % (mag, cdist, cdir, cname,
+                         etime, exptxt, ndeathstr, dstr)
     else:
         dfmt = dfmt + ', with no reported fatalities.'
         eqdesc = dfmt % (mag, cdist, cdir, cname, etime, exptxt)

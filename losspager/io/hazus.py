@@ -5,6 +5,7 @@ import time
 from urllib.request import urlopen
 from urllib.parse import urljoin
 import shutil
+import logging
 
 # third party imports
 import fiona
@@ -97,7 +98,7 @@ def fetch_hazus(url_or_dir, version_folder):
                 outfile = os.path.join(version_folder, href)
                 with open(outfile, 'wb') as f:
                     f.write(bytes)
-                print('Wrote %s.' % outfile)
+                logging.info('Wrote %s.' % outfile)
                 files_retrieved[linkname] = outfile
                 found_link = True
                 break
@@ -441,11 +442,11 @@ class HazusInfo(object):
         #          zorder=EPICENTER_ZORDER, transform=geoproj)
 
         # save our map out to a file
-        print('Saving to %s' % filename)
+        logging.info('Saving to %s' % filename)
         t0 = time.time()
         plt.savefig(filename, dpi=300)
         t1 = time.time()
-        print('Done saving map - %.2f seconds' % (t1-t0))
+        logging.info('Done saving map - %.2f seconds' % (t1-t0))
 
     def createTaggingTables(self):
         df = pd.read_csv(self._occupancy_file)

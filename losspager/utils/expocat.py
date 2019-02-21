@@ -100,7 +100,7 @@ class ExpoCat(object):
         :returns:
           ExpoCat object.
         """
-        df = pd.read_excel(excelfile, converters={0: str})
+        df = pd.read_excel(excelfile, converters={'EventID': str})
         #df = df.drop('Unnamed: 0',1)
 
         # cols = ['EventID','Time','Name','Lat','Lon','Depth','Magnitude','CountryCode',
@@ -113,7 +113,8 @@ class ExpoCat(object):
                    'MMI5', 'MMI6', 'MMI7', 'MMI8', 'MMI9+']
 
         # find the highest MMI column in each row with at least 1000 people exposed.
-        mmidata = df.ix[:, mmicols].values
+        # mmidata = df.ix[:, mmicols].values
+        mmidata = df[mmicols].values
         tf = mmidata > 1000
         nrows, ncols = mmidata.shape
         colmat = np.tile(np.arange(0, ncols), (nrows, 1))
@@ -148,7 +149,7 @@ class ExpoCat(object):
                    'MMI5', 'MMI6', 'MMI7', 'MMI8', 'MMI9+']
 
         # find the highest MMI column in each row with at least 1000 people exposed.
-        mmidata = df.ix[:, mmicols].values
+        mmidata = df[mmicols].values
         tf = mmidata > 1000
         nrows, ncols = mmidata.shape
         colmat = np.tile(np.arange(0, ncols), (nrows, 1))
@@ -371,20 +372,20 @@ class ExpoCat(object):
         if less_bad is not None:
             lessdict = to_ordered_dict(less_bad)
             rgbval = colormap.getDataColor(lessdict['MaxMMI'])
-            rgb255 = tuple([int(c*255) for c in rgbval])[0:3]
+            rgb255 = tuple([int(c * 255) for c in rgbval])[0:3]
             lessdict['Color'] = '#%02x%02x%02x' % rgb255
             events.append(lessdict)
 
         if more_bad is not None:
             moredict = to_ordered_dict(more_bad)
             rgbval = colormap.getDataColor(moredict['MaxMMI'])
-            rgb255 = tuple([int(c*255) for c in rgbval])[0:3]
+            rgb255 = tuple([int(c * 255) for c in rgbval])[0:3]
             moredict['Color'] = '#%02x%02x%02x' % rgb255
             events.append(moredict)
 
         worstdict = to_ordered_dict(worst)
         rgbval = colormap.getDataColor(worstdict['MaxMMI'])
-        rgb255 = tuple([int(c*255) for c in rgbval])[0:3]
+        rgb255 = tuple([int(c * 255) for c in rgbval])[0:3]
         worstdict['Color'] = '#%02x%02x%02x' % rgb255
         events.append(worstdict)
 

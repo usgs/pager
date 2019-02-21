@@ -10,19 +10,14 @@ import shutil
 from textwrap import dedent
 import re
 
-# hack the path so that I can debug these functions if I need to
-homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
-pagerdir = os.path.abspath(os.path.join(homedir, '..', '..'))
-sys.path.insert(0, pagerdir)  # put this at the front of the system path, ignoring any installed shakemap stuff
-
-# third party imports 
+# third party imports
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
 # local imports
 from losspager.mail.formatter import format_exposure, format_city_table,\
-     format_earthquakes, format_msg, format_short, format_long
+    format_earthquakes, format_msg, format_short, format_long
 from losspager.schema import emailschema as es
 
 # def test_format_exposure():
@@ -137,7 +132,7 @@ from losspager.schema import emailschema as es
 #                  {'inside':False, 'exposure':947968},
 #                  {'inside':False, 'exposure':54893},
 #                  {'inside':False, 'exposure':654}]
-    
+
 #     expstr = format_exposure(exposures,'short')
 #     shortmsg = format_short(version,expstr)
 
@@ -171,11 +166,11 @@ from losspager.schema import emailschema as es
 #               {'pop':550000, 'name':"Changwon", 'mmi':3.43},
 #               {'pop':3678555, 'name':"Busan", 'mmi':3.35}]
 
-#     historical_events = [{'distance':363.70022777,'magnitude':6.7, 
+#     historical_events = [{'distance':363.70022777,'magnitude':6.7,
 #                           'maxmmi':9, 'deaths':0, 'date':datetime(2000,10,6,4,30,20),'maxmmiexp':37718},
-#                          {'distance':120.744540337, 'magnitude':6.6, 
+#                          {'distance':120.744540337, 'magnitude':6.6,
 #                           'maxmmi':9, 'deaths':1, 'date':datetime(2005,3,20,1,53,42), 'maxmmiexp':73948},
-#                          {'distance':220.632206626, 'magnitude':6.8, 
+#                          {'distance':220.632206626, 'magnitude':6.8,
 #                           'maxmmi':8, 'deaths':2, 'date':datetime(2001,3,24,6,27,53), 'maxmmiexp':4737}]
 
 #     eventinfo = {}
@@ -203,11 +198,9 @@ from losspager.schema import emailschema as es
 #     longmsg = format_long(version,eventinfo,expstr)
 #     print('Long message:')
 #     print(longmsg)
-    
+
 
 if __name__ == '__main__':
     test_format_exposure()
     test_format_city_table()
     # test_format_msg()
-    
-    

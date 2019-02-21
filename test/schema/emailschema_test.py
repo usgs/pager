@@ -9,12 +9,7 @@ import json
 from datetime import datetime
 import shutil
 
-# hack the path so that I can debug these functions if I need to
-homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
-pagerdir = os.path.abspath(os.path.join(homedir, '..', '..'))
-sys.path.insert(0, pagerdir)  # put this at the front of the system path, ignoring any installed shakemap stuff
-
-# third party imports 
+# third party imports
 import numpy as np
 import matplotlib.pyplot as plt
 from shapely.geometry.point import Point
@@ -27,6 +22,7 @@ from losspager.utils.datapath import get_data_path
 NUSERS = 10
 
 DATEFMT = '%Y-%m-%d %H:%M:%S'
+
 
 def test_create_db(userfile=None, orgfile=None):
     memurl = 'sqlite://'
@@ -55,7 +51,8 @@ def test_create_db(userfile=None, orgfile=None):
         f.close()
     try:
         schemadir = get_data_path('schema')
-        session = emailschema.create_db(memurl, schemadir, users_jsonfile=userfile, orgs_jsonfile=orgfile)
+        session = emailschema.create_db(
+            memurl, schemadir, users_jsonfile=userfile, orgs_jsonfile=orgfile)
         print('Testing contents of in-memory database...')
         assert session.query(emailschema.User).count() == 1
         assert session.query(emailschema.Region).count() == 47
@@ -74,23 +71,23 @@ def test_region_serialization():
                   [-112.060547, 31.791221],
                   [-126.298828, 31.416944],
                   [-125.771484, 41.957448]]]
-                  
+
     lon, lat = (-119.443359, 37.149371)
     regiondict = {'type': 'Feature',
                   'properties': {'code': 'US_States-California',
-                                'desc': 'California'},
+                                 'desc': 'California'},
                   'geometry': {'type': 'Polygon',
-                  'coordinates': ca_coords}}
-    
+                               'coordinates': ca_coords}}
 
     region = emailschema.Region()
     region.fromDict(session, regiondict)
     assert region.containsPoint(lat, lon) == True
-    
+
     regiondict2 = region.toDict()
     assert regiondict == regiondict2
-    
+
     session.close()
+
 
 def test_user_serialization():
     memurl = 'sqlite://'
@@ -113,7 +110,7 @@ def test_user_serialization():
                 'createdon': datetime.utcnow().strftime(emailschema.TIME_FORMAT),
                 'org': 'USGS',
                 'addresses': [address]}
-    
+
     user = emailschema.User()
     # inflate the user from the dictionary
     user.fromDict(session, userdict)
@@ -143,8 +140,9 @@ def test_user_serialization():
     tvalue = userdict['addresses'][0]['profiles'][0]['thresholds'][0]['value']
     tvalue2 = userdict2['addresses'][0]['profiles'][0]['thresholds'][0]['value']
     assert tvalue == tvalue2
-    
+
     session.close()
+
 
 def test_get_polygon():
     memurl = 'sqlite://'
@@ -200,16 +198,20 @@ def test_get_polygon():
               'USCENTCOM': [(21.767152, 49.350586)]}
 
     for regioncode, plist in POINTS.items():
-        region = session.query(emailschema.Region).filter(emailschema.Region.name == regioncode).first()
+        region = session.query(emailschema.Region).filter(
+            emailschema.Region.name == regioncode).first()
         if region is None:
-            raise Exception('Could not find region %s in database!' % regioncode)
+            raise Exception(
+                'Could not find region %s in database!' % regioncode)
         for point in plist:
             lat, lon = point
             print('Checking region %s...' % regioncode)
             if not region.containsPoint(lat, lon):
-                raise Exception('Region %s does not contain point (%.4f,%.4f).' % (regioncode, lat, lon))
+                raise Exception(
+                    'Region %s does not contain point (%.4f,%.4f).' % (regioncode, lat, lon))
 
     session.close()
+
 
 def test_delete_cascade():
     memurl = 'sqlite://'
@@ -256,7 +258,6 @@ def test_delete_cascade():
     assert addresses_after_delete == 0
     print('No users, no addresses after deleting user.')
 
-
     # test deleting cascades with events
     event = emailschema.Event(eventcode='us2017abcd')
     version = emailschema.Version(versioncode='us2017abcd',
@@ -280,7 +281,7 @@ def test_delete_cascade():
     versions_before_add = session.query(emailschema.Version).count()
     assert events_before_add == 0
     assert versions_before_add == 0
-    
+
     event.versions.append(version)
     session.add(event)
     session.commit()
@@ -293,15 +294,15 @@ def test_delete_cascade():
 
     session.delete(event)
     session.commit()
-    
+
     events_after_delete = session.query(emailschema.Event).count()
     versions_after_delete = session.query(emailschema.Version).count()
 
     assert events_after_delete == 0
     assert versions_after_delete == 0
-    
+
     session.close()
-   
+
 # def test_get_email():
 #     dbfile = os.path.abspath(os.path.join(homedir,'..','data','losspager_test.db'))
 #     url = 'sqlite:///%s' % dbfile
@@ -326,7 +327,8 @@ def test_delete_cascade():
 #             #     for threshold in profile.thresholds:
 #             #         print('\t\t'+str(threshold))
 #     assert test_num_addresses == naddresses
-    
+
+
 if __name__ == '__main__':
     userfile = None
     orgfile = None
@@ -334,12 +336,10 @@ if __name__ == '__main__':
         userfile = sys.argv[1]
     if len(sys.argv) > 2:
         orgfile = sys.argv[2]
-    
+
     test_create_db(userfile=userfile, orgfile=orgfile)
     test_region_serialization()
     test_user_serialization()
     test_get_polygon()
     test_delete_cascade()
     # test_get_email()
-
-    

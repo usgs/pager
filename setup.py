@@ -15,6 +15,8 @@ setup(name='losspager',
                                   os.path.join('data', 'schema', '*'),
                                   os.path.join('logos', '*')
                                   ]},
-      scripts=['pagerlite', 'emailpager', 'pager', 'adminpager',
-               'callpager', 'updatepager', 'mailadmin', 'sync_users',
-               'twopager'])
+      scripts=['bin/pagerlite', 'bin/emailpager',
+               'bin/pager', 'bin/adminpager',
+               'bin/callpager', 'bin/updatepager',
+               'bin/mailadmin', 'bin/sync_users',
+               'bin/twopager'])

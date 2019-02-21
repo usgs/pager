@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 from collections import OrderedDict
 from math import log10
+import logging
 
 # third party imports
 from impactutils.textformat.text import pop_round_short, round_to_nearest
@@ -153,14 +154,14 @@ def create_twopager(pdata, hazinfo, version_dir):
                                 texify(pdict['comments']['impact2']))
 
     # Hazus arrow color and relative position
-    hazdel = (hazinfo.hazloss)/LOSS_CONV
+    hazdel = (hazinfo.hazloss) / LOSS_CONV
     if hazdel < 0.1:
         hazdelval = 0.1
     elif hazdel > 1000000:
         hazdelval = 1000000
     else:
         hazdelval = hazdel
-    arrowloc = (((6 - log10(hazdelval))*0.83)-0.07)
+    arrowloc = (((6 - log10(hazdelval)) * 0.83) - 0.07)
 
     # distance (in cm) to the left from right end of the econ histogram
     template = template.replace("[ARROWSHIFT]", '%.2f' % arrowloc)
@@ -207,7 +208,7 @@ def create_twopager(pdata, hazinfo, version_dir):
     try:
         ccinfo = ComCatInfo(eventid)
         eventid, allids = ccinfo.getAssociatedIds()
-        event_url = ccinfo.getURL()+'#pager'
+        event_url = ccinfo.getURL() + '#pager'
     except:
         event_url = DEFAULT_PAGER_URL
 
@@ -228,7 +229,7 @@ def create_twopager(pdata, hazinfo, version_dir):
         os.chdir(version_dir)
         cmd = '%s -interaction nonstopmode --output-directory %s %s' % (
             LATEX_TO_PDF_BIN, version_dir, tex_output)
-        print('Running %s...' % cmd)
+        logging.info('Running %s...' % cmd)
         res, stdout, stderr = get_command_output(cmd)
         os.chdir(cwd)
         if not res:

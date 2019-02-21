@@ -6,50 +6,54 @@ import os.path
 import sys
 import shutil
 
-# hack the path so that I can debug these functions if I need to
-homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
-pagerdir = os.path.abspath(os.path.join(homedir, '..', '..'))
-sys.path.insert(0, pagerdir)  # put this at the front of the system path, ignoring any installed shakemap stuff
-
 # local imports
 from losspager.utils.logger import PagerLogger
 
-def test(email=None, host=None):
+# this test is disabled for the purposes of pytest
+# because if this runs before any other test code
+# that calls any code that does logging,
+# that code will be looking for the logger
+# that we set up here. According to one mailing
+# list entry, loggers persist until the shell is closed.
+
+
+def _test(email=None, host=None):
     tdir = tempfile.mkdtemp()
     try:
-        logfile = os.path.join(tdir, 'logfile.log')
-        print('Logfile will be %s' % logfile)
+        global_log = os.path.join(tdir, 'global.log')
 
-        redirect = True
+        plog = PagerLogger(global_log, email, email,
+                           host, debug=False)
+        logger = plog.getLogger()
+        logger.info('Test 1')
+
+        version_log = os.path.join(tdir, 'version.log')
+        plog.setVersionHandler(version_log)
+
+        logger.info('Test 2')
+
         if email is not None:
-            redirect = False
+            logger.critical('Help me!')
 
-        plog = PagerLogger(logfile, from_address=email, mail_host=host, redirect=redirect)
-        plogger = plog.getLogger()
+        for handler in logger.handlers:
+            handler.close()
 
-        if not redirect:
-            plog.addEmailHandler([email])
+        with open(global_log, 'rt') as f:
+            global_text = f.read()
 
-        if redirect:
-            print('This should show up as information! (print function)')
-            sys.stderr.write('This should show up as an error! (write method)')
-        else:
-            plogger.info('This should show up as information! (info method)')
-            plogger.error('This should show up as an error! (error method)')
-        try:
-            raise Exception("This should show up as critical (and perhaps generate an email)!")
-        except Exception as e:
-            plogger.critical(e)
+        with open(version_log, 'rt') as f:
+            version_text = f.read()
 
-        plog.stopLogging()
-        f = open(logfile, 'rt')
-        data = f.read()
-        print(data)
-        assert len(data)
-    except Exception as e1:
+        assert global_text.find('Test 1') > -1
+        assert version_text.find('Test 2') > -1
+
+        plog.close()
+
+    except Exception:
         pass
     finally:
         shutil.rmtree(tdir)
+
 
 if __name__ == '__main__':
     if len(sys.argv) == 3:
@@ -58,4 +62,4 @@ if __name__ == '__main__':
     else:
         email = None
         host = None
-    test(email=email, host=host)
+    _test(email=email, host=host)
