@@ -11,7 +11,7 @@ class PagerLogger(object):
                  from_address, mail_host, debug=False):
         self._fmt = '%(levelname)s -- %(asctime)s -- %(module)s.%(funcName)s -- %(message)s'
         self._datefmt = '%Y-%m-%d %H:%M:%S'
-        self._level = logging.DEBUG
+        self._level = logging.INFO
 
         self._formatter = logging.Formatter(self._fmt, self._datefmt)
 
