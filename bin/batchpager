@@ -132,7 +132,7 @@ cores present on the system.
              'The value given to -n should generally be less than '
              'or equal to the number of cores on the machine.')
     parser.add_argument('-n', '--num-processes',
-                        help=nphlp, default=4, type=int
+                        help=nphlp, default=4, type=int)
 
-    pargs=parser.parse_args()
+    pargs = parser.parse_args()
     main(pargs)
