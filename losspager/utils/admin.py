@@ -100,6 +100,9 @@ def transfer(config, pagerdata, authid, authsource, version_folder,
     # directories using those options
     res = False
     msg = ''
+    if 'status' in config and config['status'] == 'secondary': 
+      res = True
+      return (res, msg)
     if 'status' in config and config['status'] == 'primary':
         if 'transfer' in config:
             if 'methods' in config['transfer']:
