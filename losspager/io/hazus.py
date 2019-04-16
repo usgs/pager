@@ -6,6 +6,7 @@ from urllib.request import urlopen
 from urllib.parse import urljoin
 import shutil
 import logging
+import re
 
 # third party imports
 import fiona
@@ -237,8 +238,9 @@ class HazusInfo(object):
         return table_text
 
     def createDebrisTable(self):
-        wood = self._dataframe['DebrisW'].sum()/1e3  # values are in thousands
-        steel = self._dataframe['DebrisS'].sum()/1e3
+        # values are in thousands
+        wood = self._dataframe['DebrisW'].sum() / 1e3
+        steel = self._dataframe['DebrisS'].sum() / 1e3
         wood_total = '%.3f' % wood
         steel_total = '%.3f' % steel
         debris_total = '%.3f' % (wood + steel)
@@ -255,7 +257,7 @@ class HazusInfo(object):
         table_lines.append('\\textbf{Total} & \\textbf{%s} \\' % debris_total)
         table_lines.append('&  \\\\')
         table_lines.append('&  \\\\')
-        trucks = commify(int(round(((wood + steel)*1e6)/25)))
+        trucks = commify(int(round(((wood + steel) * 1e6) / 25)))
         fmt = '\\textbf{Truck Loads (@25 tons/truck)} & \\textbf{%s} \\'
         line = fmt % trucks
         table_lines.append(line)
@@ -277,33 +279,34 @@ class HazusInfo(object):
 
         # define the map
         # first cope with stupid 180 meridian
-        height = (gd.ymax-gd.ymin)*111.191
+        height = (gd.ymax - gd.ymin) * 111.191
         if gd.xmin < gd.xmax:
-            width = (gd.xmax-gd.xmin)*np.cos(np.radians(center_lat))*111.191
+            width = (gd.xmax - gd.xmin) * \
+                np.cos(np.radians(center_lat)) * 111.191
             xmin, xmax, ymin, ymax = (gd.xmin, gd.xmax, gd.ymin, gd.ymax)
         else:
             xmin, xmax, ymin, ymax = (gd.xmin, gd.xmax, gd.ymin, gd.ymax)
             xmax += 360
-            width = ((gd.xmax+360) - gd.xmin) * \
-                np.cos(np.radians(center_lat))*111.191
+            width = ((gd.xmax + 360) - gd.xmin) * \
+                np.cos(np.radians(center_lat)) * 111.191
 
-        aspect = width/height
+        aspect = width / height
 
         # if the aspect is not 1, then trim bounds in
         # x or y direction as appropriate
         if width > height:
-            dw = (width - height)/2.0  # this is width in km
-            xmin = xmin + dw/(np.cos(np.radians(center_lat))*111.191)
-            xmax = xmax - dw/(np.cos(np.radians(center_lat))*111.191)
-            width = (xmax-xmin)*np.cos(np.radians(center_lat))*111.191
+            dw = (width - height) / 2.0  # this is width in km
+            xmin = xmin + dw / (np.cos(np.radians(center_lat)) * 111.191)
+            xmax = xmax - dw / (np.cos(np.radians(center_lat)) * 111.191)
+            width = (xmax - xmin) * np.cos(np.radians(center_lat)) * 111.191
         if height > width:
-            dh = (height - width)/2.0  # this is width in km
-            ymin = ymin + dh/111.191
-            ymax = ymax - dh/111.191
-            height = (ymax-ymin)*111.191
+            dh = (height - width) / 2.0  # this is width in km
+            ymin = ymin + dh / 111.191
+            ymax = ymax - dh / 111.191
+            height = (ymax - ymin) * 111.191
 
-        aspect = width/height
-        figheight = FIGWIDTH/aspect
+        aspect = width / height
+        figheight = FIGWIDTH / aspect
         bounds = (xmin, xmax, ymin, ymax)
         figsize = (FIGWIDTH, figheight)
 
@@ -416,7 +419,7 @@ class HazusInfo(object):
             # tract is a dictionary
             ntracts += 1
             tract_shape = sShape(tract['geometry'])
-            state_fips = tract['properties']['STATEFP10']
+            state_fips = str(int(tract['properties']['STATEFP10']))
             county_fips = state_fips + tract['properties']['COUNTYFP10']
             fips_column = self._dataframe['CountyFips']
             if not fips_column.isin([county_fips]).any():
@@ -425,6 +428,7 @@ class HazusInfo(object):
             econloss = 0.0
             if tract_fips in self._tract_loss:
                 econloss = self._tract_loss[tract_fips]
+
             if econloss < 1e3:
                 color = GREEN
             elif econloss >= 1e3 and econloss < 1e5:
@@ -446,7 +450,7 @@ class HazusInfo(object):
         t0 = time.time()
         plt.savefig(filename, dpi=300)
         t1 = time.time()
-        logging.info('Done saving map - %.2f seconds' % (t1-t0))
+        logging.info('Done saving map - %.2f seconds' % (t1 - t0))
 
     def createTaggingTables(self):
         df = pd.read_csv(self._occupancy_file)

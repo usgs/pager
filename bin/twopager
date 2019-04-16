@@ -7,9 +7,6 @@ import glob
 from urllib.request import urlopen
 import sys
 
-# neic imports
-from mapio.shake import ShakeGrid
-
 # local imports
 from losspager.io.hazus import HazusInfo, fetch_hazus
 from losspager.io.pagerdata import PagerData
