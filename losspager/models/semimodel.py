@@ -559,7 +559,14 @@ class SemiEmpiricalFatality(object):
         """
         collapse_frame = self._collapse.getDataFrame(ccode)
         collapse_frame = collapse_frame.set_index('BuildingCode')
-        collapse_frame = collapse_frame.loc[inventory.index]
+        try:
+            collapse_frame = collapse_frame.loc[inventory.index]
+        except Exception:
+            collapse_dict = inventory.to_dict()
+            collapse = pd.Series(collapse_dict)
+            for key, value in collapse_dict.items():
+                collapse[key] = np.nan
+            return collapse
         mmicol = 'MMI_%s' % str(mmi)
         collapse = collapse_frame[mmicol]
         return collapse
