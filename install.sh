@@ -124,6 +124,7 @@ package_list='
   openquake.engine
   pandas
   paramiko
+  pip
   psutil
   pycrypto
   pyproj
@@ -142,9 +143,14 @@ package_list='
   xlrd
   xlwt'
 
+# it seems now that some of the geospatial packages are more stable
+# in the defaults channel, so let's set that as our preferred channel.
+conda config --add channels 'defaults'
+conda config --set channel_priority defaults
+
 # Create a conda virtual environment
 echo "Creating the $VENV virtual environment:"
-conda create -n $VENV -y --force -c conda-forge --channel-priority $package_list
+conda create -n $VENV -y $package_list
 
 # Bail out at this point if the conda create command fails.
 # Clean up zip files we've downloaded
