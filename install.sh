@@ -98,6 +98,9 @@ fi
 echo "Activate base virtual environment"
 conda activate base
 
+# make sure conda is up to date
+conda update -n base conda -y
+
 # Remove any existing pager environments
 conda remove -y --name $VENV --all
 
