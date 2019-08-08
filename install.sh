@@ -145,6 +145,7 @@ package_list='
 
 # it seems now that some of the geospatial packages are more stable
 # in the defaults channel, so let's set that as our preferred channel.
+conda config --add channels 'conda-forge'
 conda config --add channels 'defaults'
 conda config --set channel_priority strict
 
