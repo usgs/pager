@@ -137,7 +137,7 @@ class HazusInfo(object):
         self._tract_loss = {}
         tracts = pd.read_csv(tract_csv, dtype={'Tract': object})
         for idx, row in tracts.iterrows():
-            key = row['Tract']
+            key = int(row['Tract'])
             value = row['EconLoss']
             self._tract_loss[key] = value
 
@@ -424,10 +424,13 @@ class HazusInfo(object):
             fips_column = self._dataframe['CountyFips']
             if not fips_column.isin([county_fips]).any():
                 continue
-            tract_fips = county_fips + tract['properties']['TRACTCE10']
+            tract_fips = int(county_fips + tract['properties']['TRACTCE10'])
             econloss = 0.0
             if tract_fips in self._tract_loss:
                 econloss = self._tract_loss[tract_fips]
+                print('Tract %i: Economic loss: %.3f' % (tract_fips, econloss))
+            else:
+                x = 1
 
             if econloss < 1e3:
                 color = GREEN
