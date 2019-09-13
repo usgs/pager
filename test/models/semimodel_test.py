@@ -1,22 +1,16 @@
 #!/usr/bin/env python
 
 # stdlib imports
-import urllib.request as request
-import tempfile
 import os.path
-import sys
 from datetime import datetime
-from collections import OrderedDict
 
 # third party imports
 import numpy as np
 import pandas as pd
-from mapio.gmt import GMTGrid
-from mapio.geodict import GeoDict
-from mapio.shake import ShakeGrid
 
 # local imports
-from losspager.models.semimodel import get_time_of_day, pop_dist, SemiEmpiricalFatality, URBAN, RURAL, make_test_semi_model
+from losspager.models.semimodel import (get_time_of_day, pop_dist,
+                                        SemiEmpiricalFatality, URBAN)
 
 
 def test_times():

@@ -26,7 +26,6 @@ from impactutils.mapping.mercatormap import MercatorMap
 from impactutils.colors.cpalette import ColorPalette
 from impactutils.mapping.city import Cities
 from impactutils.textformat.text import (pop_round_short, commify)
-from mapio.gdal import GDALGrid
 
 # local imports
 from losspager.vis.impactscale import GREEN, YELLOW, ORANGE, RED
@@ -272,11 +271,6 @@ class HazusInfo(object):
         center_lat = shakegrid.getEventDict()['lat']
         center_lon = shakegrid.getEventDict()['lon']
 
-        # load the ocean grid file (has 1s in ocean, 0s over land)
-        # having this file saves us almost 30 seconds!
-        # oceangrid = GDALGrid.load(oceangridfile,
-        #                           samplegeodict=gd, resample=True)
-
         # define the map
         # first cope with stupid 180 meridian
         height = (gd.ymax - gd.ymin) * 111.191
@@ -428,7 +422,7 @@ class HazusInfo(object):
             econloss = 0.0
             if tract_fips in self._tract_loss:
                 econloss = self._tract_loss[tract_fips]
-                print('Tract %i: Economic loss: %.3f' % (tract_fips, econloss))
+                # print('Tract %i: Economic loss: %.3f' % (tract_fips, econloss))
             else:
                 x = 1
 

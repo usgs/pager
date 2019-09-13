@@ -6,21 +6,9 @@ import os.path
 import warnings
 import shutil
 
-# third party imports
-# non-interactive backend
-import matplotlib
-matplotlib.use('Agg')
-
-import matplotlib.pyplot as plt
-from mapio.shake import ShakeGrid
-from mapio.gdal import GDALGrid
-from mapio.gmt import GMTGrid
-from losspager.utils.ftype import get_file_type
-
 # local imports
 from losspager.vis.contourmap import draw_contour
-from losspager.models.exposure import Exposure, calc_exposure
-# from losspager.utils.logger import PagerLogger
+from losspager.models.exposure import Exposure
 
 
 def test(outfolder=None):
