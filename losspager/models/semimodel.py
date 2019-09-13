@@ -1,24 +1,21 @@
 #!/usr/bin/env python
 
 # stdlib imports
-from datetime import datetime, timedelta
+from datetime import timedelta
 import os.path
-import tempfile
 import logging
 
 # third party imports
 import pandas as pd
 import numpy as np
 from mapio.shake import ShakeGrid
-from mapio.gmt import GMTGrid
-from mapio.geodict import GeoDict
+from mapio.reader import read, get_file_geodict
 
 # neic imports
 from impactutils.io.container import HDFContainer
 
 # local imports
 from .growth import PopulationGrowth
-from losspager.utils.ftype import get_file_type
 from losspager.utils.country import Country
 
 # constants indicating what values in urban/rural grid stand for
@@ -283,110 +280,6 @@ def get_time_of_day(dtime, lon):
     return (timeofday, event_year, event_hour)
 
 
-def make_test_semi_model(ccode, timeofday, density, popvalue, mmi):
-    """Run the semi-empirical model for a single value of input.  Intended for testing purposes.
-
-    :param ccode:
-      Two letter ISO country code ('US', 'JP', etc.) to be used to extract inventory, collapse rates, etc.
-    :param timeofday:
-      One of 'day','night' - used to determine residential/non-residental population distribution and casualty rates.
-    :param density:
-      One of semimodel.URBAN (2) or semimodel.RURAL (1).
-    :param popvalue:
-      Scalar population value to multiply by inventory, collapse, and fatality rates.
-    :param mmi:
-      MMI value used to extract collapse rates in given country code.
-    :returns:
-      Tuple of:
-        1) Total number of fatalities
-        2) Dictionary of residential fatalities per building type, per country.
-        3) Dictionary of non-residential fatalities per building type, per country.
-    """
-    country = Country()
-    cdict = country.getCountry(ccode)
-    ucode = cdict['ISON']
-    geodict = GeoDict({'xmin': 0.5, 'xmax': 4.5, 'ymin': 0.5,
-                       'ymax': 4.5, 'dx': 1.0, 'dy': 1.0, 'nx': 5, 'ny': 5})
-    if timeofday == 'day':
-        etime = datetime(2016, 1, 1, 12, 0, 0)  # noon
-    elif timeofday == 'transit':
-        etime = datetime(2016, 1, 1, 18, 0, 0)  # 6 pm
-    else:
-        etime = datetime(2016, 1, 1, 0, 0, 0)  # midnight
-    eventdict = {'event_id': '1234',
-                 'magnitude': 7.5,
-                 'lat': 0.0,
-                 'lon': 0.0,
-                 'depth': 10.0,
-                 'event_timestamp': etime,
-                 'event_description': 'test data',
-                 'event_network': 'us'}
-    shakedict = {'event_id': '1234',
-                 'shakemap_id': '1234',
-                 'shakemap_version': 1,
-                 'code_version': '1.0',
-                 'process_timestamp': datetime.utcnow(),
-                 'shakemap_originator': 'us',
-                 'map_status': 'RELEASED',
-                 'shakemap_event_type': 'SCENARIO'}
-    uncdict = {'mmi': (1.0, 1)}
-    popdata = np.ones((2, 2), dtype=np.float32) * (popvalue) / 4
-    isodata = np.ones((2, 2), dtype=np.int16) * ucode
-    urbdata = np.ones((2, 2), dtype=np.int16) * density
-    mmidata = np.ones((2, 2), dtype=np.float32) * mmi
-    geodict = GeoDict({'xmin': 0.5, 'xmax': 1.5, 'ymin': 0.5,
-                       'ymax': 1.5, 'dx': 1.0, 'dy': 1.0, 'nx': 2, 'ny': 2})
-    popgrid = GMTGrid(popdata, geodict)
-    isogrid = GMTGrid(isodata, geodict)
-    urbgrid = GMTGrid(urbdata, geodict)
-    popyear = 2016
-    layers = {'mmi': mmidata}
-    mmigrid = ShakeGrid(layers, geodict, eventdict, shakedict, uncdict)
-    popfile = isofile = urbfile = shakefile = ''
-    popsum = None
-    newresfat = None
-    newnresfat = None
-    try:
-        # make some temporary files
-        f, popfile = tempfile.mkstemp()
-        os.close(f)
-        f, isofile = tempfile.mkstemp()
-        os.close(f)
-        f, urbfile = tempfile.mkstemp()
-        os.close(f)
-        f, shakefile = tempfile.mkstemp()
-        os.close(f)
-
-        popgrid.save(popfile)
-        isogrid.save(isofile)
-        urbgrid.save(urbfile)
-        mmigrid.save(shakefile)
-
-        semi = SemiEmpiricalFatality.fromDefault()
-        semi.setGlobalFiles(popfile, popyear, urbfile, isofile)
-        t, resfat, nonresfat = semi.getLosses(shakefile)
-        popsum = 0
-        newresfat = {ccode: {}}
-        newnonresfat = {ccode: {}}
-        for key, value in resfat[ccode].items():
-            if value < 1:
-                value = np.floor(value)
-            newresfat[ccode][key] = value / 4.0
-            popsum += value / 4.0
-        for key, value in nonresfat[ccode].items():
-            newnonresfat[ccode][key] = value / 4.0
-            if value < 1:
-                value = np.floor(value)
-            popsum += value / 4.0
-        popsum = int(popsum)
-    finally:
-        files = [popfile, isofile, urbfile, shakefile]
-        for fname in files:
-            if os.path.isfile(fname):
-                os.remove(fname)
-    return (popsum, newresfat, newnonresfat)
-
-
 class SemiEmpiricalFatality(object):
     def __init__(self, inventory, collapse, casualty, workforce, growth):
         """Create Semi-Empirical Fatality Model object.
@@ -502,9 +395,6 @@ class SemiEmpiricalFatality(object):
         self._popyear = popyear
         self._urbanfile = urbanfile
         self._isofile = isofile
-        self._pop_class = get_file_type(popfile)
-        self._iso_class = get_file_type(isofile)
-        self._urban_class = get_file_type(urbanfile)
 
     def getBuildingDesc(self, btype, desctype='short'):
         """Get a building description given a short building type code.
@@ -637,31 +527,43 @@ class SemiEmpiricalFatality(object):
         # get shakemap geodict
         shakedict = ShakeGrid.getFileGeoDict(shakefile, adjust='res')
         # get population geodict
-        popdict, t = self._pop_class.getFileGeoDict(self._popfile)
+        popdict = get_file_geodict(self._popfile)
 
         # get country code geodict
-        isodict, t = self._iso_class.getFileGeoDict(self._isofile)
+        isodict = get_file_geodict(self._isofile)
 
         # get urban grid geodict
-        urbdict, t = self._urban_class.getFileGeoDict(self._urbanfile)
+        urbdict = get_file_geodict(self._urbanfile)
 
         # load all of the grids we need
         if popdict == shakedict == isodict == urbdict:
             # special case, probably for testing...
             shakegrid = ShakeGrid.load(shakefile, adjust='res')
-            popgrid = self._pop_class.load(self._popfile)
-            isogrid = self._iso_class.load(self._isofile)
-            urbgrid = self._urban_class.load(self._urbanfile)
+            popgrid = read(self._popfile)
+            isogrid = read(self._isofile)
+            urbgrid = read(self._urbanfile)
         else:
             sampledict = popdict.getBoundsWithin(shakedict)
-            shakegrid = ShakeGrid.load(
-                shakefile, samplegeodict=sampledict, resample=True, method='linear', adjust='res')
-            popgrid = self._pop_class.load(
-                self._popfile, samplegeodict=sampledict, resample=False)
-            isogrid = self._iso_class.load(self._isofile, samplegeodict=sampledict, resample=True,
-                                           method='nearest', doPadding=True, padValue=0)
-            urbgrid = self._urban_class.load(self._urbanfile, samplegeodict=sampledict, resample=True,
-                                             method='nearest', doPadding=True, padValue=RURAL)
+            shakegrid = ShakeGrid.load(shakefile,
+                                       samplegeodict=sampledict,
+                                       resample=True,
+                                       method='linear',
+                                       adjust='res')
+            popgrid = read(self._popfile,
+                           samplegeodict=sampledict,
+                           resample=False)
+            isogrid = read(self._isofile,
+                           samplegeodict=sampledict,
+                           resample=True,
+                           method='nearest',
+                           doPadding=True,
+                           padValue=0)
+            urbgrid = read(self._urbanfile,
+                           samplegeodict=sampledict,
+                           resample=True,
+                           method='nearest',
+                           doPadding=True,
+                           padValue=RURAL)
 
         # determine the local apparent time of day (based on longitude)
         edict = shakegrid.getEventDict()
@@ -701,7 +603,7 @@ class SemiEmpiricalFatality(object):
         ntotal = 0
 
         # loop over countries
-        ucodes = np.unique(isodata)
+        ucodes = np.unique(isodata[~np.isnan(isodata)])
         for ucode in ucodes:
             if ucode == 0:
                 continue

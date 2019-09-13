@@ -12,7 +12,7 @@ from cartopy.feature import ShapelyFeature
 import cartopy.feature as cfeature
 from cartopy.io.shapereader import Reader
 
-from mapio.gdal import GDALGrid
+from mapio.reader import read
 from mapio.grid2d import Grid2D
 
 from shapely.geometry import shape as sShape
@@ -189,9 +189,9 @@ def _get_open_corner(popgrid, ax, filled_corner=None, need_bottom=True):
         axes2disp.transform((ax_rightleft, ax_topbottom)))
     # right edge of the left bottom corner rectangle
     leftright, bottombottom = disp2fig.transform(
-        axes2disp.transform((ax_leftleft+ax_width, ax_bottombottom)))
+        axes2disp.transform((ax_leftleft + ax_width, ax_bottombottom)))
     leftleft, bottomtop = disp2fig.transform(
-        axes2disp.transform((ax_leftleft, ax_bottombottom+ax_height)))
+        axes2disp.transform((ax_leftleft, ax_bottombottom + ax_height)))
     width = leftright - leftleft
     height = bottomtop - bottombottom
 
@@ -201,17 +201,18 @@ def _get_open_corner(popgrid, ax, filled_corner=None, need_bottom=True):
     popdata[i] = 0
     nrows, ncols = popdata.shape
 
-    ulpopsum = popdata[0:int(nrows/4), 0:int(ncols/4)].sum()
+    ulpopsum = popdata[0:int(nrows / 4), 0:int(ncols / 4)].sum()
     ulbounds = (leftleft, topbottom, width, height)
 
-    urpopsum = popdata[0:int(nrows/4), ncols - int(ncols/4):ncols-1].sum()
+    urpopsum = popdata[0:int(nrows / 4), ncols -
+                       int(ncols / 4):ncols - 1].sum()
     urbounds = (rightleft, topbottom, width, height)
 
-    llpopsum = popdata[nrows - int(nrows/4):nrows-1, 0:int(ncols/4)].sum()
+    llpopsum = popdata[nrows - int(nrows / 4):nrows - 1, 0:int(ncols / 4)].sum()
     llbounds = (leftleft, bottombottom, width, height)
 
-    lrpopsum = popdata[nrows - int(nrows/4):nrows-1,
-                       ncols - int(ncols/4):ncols-1].sum()
+    lrpopsum = popdata[nrows - int(nrows / 4):nrows - 1,
+                       ncols - int(ncols / 4):ncols - 1].sum()
     lrbounds = (rightleft, bottombottom, width, height)
 
     if filled_corner == 'll' and need_bottom:
@@ -286,7 +287,10 @@ def draw_contour(shakegrid, popgrid, oceanfile, oceangridfile, cityfile,
 
     # load the ocean grid file (has 1s in ocean, 0s over land)
     # having this file saves us almost 30 seconds!
-    oceangrid = GDALGrid.load(oceangridfile, samplegeodict=gd, resample=True)
+    oceangrid = read(oceangridfile,
+                     samplegeodict=gd,
+                     resample=True,
+                     doPadding=True)
 
     # load the cities data, limit to cities within shakemap bounds
     allcities = Cities.fromDefault()
@@ -294,33 +298,33 @@ def draw_contour(shakegrid, popgrid, oceanfile, oceangridfile, cityfile,
 
     # define the map
     # first cope with stupid 180 meridian
-    height = (gd.ymax-gd.ymin)*DEG2KM
+    height = (gd.ymax - gd.ymin) * DEG2KM
     if gd.xmin < gd.xmax:
-        width = (gd.xmax-gd.xmin)*np.cos(np.radians(center_lat))*DEG2KM
+        width = (gd.xmax - gd.xmin) * np.cos(np.radians(center_lat)) * DEG2KM
         xmin, xmax, ymin, ymax = (gd.xmin, gd.xmax, gd.ymin, gd.ymax)
     else:
         xmin, xmax, ymin, ymax = (gd.xmin, gd.xmax, gd.ymin, gd.ymax)
         xmax += 360
-        width = ((gd.xmax+360) - gd.xmin) * \
-            np.cos(np.radians(center_lat))*DEG2KM
+        width = ((gd.xmax + 360) - gd.xmin) * \
+            np.cos(np.radians(center_lat)) * DEG2KM
 
-    aspect = width/height
+    aspect = width / height
 
     # if the aspect is not 1, then trim bounds in x or y direction
     # as appropriate
     if width > height:
-        dw = (width - height)/2.0  # this is width in km
-        xmin = xmin + dw/(np.cos(np.radians(center_lat))*DEG2KM)
-        xmax = xmax - dw/(np.cos(np.radians(center_lat))*DEG2KM)
-        width = (xmax-xmin)*np.cos(np.radians(center_lat))*DEG2KM
+        dw = (width - height) / 2.0  # this is width in km
+        xmin = xmin + dw / (np.cos(np.radians(center_lat)) * DEG2KM)
+        xmax = xmax - dw / (np.cos(np.radians(center_lat)) * DEG2KM)
+        width = (xmax - xmin) * np.cos(np.radians(center_lat)) * DEG2KM
     if height > width:
-        dh = (height - width)/2.0  # this is width in km
-        ymin = ymin + dh/DEG2KM
-        ymax = ymax - dh/DEG2KM
-        height = (ymax-ymin)*DEG2KM
+        dh = (height - width) / 2.0  # this is width in km
+        ymin = ymin + dh / DEG2KM
+        ymax = ymax - dh / DEG2KM
+        height = (ymax - ymin) * DEG2KM
 
-    aspect = width/height
-    figheight = FIGWIDTH/aspect
+    aspect = width / height
+    figheight = FIGWIDTH / aspect
     bbox = (xmin, ymin, xmax, ymax)
     bounds = (xmin, xmax, ymin, ymax)
     figsize = (FIGWIDTH, figheight)
@@ -473,8 +477,8 @@ def draw_contour(shakegrid, popgrid, oceanfile, oceangridfile, cityfile,
     gymin = np.floor(ymin * 2) / 2
     gymax = np.ceil(ymax * 2) / 2
 
-    xlocs = np.linspace(gxmin, gxmax+0.5, num=5)
-    ylocs = np.linspace(gymin, gymax+0.5, num=5)
+    xlocs = np.linspace(gxmin, gxmax + 0.5, num=5)
+    ylocs = np.linspace(gymin, gymax + 0.5, num=5)
 
     gl.xlocator = mticker.FixedLocator(xlocs)
     gl.ylocator = mticker.FixedLocator(ylocs)
@@ -513,7 +517,8 @@ def draw_contour(shakegrid, popgrid, oceanfile, oceangridfile, cityfile,
     for xloc in gl.xlocator.locs:
         outside = xloc < xmin or xloc > xmax
         # don't draw labels when we're too close to either edge
-        near_edge = (xloc-xmin) < (xrange*0.1) or (xmax-xloc) < (xrange*0.1)
+        near_edge = (xloc - xmin) < (xrange *
+                                     0.1) or (xmax - xloc) < (xrange * 0.1)
         if outside or near_edge:
             continue
         xtext = r'$%.1f^\circ$W' % (abs(xloc))
@@ -525,8 +530,8 @@ def draw_contour(shakegrid, popgrid, oceanfile, oceangridfile, cityfile,
     for yloc in gl.ylocator.locs:
         outside = yloc < gd.ymin or yloc > gd.ymax
         # don't draw labels when we're too close to either edge
-        near_edge = (yloc-gd.ymin) < (yrange *
-                                      0.1) or (gd.ymax-yloc) < (yrange*0.1)
+        near_edge = (yloc - gd.ymin) < (yrange *
+                                        0.1) or (gd.ymax - yloc) < (yrange * 0.1)
         if outside or near_edge:
             continue
         if yloc < 0:
@@ -590,8 +595,8 @@ def draw_contour(shakegrid, popgrid, oceanfile, oceangridfile, cityfile,
                  alpha=0.2, color='red', horizontalalignment='center')
 
     # create pdf and png output file names
-    pdf_file = basename+'.pdf'
-    png_file = basename+'.png'
+    pdf_file = basename + '.pdf'
+    png_file = basename + '.png'
 
     # save to pdf
     plt.savefig(pdf_file)

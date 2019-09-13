@@ -6,11 +6,11 @@ import warnings
 # third party
 import numpy as np
 from mapio.shake import ShakeGrid
+from mapio.reader import get_file_geodict, read
 
 # local imports
 from losspager.utils.exception import PagerException
 from losspager.utils.country import Country
-from losspager.utils.ftype import get_file_type
 from .growth import PopulationGrowth
 
 SCENARIO_WARNING = 10  # number of years after date of population data to issue a warning
@@ -33,7 +33,7 @@ def calc_exposure(mmidata, popdata, isodata):
     popdata = np.array(popdata)
     isodata = np.array(isodata)
     exposures = {}
-    ccodes = np.unique(isodata)
+    ccodes = np.unique(isodata[~np.isnan(isodata)])
     for ccode in ccodes:
         cidx = np.ravel_multi_index(np.where(isodata == ccode), isodata.shape)
         expsum = np.zeros((10), dtype=np.uint32)
@@ -73,8 +73,6 @@ class Exposure(object):
         else:
             self._popgrowth = PopulationGrowth.fromDefault()
         self._country = Country()
-        self._pop_class = get_file_type(self._popfile)
-        self._iso_class = get_file_type(self._isofile)
 
     def calcExposure(self, shakefile):
         """Calculate population exposure to shaking, per country, plus total exposure across all countries.
@@ -92,10 +90,10 @@ class Exposure(object):
         shakedict = ShakeGrid.getFileGeoDict(shakefile, adjust='res')
 
         # get population geodict
-        popdict, t = self._pop_class.getFileGeoDict(self._popfile)
+        popdict = get_file_geodict(self._popfile)
 
         # get country code geodict
-        isodict, t = self._iso_class.getFileGeoDict(self._isofile)
+        isodict = get_file_geodict(self._isofile)
 
         # special case for very high latitude events that may be outside the bounds
         # of our population data...
@@ -106,16 +104,16 @@ class Exposure(object):
         if popdict == shakedict == isodict:
             # special case, probably for testing...
             self._shakegrid = ShakeGrid.load(shakefile, adjust='res')
-            self._popgrid = self._pop_class.load(self._popfile)
-            self._isogrid = self._iso_class.load(self._isofile)
+            self._popgrid = read(self._popfile)
+            self._isogrid = read(self._isofile)
         else:
             sampledict = popdict.getBoundsWithin(shakedict)
             self._shakegrid = ShakeGrid.load(shakefile, samplegeodict=sampledict, resample=True,
                                              method='linear', adjust='res')
-            self._popgrid = self._pop_class.load(self._popfile, samplegeodict=sampledict,
-                                                 resample=False, doPadding=True, padValue=np.nan)
-            self._isogrid = self._iso_class.load(self._isofile, samplegeodict=sampledict,
-                                                 resample=True, method='nearest', doPadding=True, padValue=0)
+            self._popgrid = read(self._popfile, samplegeodict=sampledict,
+                                 resample=False, doPadding=True, padValue=np.nan)
+            self._isogrid = read(self._isofile, samplegeodict=sampledict,
+                                 resample=True, method='nearest', doPadding=True, padValue=0)
 
         mmidata = self._shakegrid.getLayer('mmi').getData()
         popdata = self._popgrid.getData()
@@ -137,7 +135,7 @@ class Exposure(object):
                 PAGER results for events this far in the future are not valid. Stopping.''' % SCENARIO_ERROR
                 raise PagerException(msg)
 
-        ucodes = np.unique(isodata)
+        ucodes = np.unique(isodata[~np.isnan(isodata)])
         for ccode in ucodes:
             cidx = (isodata == ccode)
             popdata[cidx] = self._popgrowth.adjustPopulation(
