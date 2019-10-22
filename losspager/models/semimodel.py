@@ -498,6 +498,10 @@ class SemiEmpiricalFatality(object):
         resinv = resinv.set_index('CountryCode')
         nresinv = nresinv.set_index('CountryCode')
 
+        # we may be missing inventory for certain countries (Bonaire?). Return empty series.
+        if ccode not in resinv.index or ccode not in nresinv.index:
+            return (pd.Series(), pd.Series())
+
         # pandas series of residential inventory
         resrow = resinv.loc[ccode]
         resrow = resrow.drop('CountryName')
@@ -583,7 +587,7 @@ class SemiEmpiricalFatality(object):
         urbdata = urbgrid.getData()
 
         # modify the population values for growth rate by country
-        ucodes = np.unique(isodata)
+        ucodes = np.unique(isodata[~np.isnan(isodata)])
         for ccode in ucodes:
             cidx = (isodata == ccode)
             popdata[cidx] = self._popgrowth.adjustPopulation(

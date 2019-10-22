@@ -42,6 +42,7 @@ import logging
 
 # third party imports
 import matplotlib
+import numpy as np
 
 # this allows us to have a non-interactive backend - essential on systems
 # without a display
@@ -426,7 +427,10 @@ def main(pargs, config):
 
         # incidentally grab the country code of the epicenter
         numcode = expomodel._isogrid.getValue(elat, elon)
-        cdict = Country().getCountry(int(numcode))
+        if np.isnan(numcode):
+            cdict = None
+        else:
+            cdict = Country().getCountry(int(numcode))
         if cdict is None:
             ccode = 'UK'
         else:
