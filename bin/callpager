@@ -137,9 +137,9 @@ def process_shakemap(args, config):
     # what directory does the pager executable live in?
     pagerpath = config['pagerpath']
     if args.debug:
-        pagerpath = os.path.join(homedir, 'pager -d')
+        pagerpath = os.path.join(pagerpath, 'pager -d')
     else:
-        pagerpath = os.path.join(homedir, 'pager')
+        pagerpath = os.path.join(pagerpath, 'pager')
     cmd = '%s %s' % (pagerpath, gridfile)
     res, stdout, stderr = get_command_output(cmd)
     if res:
