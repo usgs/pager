@@ -13,6 +13,7 @@
 \usepackage{colortbl}
 \setlength{\tabcolsep}{3pt}
 \usepackage{gensymb}
+\usepackage[breakall]{truncate}
 
 \newcommand{\grid}{
   \draw[step=.5cm,draw opacity=.5] (0,0) grid (\the\paperwidth,\the\paperheight);
@@ -231,9 +232,9 @@
 \node[below=0.2cm of abox.south,draw,thick,minimum width=20.3cm,minimum height=18.6cm](hazbox){};
 
 %-------------------------------------------------------------------------------
-% Hazus loss estimate arrow (box is 1.75cm left of arrow)
+% Hazus loss estimate arrow and pass through box
 %-------------------------------------------------------------------------------
-\node[rectangle,fill=white,left=[BOXSHIFT]cm of hazbox.north east,anchor=north west,minimum width=1.45cm, minimum height=0.4cm,yshift=1.6mm]{}; 
+\node[rectangle,fill=white,left=[BOXSHIFT]cm of hazbox.north east,anchor=north west,minimum width=1.85cm, minimum height=0.4cm,yshift=1.6mm]{}; 
 \node[loss arrow,left=[ARROWSHIFT]cm of hazbox.north east,fill=[HAZUS_SUMMARY]](hazarrow) {};
 \node[h2,left=3.6mm of hazarrow.east,anchor=east,text width=2.5cm,
       align=right,yshift=-3pt]{
@@ -253,7 +254,7 @@
  \includegraphics[width=3.8cm,height=4cm]
     {[HOMEDIR]/losspager/logos/green_tag.pdf}
 };      
-\node[ntext,xshift=0.45cm,below=0.7cm of hazbox.north west,anchor=north west,
+\node[ntext,xshift=0.45cm,below=0.8cm of hazbox.north west,anchor=north west,
    text width=3.4cm](gtag){
    [GREEN_TAG_TABLE]
 };
@@ -263,7 +264,7 @@
  \includegraphics[width=3.8cm,height=4cm]
     {[HOMEDIR]/losspager/logos/yellow_tag.pdf}
 };      
-\node[ntext,xshift=4.62cm,below=0.7cm of hazbox.north west,anchor=north west,
+\node[ntext,xshift=4.62cm,below=0.8cm of hazbox.north west,anchor=north west,
    text width=3.4cm](ytag){
    [YELLOW_TAG_TABLE]
 };
@@ -273,7 +274,7 @@
 \includegraphics[width=3.8cm,height=4cm]
     {[HOMEDIR]/losspager/logos/red_tag.pdf}
 };      
-\node[ntext,xshift=8.79cm,below=0.7cm of hazbox.north west,anchor=north west,
+\node[ntext,xshift=8.79cm,below=0.8cm of hazbox.north west,anchor=north west,
    text width=3.4cm](rtag){
    [RED_TAG_TABLE]
 };
