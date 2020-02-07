@@ -167,7 +167,7 @@ def create_twopager(pdata, hazinfo, version_dir):
     template = template.replace("[ARROWSHIFT]", '%.2f' % arrowloc)
     shift = arrowloc + 1.75
     # value is ARROWSHIFT plus 1.75
-    # TODO - what are we replacing with here???
+    # white box around the arrow and text to "open" the lines between values
     template = template.replace("[BOXSHIFT]", '%.2f' % shift)
     # color of the Hazus econ loss value using PAGER color scale
     template = template.replace("[HAZUS_SUMMARY]", hazinfo.summary_color)

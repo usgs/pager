@@ -29,11 +29,11 @@ def test_map():
         hazinfo = HazusInfo(tdir, tractfile, countyfile, damage_occupancy)
         green, yellow, red = hazinfo.createTaggingTables()
 
-        green_table = '\\begin{tabularx}{3.4cm}{lr}\n& \\\\\n\\multicolumn{2}{c}{\\textbf{INSPECTED}} \\\\\n\\textbf{Occupancy} & \\textbf{\\# of tags}  \\\\\nResidential & 15k \\\\\nSingle Family & 20k \\\\\nCommercial & 4k \\\\\nIndustrial & 900 \\\\\nEducation & 158 \\\\\nAgriculture & 94 \\\\\nGovernment & 77 \\\\\n\\end{tabularx}'
+        green_table = '\\begin{tabularx}{3.4cm}{lr}\n& \\\\\n\\multicolumn{2}{c}{\\textbf{INSPECTED}} \\\\\n\\textbf{Occupancy} & \\textbf{\\# of tags}  \\\\\nResidential & 35k \\\\\nCommercial & 4k \\\\\nIndustrial & 900 \\\\\nEducation & 158 \\\\\nAgriculture & 94 \\\\\nGovernment & 77 \\\\\n\\end{tabularx}'
 
-        yellow_table = '\\begin{tabularx}{3.4cm}{lr}\n& \\\\\n\\multicolumn{2}{c}{\\textbf{RESTRICTED USE}} \\\\\n\\textbf{Occupancy} & \\textbf{\\# of tags}  \\\\\nResidential & 516 \\\\\nSingle Family & 501 \\\\\nCommercial & 161 \\\\\nIndustrial & 30 \\\\\nEducation & 5 \\\\\nAgriculture & 2 \\\\\nGovernment & 2 \\\\\n\\end{tabularx}'
+        yellow_table = '\\begin{tabularx}{3.4cm}{lr}\n& \\\\\n\\multicolumn{2}{c}{\\textbf{RESTRICTED USE}} \\\\\n\\textbf{Occupancy} & \\textbf{\\# of tags}  \\\\\nResidential & 1k \\\\\nCommercial & 161 \\\\\nIndustrial & 30 \\\\\nEducation & 5 \\\\\nAgriculture & 2 \\\\\nGovernment & 2 \\\\\n\\end{tabularx}'
 
-        red_table = '\\begin{tabularx}{3.4cm}{lr}\n& \\\\\n\\multicolumn{2}{c}{\\textbf{UNSAFE}} \\\\\n\\textbf{Occupancy} & \\textbf{\\# of tags}  \\\\\nResidential & 50 \\\\\nSingle Family & 51 \\\\\nCommercial & 12 \\\\\nIndustrial & 1 \\\\\nEducation & 0 \\\\\nAgriculture & 0 \\\\\nGovernment & 0 \\\\\n\\end{tabularx}'
+        red_table = '\\begin{tabularx}{3.4cm}{lr}\n& \\\\\n\\multicolumn{2}{c}{\\textbf{UNSAFE}} \\\\\n\\textbf{Occupancy} & \\textbf{\\# of tags}  \\\\\nResidential & 101 \\\\\nCommercial & 12 \\\\\nIndustrial & 1 \\\\\nEducation & 0 \\\\\nAgriculture & 0 \\\\\nGovernment & 0 \\\\\n\\end{tabularx}'
 
         assert green == green_table
         assert yellow == yellow_table
@@ -49,21 +49,21 @@ def test_map():
         print(red)
 
         loss = hazinfo.createEconTable()
-        loss_table = '\\begin{tabularx}{\\barwidth}{lc*{1}{>{\\raggedleft\\arraybackslash}X}}\n\\hline\n\\textbf{County} & \\textbf{State} & \\textbf{Total (\\textdollar M)} \\\\\n\\hline\nKings & NY & 3,183 \\\\\nRichmond & NY & 493 \\\\\nNew York & NY & 272 \\\\\nQueens & NY & 202 \\\\\nHudson & NJ & 132 \\\\\nUnion & NJ & 93 \\\\\nMonmouth & NJ & 74 \\\\\n\\multicolumn{2}{l}{\\textbf{Total (19 counties)}} & \\multicolumn{1}{>{\\raggedleft}X}{\\textbf{4,643}} \\\\\n\\hline\n\\end{tabularx}'
+        loss_table = '\\begin{tabularx}{\\barwidth}{lc*{1}{>{\\raggedleft\\arraybackslash}X}}\n\\hline\n\\textbf{County} & \\textbf{State} & \\textbf{Total (\\textdollar M)} \\\\\n\\hline\n\\truncate{4cm}{Kings} & NY & 3,183 \\\\\n\\truncate{4cm}{Richmond} & NY & 493 \\\\\n\\truncate{4cm}{New York} & NY & 272 \\\\\n\\truncate{4cm}{Queens} & NY & 202 \\\\\n\\truncate{4cm}{Hudson} & NJ & 132 \\\\\n\\truncate{4cm}{Union} & NJ & 93 \\\\\n\\truncate{4cm}{Monmouth} & NJ & 74 \\\\\n\\multicolumn{2}{l}{\\textbf{Total (19 counties)}} & \\multicolumn{1}{>{\\raggedleft}X}{\\textbf{4,643}} \\\\\n\\hline\n\\end{tabularx}'
         assert loss == loss_table
         print()
         print('Econ Losses:')
         print(loss)
 
         injury = hazinfo.createInjuryTable()
-        injury_table = '\\begin{tabularx}{\\barwidth}{lc*{2}{>{\\raggedleft\\arraybackslash}X}}\n\\hline\n\\textbf{County} & \\textbf{State} & \\textbf{Population} & \\textbf{Total NFI} \\\\\n\\hline\nKings & NY & 2,505k & 302 \\\\\nRichmond & NY & 469k & 36 \\\\\nNew York & NY & 1,586k & 15 \\\\\nQueens & NY & 2,231k & 32 \\\\\nHudson & NJ & 634k & 12 \\\\\nUnion & NJ & 536k & 10 \\\\\nMonmouth & NJ & 630k & 7 \\\\\n\\multicolumn{2}{l}{\\textbf{Total (19 counties)}} & \\multicolumn{1}{>{\\raggedleft}X}{\\textbf{18,517k}} & \\multicolumn{1}{>{\\raggedleft}X}{\\textbf{447}} \\\\\n\\hline\n\\end{tabularx}'
+        injury_table = '\\begin{tabularx}{\\barwidth}{lc*{2}{>{\\raggedleft\\arraybackslash}X}}\n\\hline\n\\textbf{County} & \\textbf{State} & \\textbf{Population} & \\textbf{Total NFI} \\\\\n\\hline\n\\truncate{2.4cm}{Kings} & NY & 2,505k & 302 \\\\\n\\truncate{2.4cm}{Richmond} & NY & 469k & 36 \\\\\n\\truncate{2.4cm}{New York} & NY & 1,586k & 15 \\\\\n\\truncate{2.4cm}{Queens} & NY & 2,231k & 32 \\\\\n\\truncate{2.4cm}{Hudson} & NJ & 634k & 12 \\\\\n\\truncate{2.4cm}{Union} & NJ & 536k & 10 \\\\\n\\truncate{2.4cm}{Monmouth} & NJ & 630k & 7 \\\\\n\\multicolumn{2}{l}{\\textbf{Total (19 counties)}} & \\multicolumn{1}{>{\\raggedleft}X}{\\textbf{18,517k}} & \\multicolumn{1}{>{\\raggedleft}X}{\\textbf{447}} \\\\\n\\hline\n\\end{tabularx}'
         assert injury == injury_table
         print()
         print('Injuries:')
         print(injury)
 
         shelter = hazinfo.createShelterTable()
-        shelter_table = '\\begin{tabularx}{\\barwidth}{lc*{3}{>{\\raggedleft\\arraybackslash}X}}\n\\hline\n\\               &                 & \\textbf{Total}  & \\textbf{Displ}  & \\textbf{People}  \\\\\n\\               &                 & \\textbf{House-} & \\textbf{House-} & \\textbf{Needing} \\\\\n\\textbf{County} & \\textbf{State} & \\textbf{holds}  & \\textbf{holds}  & \\textbf{Shelter} \\\\\n\\hline\nKings & NY & 917k & 2k & 2k \\\\\nRichmond & NY & 166k & 162 & 106 \\\\\nNew York & NY & 764k & 102 & 52 \\\\\nQueens & NY & 780k & 146 & 106 \\\\\nHudson & NJ & 246k & 72 & 46 \\\\\nUnion & NJ & 188k & 44 & 36 \\\\\nMonmouth & NJ & 234k & 18 & 10 \\\\\n\\multicolumn{2}{l}{\\textbf{Total (19 counties)}} & \\multicolumn{1}{>{\\raggedleft}X}{\\textbf{6,794k}} & \\multicolumn{1}{>{\\raggedleft}X}{\\textbf{3k}} & \\multicolumn{1}{>{\\raggedleft}X}{\\textbf{2k}} \\\\\n\\hline\n\\end{tabularx}'
+        shelter_table = '\\begin{tabularx}{\\barwidth}{lc*{3}{>{\\raggedleft\\arraybackslash}X}}\n\\hline\n\\               &                 & \\textbf{Total}  & \\textbf{Displ}  & \\textbf{Total}  \\\\\n\\               &                 & \\textbf{House} & \\textbf{House} & \\textbf{People} \\\\\n\\textbf{County} & \\textbf{State} & \\textbf{holds}  & \\textbf{holds}  &  \\\\\n\\hline\n\\truncate{2.4cm}{Kings} & NY & 917k & 2k & 2k \\\\\n\\truncate{2.4cm}{Richmond} & NY & 166k & 162 & 106 \\\\\n\\truncate{2.4cm}{New York} & NY & 764k & 102 & 52 \\\\\n\\truncate{2.4cm}{Queens} & NY & 780k & 146 & 106 \\\\\n\\truncate{2.4cm}{Hudson} & NJ & 246k & 72 & 46 \\\\\n\\truncate{2.4cm}{Union} & NJ & 188k & 44 & 36 \\\\\n\\truncate{2.4cm}{Monmouth} & NJ & 234k & 18 & 10 \\\\\n\\multicolumn{2}{l}{\\textbf{Total (19 counties)}} & \\multicolumn{1}{>{\\raggedleft}X}{\\textbf{6,794k}} & \\multicolumn{1}{>{\\raggedleft}X}{\\textbf{3k}} & \\multicolumn{1}{>{\\raggedleft}X}{\\textbf{2k}} \\\\\n\\hline\n\\end{tabularx}'
         assert shelter == shelter_table
 
         print()
@@ -71,7 +71,7 @@ def test_map():
         print(loss)
 
         debris = hazinfo.createDebrisTable()
-        debris_table = '\\begin{tabularx}{\\barwidth}{l*{1}{>{\\raggedleft\\arraybackslash}X}}\n\\hline\n\\                 & \\textbf{Tons}      \\\\\n\\textbf{Category} & \\textbf{(millions)} \\\\\n\\hline\nBrick / Wood & 0.449 \\\\\nReinforced Concrete / Steel & 0.149 \\\\\n\\textbf{Total} & \\textbf{0.598} \\\n&  \\\\\n&  \\\\\n\\textbf{Truck Loads (@25 tons/truck)} & \\textbf{23,908} \\\n\\end{tabularx}'
+        debris_table = '\\begin{tabularx}{\\barwidth}{l*{1}{>{\\raggedleft\\arraybackslash}X}}\n\\hline\n\\                 & \\textbf{Tons}      \\\\\n\\textbf{Category} & \\textbf{(millions)} \\\\\n\\hline\nBrick / Wood & 0.449 \\\\\nReinforced Concrete / Steel & 0.149 \\\\\n\\textbf{Total} & \\textbf{0.598} \\\\\n&  \\\\\n&  \\\\\n\\textbf{Truck Loads (@25 tons/truck)} & \\textbf{23,908} \\\\\n\\end{tabularx}'
         assert debris == debris_table
 
         print()
