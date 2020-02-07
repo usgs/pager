@@ -480,7 +480,8 @@ def get_quake_desc(event, lat, lon, isMainEvent):
     dfmt = 'A magnitude %.1f earthquake %i km %s of this event struck %s on %s (UTC)%s'
 
     mag = event['Magnitude']
-    etime = event['Time'].strftime('%B %d, %Y')
+    etime = pd.Timestamp(event['Time'])
+    etime = etime.strftime('%B %d, %Y')
     etime = re.sub(' 0', ' ', etime)
     country = Country()
     if pd.isnull(event['Name']):

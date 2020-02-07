@@ -100,7 +100,9 @@ class ExpoCat(object):
         :returns:
           ExpoCat object.
         """
-        df = pd.read_excel(excelfile, converters={'EventID': str})
+        df = pd.read_excel(excelfile,
+                           converters={'EventID': str})
+
         #df = df.drop('Unnamed: 0',1)
 
         # cols = ['EventID','Time','Name','Lat','Lon','Depth','Magnitude','CountryCode',
