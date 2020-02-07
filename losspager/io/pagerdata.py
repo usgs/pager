@@ -1217,7 +1217,8 @@ class PagerData(object):
             maxmmi, nmmi, deaths, clat, clon)
         for event in eventlist:
             if event is not None:
-                event['Time'] = event['Time'].strftime(DATETIMEFMT)
+                etime = pd.Timestamp(event['Time'])
+                event['Time'] = etime.strftime(DATETIMEFMT)
         return eventlist
 
     def _getCityTable(self):

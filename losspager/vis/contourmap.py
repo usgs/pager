@@ -430,7 +430,7 @@ def draw_contour(shakegrid, popgrid, oceanfile, oceangridfile, cityfile,
                           zorder=CLABEL_ZORDER, )
 
     clabel_text = ax.clabel(cs_land, cs_land.cvalues,
-                            colors='k', zorder=CLABEL_ZORDER,
+                            colors='k',
                             fmt='%.0f', fontsize=40)
     for clabel in clabel_text:
         x, y = clabel.get_position()
@@ -448,12 +448,12 @@ def draw_contour(shakegrid, popgrid, oceanfile, oceangridfile, cityfile,
                            zorder=CLABEL_ZORDER, )
 
     clabel_text = ax.clabel(cs_ocean, cs_ocean.cvalues, colors='k',
-                            zorder=CLABEL_ZORDER, fmt='%.0f', fontsize=40)
+                            fmt='%.0f', fontsize=40)
     for clabel in clabel_text:
         x, y = clabel.get_position()
         label_str = clabel.get_text()
         roman_label = MMI_LABELS[label_str]
-        th = plt.text(x, y, roman_label, zorder=CLABEL_ZORDER, ha='center',
+        th = plt.text(x, y, roman_label, ha='center',
                       va='center', color='black', weight='normal',
                       size=16)
         th.set_path_effects([path_effects.Stroke(linewidth=2.0,
