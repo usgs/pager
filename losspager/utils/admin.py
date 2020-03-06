@@ -758,7 +758,7 @@ class PagerAdmin(object):
                 try:
                     pdata.loadFromJSON(jsonfolder)
                     vnum = 0
-                except:
+                except Exception:
                     # handle the case where the most recent version of the event has some
                     # sort of error causing it to miss
                     root, jsonfolder = os.path.split(jsonfolder)
@@ -770,14 +770,11 @@ class PagerAdmin(object):
 
             if not pdata._is_validated:
                 broken.append(jsonfolder)
-            try:
-                meetsLevel = levels[pdata.summary_alert] >= levels[alert_threshold]
-            except Exception as e:
-                x = 1
-            try:
-                meetsMag = pdata.magnitude >= mag_threshold
-            except Exception as e:
-                x = 1
+                continue
+
+            meetsLevel = levels[pdata.summary_alert] >= levels[alert_threshold]
+            meetsMag = pdata.magnitude >= mag_threshold
+
             if pdata.time >= start_time and pdata.time <= end_time and meetsLevel and meetsMag:
                 row = pdata.toSeries(processtime=do_process_time)
                 df = df.append(row, ignore_index=True)
