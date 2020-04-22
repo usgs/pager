@@ -119,6 +119,7 @@ package_list='
   hypothesis
   impactutils
   jupyter
+  lxml
   mapio
   matplotlib<2.3
   mock
