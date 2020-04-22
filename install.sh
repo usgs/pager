@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# comment
 unamestr=`uname`
 if [ "$unamestr" == 'Linux' ]; then
     prof=~/.bashrc
