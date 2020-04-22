@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# comment
 unamestr=`uname`
 if [ "$unamestr" == 'Linux' ]; then
     prof=~/.bashrc
@@ -61,7 +62,7 @@ conda --version
 if [ $? -ne 0 ]; then
     echo "No conda detected, installing miniconda..."
 
-    curl $mini_conda_url -o miniconda.sh;
+    curl -L $mini_conda_url -o miniconda.sh;
     echo "Install directory: $HOME/miniconda"
 
     bash miniconda.sh -f -b -p $HOME/miniconda
@@ -119,6 +120,7 @@ package_list='
   hypothesis
   impactutils
   jupyter
+  lxml
   mapio
   matplotlib<2.3
   mock
