@@ -166,14 +166,14 @@ class HazusInfo(object):
             county_name, state_abbrev = self._county_dict[fips]
             # econ losses are in thousands of dollars
             lossvalue = round_to_nearest(row['EconLoss'] * 1e3, 1000000)
-            loss_str = str(int(lossvalue / 1e6))
+            loss_str = '{:,}'.format(int(lossvalue / 1e6))
             line = '\\truncate{4cm}{%s} & %s & %s \\\\' % (
                 county_name, state_abbrev, loss_str)
             table_lines.append(line)
         fmt = '\\multicolumn{2}{l}{\\textbf{Total (%i counties)}} & \\multicolumn{1}{>{\\raggedleft}X}{\\textbf{%s}} \\\\'
         total_dollars = self._dataframe['EconLoss'].sum() * 1e3
         total_rounded = round_to_nearest(total_dollars, 1000000)
-        total_str = str(int(total_rounded / 1e6))
+        total_str = '{:,}'.format(int(total_rounded / 1e6))
         line = fmt % (ntotal, total_str)
         table_lines.append(line)
         table_lines.append('\\hline')
