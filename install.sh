@@ -108,7 +108,7 @@ conda remove -y --name $VENV --all
 # define the list of packages
 package_list='
   beautifulsoup4
-  cartopy
+  cartopy=0.17
   cython
   decorator
   descartes
@@ -152,7 +152,7 @@ package_list='
 # in the defaults channel, so let's set that as our preferred channel.
 conda config --add channels 'conda-forge'
 conda config --add channels 'defaults'
-conda config --set channel_priority flexible
+conda config --set channel_priority strict
 
 # Create a conda virtual environment
 echo "Creating the $VENV virtual environment:"
