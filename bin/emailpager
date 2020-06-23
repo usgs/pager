@@ -47,11 +47,13 @@ def get_version(session, pdata, release=False, renotify=False):
                     es.Event.eventcode == testid).first()
                 if event is not None:
                     break
-        except:
-            pass
+        except Exception as e:
+            fmt = 'Could not retrieve event information: "%s"'
+            logging.debug(fmt % (str(e)))
     if event is None:
         # we need to create a new event
         event = es.Event(eventcode=authid)
+        logging.debug('Created event %s.' % str(event))
 
     # check the most recent version of this event
     # if it was pending and we got a release message,
@@ -208,7 +210,7 @@ def main(args):
     if force_email:
         nowtime = datetime.utcnow()
         threshtime = version.time + \
-            timedelta(seconds=config['release_threshold']*3600)
+            timedelta(seconds=config['release_threshold'] * 3600)
         if nowtime > threshtime:
             past_email_deadline = True
 
@@ -231,11 +233,13 @@ def main(args):
         pdf_addresses_nonupdate = []
         logging.debug('Determining which users should get emailed...')
         for address in all_addresses:
+            logging.debug('Checking address "%s"...' % address)
             should_alert, notified_before = address.shouldAlert(version,
                                                                 renotify=renotify,
                                                                 release=release,
                                                                 ignore_time_limit=force_email)
             if should_alert:
+                logging.debug('Address "%s" should be notified.' % address)
                 if address.format == 'short':
                     if notified_before:
                         short_addresses_update.append(address)
@@ -267,7 +271,7 @@ def main(args):
         # try to find the event url
         logging.debug('Getting event url...')
         if ccinfo is not None:
-            event_url = ccinfo.getURL()+'#pager'
+            event_url = ccinfo.getURL() + '#pager'
         else:
             event_url = DEFAULT_PAGER_URL
 
