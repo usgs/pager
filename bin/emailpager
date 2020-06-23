@@ -38,8 +38,10 @@ def get_version(session, pdata, release=False, renotify=False):
     authid = eventid
     if event is None:
         try:
+            logging.debug('Looking in Comcat for %s' % eventid)
             ccinfo = ComCatInfo(eventid)
             authid, allids = ccinfo.getAssociatedIds()
+            logging.debug('Found authid %s for eventid %s' % (authid, eventid))
             allids.insert(0, authid)
             allids.remove(eventid)
             for testid in allids:
