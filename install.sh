@@ -134,7 +134,7 @@ package_list='
   pycrypto
   pyproj
   pytables
-  python=3.6
+  python=3.7
   pytest
   pytest-cov
   pytest-mpl
