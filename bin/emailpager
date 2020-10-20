@@ -2,10 +2,12 @@
 
 # stdlib imports
 import argparse
+from copy import copy
 import configparser
 import os.path
 import sys
 import smtplib
+import unicodedata
 from xml.dom import minidom
 from datetime import datetime, timedelta
 import logging
@@ -28,6 +30,37 @@ ALERT_DICT = {'green': 0,
               'yellow': 1,
               'orange': 2,
               'red': 3}
+
+
+def _convert_ascii(text):
+    """Temporary patch to encode text in ascii.
+
+    Args:
+        text (str): Text to convert to ascii encoding.
+            any characters cannot be converted to ascii,
+            then they are removed.
+
+    Returns:
+        str: text converted to ascii.
+    """
+    text = str(text)
+    # Normalize characters and exclude leftovers with accents
+    text = ''.join(c for c in unicodedata.normalize(
+        'NFKD', text) if unicodedata.category(c) != 'Mn')
+    # Remove any leftovers that cannot be normalized
+    text = bytes(text, 'ascii', errors='ignore')
+    return text.decode("utf-8")
+
+
+def _is_ascii(text):
+    """
+    Args:
+        text (str): Text to check.
+
+    Returns:
+        bool: whether or not the text can be encoded in ascii.
+    """
+    return all(ord(char) < 128 for char in text)
 
 
 def get_version(session, pdata, release=False, renotify=False):
@@ -310,6 +343,34 @@ def main(args):
         if len(long_addresses_nonupdate):
             version = send_emails(
                 version, long_addresses_nonupdate, all_props, long_msg, subject, DEBUG)
+
+        # Temporary fix for messages that cannot be ascii encoded
+        # TODO: Move this to earthquake-impact-utils when it is clear that it
+        # will not effect other realtime products
+        try:
+            # Copy original text
+            temp_message = copy(long_msg)
+            temp_subject = copy(subject)
+            temp_subject_update = copy(subject_update)
+
+            # Check if the characters in the message and subject line are ascii
+            if not _is_ascii(temp_subject):
+                temp_subject = _convert_ascii(temp_subject)
+
+            if not _is_ascii(temp_subject_update):
+                temp_subject_update = _convert_ascii(temp_subject_update)
+
+            if not _is_ascii(temp_message):
+                temp_message = _convert_ascii(temp_message)
+
+            # No errors in the check/convert so update
+            long_msg = temp_message
+            subject_update = temp_subject_update
+            subject = temp_subject
+        except:
+            # If this code checking/encoding the text does not work
+            # it should not change the original text
+            pass
 
         # send emails to all pdf format addresses
         logging.debug('Sending pdf addresses...')
