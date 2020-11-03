@@ -12,7 +12,7 @@ import numpy as np
 from losspager.utils.exception import PagerException
 from losspager.utils.country import Country
 
-DEFAULT_RATE = 1.17/100.0
+DEFAULT_RATE = 1.17 / 100.0
 
 
 def adjust_pop(population, tpop, tevent, rate):
@@ -30,7 +30,7 @@ def adjust_pop(population, tpop, tevent, rate):
       Adjusted population value at time *tevent*.
     """
     T = tpop - tevent
-    adjpop = np.round(population * np.power((1 + rate), (-1*T)))
+    adjpop = np.round(population * np.power((1 + rate), (-1 * T)))
     return adjpop
 
 
@@ -100,7 +100,7 @@ class PopulationGrowth(object):
         country = Country()
         for idx, row in df.iterrows():
             key = row['Country code']
-            rates = row.iloc[ccode_idx+1:].values/100.0
+            rates = row.iloc[ccode_idx + 1:].values / 100.0
             if key == uscode:
                 usrates = rates.copy()
             if country.getCountry(key) is None:
@@ -125,6 +125,7 @@ class PopulationGrowth(object):
         :returns:
           Scalar growth rate.
         """
+        ccode = int(ccode)
         if ccode not in self._dataframe.columns:
             return self._default
         starts = np.array(self._dataframe[ccode]['start'])
@@ -137,7 +138,7 @@ class PopulationGrowth(object):
         elif year > ends.max():
             rate = rates[-1]
         else:
-            idx = (np.abs(year-ends)).argmin()
+            idx = (np.abs(year - ends)).argmin()
             rate = rates[idx]
         return rate
 
