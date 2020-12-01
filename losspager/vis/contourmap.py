@@ -208,7 +208,8 @@ def _get_open_corner(popgrid, ax, filled_corner=None, need_bottom=True):
                        int(ncols / 4):ncols - 1].sum()
     urbounds = (rightleft, topbottom, width, height)
 
-    llpopsum = popdata[nrows - int(nrows / 4):nrows - 1, 0:int(ncols / 4)].sum()
+    llpopsum = popdata[nrows - int(nrows / 4)
+                                   :nrows - 1, 0:int(ncols / 4)].sum()
     llbounds = (leftleft, bottombottom, width, height)
 
     lrpopsum = popdata[nrows - int(nrows / 4):nrows - 1,
@@ -429,36 +430,42 @@ def draw_contour(shakegrid, popgrid, oceanfile, oceangridfile, cityfile,
                           linewidths=0.0, levels=np.arange(0, 11), alpha=0.0,
                           zorder=CLABEL_ZORDER, )
 
-    clabel_text = ax.clabel(cs_land, cs_land.cvalues,
-                            colors='k',
-                            fmt='%.0f', fontsize=40)
-    for clabel in clabel_text:
-        x, y = clabel.get_position()
-        label_str = clabel.get_text()
-        roman_label = MMI_LABELS[label_str]
-        th = plt.text(x, y, roman_label, zorder=CLABEL_ZORDER, ha='center',
-                      va='center', color='black', weight='normal',
-                      size=16)
-        th.set_path_effects([path_effects.Stroke(linewidth=2.0,
-                                                 foreground='white'),
-                             path_effects.Normal()])
+    roman_format_dict = {1: 'I',
+                         2: 'II',
+                         3: 'III',
+                         4: 'IV',
+                         5: 'V',
+                         6: 'VI',
+                         7: 'VII',
+                         8: 'VIII',
+                         9: 'IX',
+                         10: 'X',
+                         }
+    clabel_text_land = ax.clabel(cs_land, cs_land.cvalues,
+                                 colors='k', fmt=roman_format_dict,
+                                 fontsize=16, zorder=CLABEL_ZORDER)
+    # this sometimes works to draw a shadow effect, but other times
+    # results in a duplicate offset roman numeral all in white.
+    # TODO: Figure this out!+
+    # for clabel in clabel_text_land:
+    #     clabel.set_path_effects([path_effects.Stroke(linewidth=2.0,
+    #                                                  foreground='white'),
+    #                              path_effects.Normal()])
 
     cs_ocean = plt.contour(contourx, contoury, np.flipud(landmask),
                            linewidths=0.0, levels=np.arange(0, 11),
                            zorder=CLABEL_ZORDER, )
 
-    clabel_text = ax.clabel(cs_ocean, cs_ocean.cvalues, colors='k',
-                            fmt='%.0f', fontsize=40)
-    for clabel in clabel_text:
-        x, y = clabel.get_position()
-        label_str = clabel.get_text()
-        roman_label = MMI_LABELS[label_str]
-        th = plt.text(x, y, roman_label, ha='center',
-                      va='center', color='black', weight='normal',
-                      size=16)
-        th.set_path_effects([path_effects.Stroke(linewidth=2.0,
-                                                 foreground='white'),
-                             path_effects.Normal()])
+    clabel_text_ocean = ax.clabel(cs_ocean, cs_ocean.cvalues, colors='k',
+                                  fmt=roman_format_dict, fontsize=16,
+                                  zorder=CLABEL_ZORDER)
+    # this sometimes works to draw a shadow effect, but other times
+    # results in a duplicate offset roman numeral all in white.
+    # TODO: Figure this out!
+    # for clabel in clabel_text:
+    #     clabel.set_path_effects([path_effects.Stroke(linewidth=2.0,
+    #                                                  foreground='white'),
+    #                              path_effects.Normal()])
 
     # draw meridians and parallels using Cartopy's functions for that
     gl = ax.gridlines(draw_labels=True,
