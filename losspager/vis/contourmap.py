@@ -528,7 +528,10 @@ def draw_contour(shakegrid, popgrid, oceanfile, oceangridfile, cityfile,
                                      0.1) or (xmax - xloc) < (xrange * 0.1)
         if outside or near_edge:
             continue
-        xtext = r'$%.1f^\circ$W' % (abs(xloc))
+        direction = 'W'
+        if xloc >= 0:
+            direction = 'E'
+        xtext = r'$%.1f^\circ$%s' % (abs(xloc), direction)
         ax.text(xloc, xtop_dd, xtext,
                 fontsize=ddlabelsize, zorder=GRID_ZORDER, ha='center',
                 fontname=DEFAULT_FONT,
