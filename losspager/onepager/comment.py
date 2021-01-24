@@ -368,8 +368,11 @@ def get_structure_comment(resfat, nonresfat, semimodel):
         else:
             regtext = fmt2 % (b1, b2)
     else:
-        b1 = semimodel.getBuildingDesc(btypes[0])
-        regtext = fmt1 % b1
+        if len(btypes) == 0:
+            regtext = ''
+        else:
+            b1 = semimodel.getBuildingDesc(btypes[0])
+            regtext = fmt1 % b1
     return default + '  ' + regtext
 
 
@@ -480,7 +483,8 @@ def get_quake_desc(event, lat, lon, isMainEvent):
     dfmt = 'A magnitude %.1f earthquake %i km %s of this event struck %s on %s (UTC)%s'
 
     mag = event['Magnitude']
-    etime = event['Time'].strftime('%B %d, %Y')
+    etime = pd.Timestamp(event['Time'])
+    etime = etime.strftime('%B %d, %Y')
     etime = re.sub(' 0', ' ', etime)
     country = Country()
     if pd.isnull(event['Name']):
