@@ -100,9 +100,9 @@ def transfer(config, pagerdata, authid, authsource, version_folder,
     # directories using those options
     res = False
     msg = ''
-    if 'status' in config and config['status'] == 'secondary': 
-      res = True
-      return (res, msg)
+    if 'status' in config and config['status'] == 'secondary':
+        res = True
+        return (res, msg)
     if 'status' in config and config['status'] == 'primary':
         if 'transfer' in config:
             if 'methods' in config['transfer']:
@@ -256,7 +256,7 @@ class PagerAdmin(object):
           String path to event folder (if already existing, this path will be returned.)
         """
         eventfolder = os.path.join(
-            self._pager_folder, eventid+'_'+event_time.strftime(DATETIMEFMT))
+            self._pager_folder, eventid + '_' + event_time.strftime(DATETIMEFMT))
         # look for folder with that event id in the pager_folder
         teventfolder = self.getEventFolder(eventid)
         if teventfolder is not None:
@@ -307,7 +307,7 @@ class PagerAdmin(object):
         fpath, eventname = os.path.split(eventfolder)
         if eventfolder is None:
             return False
-        zipname = os.path.join(self._archive_folder, eventname+'.zip')
+        zipname = os.path.join(self._archive_folder, eventname + '.zip')
         myzip = zipfile.ZipFile(
             zipname, mode='w', compression=zipfile.ZIP_DEFLATED)
         for root, dirs, files in os.walk(eventfolder):
@@ -342,7 +342,7 @@ class PagerAdmin(object):
         event_folders = self.getAllEventFolders()
         for event_folder in event_folders:
             version_folder = self.getLastVersion(event_folder)
-            json_folder = os.path.join(version_folder,'json')
+            json_folder = os.path.join(version_folder, 'json')
             pdata = PagerData()
             pdata.loadFromJSON(json_folder)
             if pdata.time < beforedate:
@@ -758,7 +758,7 @@ class PagerAdmin(object):
                 try:
                     pdata.loadFromJSON(jsonfolder)
                     vnum = 0
-                except:
+                except Exception:
                     # handle the case where the most recent version of the event has some
                     # sort of error causing it to miss
                     root, jsonfolder = os.path.split(jsonfolder)
@@ -770,11 +770,11 @@ class PagerAdmin(object):
 
             if not pdata._is_validated:
                 broken.append(jsonfolder)
-            try:
-              meetsLevel = levels[pdata.summary_alert] >= levels[alert_threshold]
-            except Exception as e:
-              x = 1
+                continue
+
+            meetsLevel = levels[pdata.summary_alert] >= levels[alert_threshold]
             meetsMag = pdata.magnitude >= mag_threshold
+
             if pdata.time >= start_time and pdata.time <= end_time and meetsLevel and meetsMag:
                 row = pdata.toSeries(processtime=do_process_time)
                 df = df.append(row, ignore_index=True)

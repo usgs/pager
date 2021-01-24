@@ -2,7 +2,6 @@
 
 # stdlib imports
 import os.path
-import sys
 import tempfile
 import shutil
 from datetime import datetime
@@ -11,8 +10,6 @@ from datetime import datetime
 import numpy as np
 from mapio.shake import getHeaderData
 
-import matplotlib
-matplotlib.use('Agg')
 
 # local imports
 from losspager.io.pagerdata import PagerData
@@ -28,7 +25,7 @@ DATETIMEFMT = '%Y-%m-%d %H:%M:%S'
 TSUNAMI_MAG_THRESH = 7.3
 
 
-def tdoc(doc, shakegrid, impact1, impact2, expdict, struct_comment, hist_comment,):
+def tdoc(doc, shakegrid, impact1, impact2, expdict, struct_comment, hist_comment):
     eventinfo = doc.getEventInfo()
     assert eventinfo['mag'] == shakegrid.getEventDict()['magnitude']
 

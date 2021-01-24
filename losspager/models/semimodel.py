@@ -450,7 +450,8 @@ class SemiEmpiricalFatality(object):
         collapse_frame = self._collapse.getDataFrame(ccode)
         collapse_frame = collapse_frame.set_index('BuildingCode')
         try:
-            collapse_frame = collapse_frame.loc[inventory.index]
+            idx = inventory.index.drop('Unnamed: 0')
+            collapse_frame = collapse_frame.loc[idx]
         except Exception:
             collapse_dict = inventory.to_dict()
             collapse = pd.Series(collapse_dict)
@@ -476,7 +477,11 @@ class SemiEmpiricalFatality(object):
         fatalframe = self._casualty.getDataFrame(ccode)
         fatalframe = fatalframe.set_index('BuildingCode')
         timecol = TIMES[timeofday]
-        fatrates = fatalframe.loc[inventory.index][timecol]
+        if 'Unnamed: 0' in inventory.index:
+            idx = inventory.index.drop('Unnamed: 0')
+        else:
+            idx = inventory.index
+        fatrates = fatalframe.loc[idx][timecol]
         return fatrates
 
     def getInventories(self, ccode, density):
@@ -497,6 +502,10 @@ class SemiEmpiricalFatality(object):
             nresinv = self._inventory.getDataFrame('RuralNonResidential')
         resinv = resinv.set_index('CountryCode')
         nresinv = nresinv.set_index('CountryCode')
+
+        # we may be missing inventory for certain countries (Bonaire?). Return empty series.
+        if ccode not in resinv.index or ccode not in nresinv.index:
+            return (pd.Series(), pd.Series())
 
         # pandas series of residential inventory
         resrow = resinv.loc[ccode]
@@ -583,7 +592,7 @@ class SemiEmpiricalFatality(object):
         urbdata = urbgrid.getData()
 
         # modify the population values for growth rate by country
-        ucodes = np.unique(isodata)
+        ucodes = np.unique(isodata[~np.isnan(isodata)])
         for ccode in ucodes:
             cidx = (isodata == ccode)
             popdata[cidx] = self._popgrowth.adjustPopulation(
@@ -638,6 +647,13 @@ class SemiEmpiricalFatality(object):
 
                     # get the inventory for urban residential
                     resrow, nresrow = self.getInventories(ccode, dclass)
+
+                    # TODO - figure out why this is happening, make the following lines
+                    # not necessary
+                    if 'Unnamed: 0' in resrow:
+                        resrow = resrow.drop('Unnamed: 0')
+                    if 'Unnamed: 0' in nresrow:
+                        nresrow = nresrow.drop('Unnamed: 0')
                     # now multiply the residential/non-residential population through the inventory data
                     numres = len(resrow)
                     numnonres = len(nresrow)

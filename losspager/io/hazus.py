@@ -25,7 +25,9 @@ from bs4 import BeautifulSoup
 from impactutils.mapping.mercatormap import MercatorMap
 from impactutils.colors.cpalette import ColorPalette
 from impactutils.mapping.city import Cities
-from impactutils.textformat.text import (pop_round_short, commify)
+from impactutils.textformat.text import (pop_round_short,
+                                         commify,
+                                         round_to_nearest)
 
 # local imports
 from losspager.vis.impactscale import GREEN, YELLOW, ORANGE, RED
@@ -65,9 +67,9 @@ UNREINFORCED = 'Unreinforced Masonry'
 MANUFACTURED = 'Manufactured Housing'
 
 # names of files that can be fetched from the FEMA web site
-LINKS = {'occupancy': 'building_damage_occup.txt',
-         'county': 'county_results.txt',
-         'tract': 'tract_results.txt'}
+LINKS = {'occupancy': 'building_damage_occup.csv',
+         'county': 'county_results.csv',
+         'tract': 'tract_results.csv'}
 
 
 def fetch_hazus(url_or_dir, version_folder):
@@ -157,17 +159,22 @@ class HazusInfo(object):
         table_lines.append(
             '\\textbf{County} & \\textbf{State} & \\textbf{Total (\\textdollar M)} \\\\')
         table_lines.append('\\hline')
-        total = self._dataframe['EconLoss'].sum()
         ntotal = len(self._dataframe)
         for i in range(0, self._ncounties):
             row = self._dataframe.iloc[i]
             fips = int(row['CountyFips'])
             county_name, state_abbrev = self._county_dict[fips]
-            loss_str = pop_round_short(row['EconLoss'])[0:-1]
-            line = '%s & %s & %s \\\\' % (county_name, state_abbrev, loss_str)
+            # econ losses are in thousands of dollars
+            lossvalue = round_to_nearest(row['EconLoss'] * 1e3, 1000000)
+            loss_str = '{:,}'.format(int(lossvalue / 1e6))
+            line = '\\truncate{4cm}{%s} & %s & %s \\\\' % (
+                county_name, state_abbrev, loss_str)
             table_lines.append(line)
         fmt = '\\multicolumn{2}{l}{\\textbf{Total (%i counties)}} & \\multicolumn{1}{>{\\raggedleft}X}{\\textbf{%s}} \\\\'
-        line = fmt % (ntotal, pop_round_short(total)[0:-1])
+        total_dollars = self._dataframe['EconLoss'].sum() * 1e3
+        total_rounded = round_to_nearest(total_dollars, 1000000)
+        total_str = '{:,}'.format(int(total_rounded / 1e6))
+        line = fmt % (ntotal, total_str)
         table_lines.append(line)
         table_lines.append('\\hline')
         table_lines.append('\\end{tabularx}')
@@ -190,7 +197,7 @@ class HazusInfo(object):
             county_name, state_abbrev = self._county_dict[fips]
             pop = pop_round_short(row['Population'])
             injuries = pop_round_short(row['NonFatal5p'])
-            fmt = '%s & %s & %s & %s \\\\'
+            fmt = '\\truncate{2.4cm}{%s} & %s & %s & %s \\\\'
             line = fmt % (county_name, state_abbrev,
                           pop, injuries)
             table_lines.append(line)
@@ -211,11 +218,11 @@ class HazusInfo(object):
             '\\begin{tabularx}{\\barwidth}{lc*{3}{>{\\raggedleft\\arraybackslash}X}}']
         table_lines.append('\\hline')
         table_lines.append(
-            '\\               &                 & \\textbf{Total}  & \\textbf{Displ}  & \\textbf{People}  \\\\')
+            '\\               &                 & \\textbf{Total}  & \\textbf{Displ}  & \\textbf{Total}  \\\\')
         table_lines.append(
-            '\\               &                 & \\textbf{House-} & \\textbf{House-} & \\textbf{Needing} \\\\')
+            '\\               &                 & \\textbf{House} & \\textbf{House} & \\textbf{People} \\\\')
         table_lines.append(
-            '\\textbf{County} & \\textbf{State} & \\textbf{holds}  & \\textbf{holds}  & \\textbf{Shelter} \\\\')
+            '\\textbf{County} & \\textbf{State} & \\textbf{holds}  & \\textbf{holds}  &  \\\\')
         table_lines.append('\\hline')
         for i in range(0, self._ncounties):
             row = self._dataframe.iloc[i]
@@ -224,7 +231,7 @@ class HazusInfo(object):
             households = pop_round_short(row['Households'])
             displaced = pop_round_short(row['DisplHouse'])
             shelter = pop_round_short(row['Shelter'])
-            fmt = '%s & %s & %s & %s & %s \\\\'
+            fmt = '\\truncate{2.4cm}{%s} & %s & %s & %s & %s \\\\'
             line = fmt % (county_name, state_abbrev,
                           households, displaced, shelter)
             table_lines.append(line)
@@ -253,11 +260,12 @@ class HazusInfo(object):
         table_lines.append('Brick / Wood & %s \\\\' % wood_total)
         table_lines.append(
             'Reinforced Concrete / Steel & %s \\\\' % steel_total)
-        table_lines.append('\\textbf{Total} & \\textbf{%s} \\' % debris_total)
+        table_lines.append(
+            '\\textbf{Total} & \\textbf{%s} \\\\' % debris_total)
         table_lines.append('&  \\\\')
         table_lines.append('&  \\\\')
         trucks = commify(int(round(((wood + steel) * 1e6) / 25)))
-        fmt = '\\textbf{Truck Loads (@25 tons/truck)} & \\textbf{%s} \\'
+        fmt = '\\textbf{Truck Loads (@25 tons/truck)} & \\textbf{%s} \\\\'
         line = fmt % trucks
         table_lines.append(line)
         table_lines.append('\\end{tabularx}')
@@ -451,12 +459,13 @@ class HazusInfo(object):
 
     def createTaggingTables(self):
         df = pd.read_csv(self._occupancy_file)
-        other_res = df[df.Occupancy.str.contains('^RES')]
-        mfilter = other_res.Occupancy.str.contains('RES1 ')
+        # other_res = df[df.Occupancy.str.contains('^RES')]
+        # mfilter = other_res.Occupancy.str.contains('RES1 ')
 
         types_dict = OrderedDict()
-        types_dict['Residential'] = other_res[~mfilter]
-        types_dict['Single Family'] = df[df['Occupancy'] == 'RES1 ']
+        # types_dict['Residential'] = other_res[~mfilter]
+        # types_dict['Single Family'] = df[df['Occupancy'] == 'RES1 ']
+        types_dict['Residential'] = df[df.Occupancy.str.contains('^RES')]
         types_dict['Commercial'] = df[df.Occupancy.str.contains('^COM')]
         types_dict['Industrial'] = df[df.Occupancy.str.contains('^IND')]
         types_dict['Education'] = df[df.Occupancy.str.contains('^EDU')]

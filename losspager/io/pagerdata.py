@@ -24,7 +24,7 @@ TIMEFMT = '%H:%M:%S'
 MINEXP = 1000  # minimum population required to declare maxmmi at a given intensity
 SOFTWARE_VERSION = '2.0b'  # THIS SHOULD GET REPLACED WITH SOMETHING SET BY VERSIONEER
 EVENT_RADIUS = 400  # distance around epicenter to search for similar historical earthquakes
-MINS_PER_DAY = 60*24
+MINS_PER_DAY = 60 * 24
 SECS_PER_MIN = 60
 
 
@@ -532,6 +532,8 @@ class PagerData(object):
                    'FatalityAlert',
                    'EconomicAlert',
                    'SummaryAlert',
+                   'TotalFatalities',
+                   'TotalDollars',
                    'Elapsed']
         if processtime:
             columns.append('ProcessTime')
@@ -554,8 +556,8 @@ class PagerData(object):
 
         country = Country()
 
-        elapsed_minutes = int(elapsed_dt.days*MINS_PER_DAY +
-                              elapsed_dt.seconds/SECS_PER_MIN)
+        elapsed_minutes = int(elapsed_dt.days * MINS_PER_DAY +
+                              elapsed_dt.seconds / SECS_PER_MIN)
         max_dollars = 0
         max_ccode = ''
         for cresult in self._pagerdict['model_results']['empirical_economic']['country_dollars']:
@@ -570,6 +572,9 @@ class PagerData(object):
                 cname = cdict['Name']
             else:
                 cname = 'Unknown'
+        results = self._pagerdict['model_results']
+        deaths = results['empirical_fatality']['total_fatalities']
+        dollars = results['empirical_economic']['total_dollars']
         d = {'EventID': self.id,
              'Impacted Country ($)': cname,
              'Version': self.version,
@@ -582,6 +587,8 @@ class PagerData(object):
              'FatalityAlert': self.fatality_alert,
              'EconomicAlert': self.economic_alert,
              'SummaryAlert': alert,
+             'TotalFatalities': deaths,
+             'TotalDollars': dollars,
              'Elapsed': elapsed_minutes}
         if processtime:
             d['ProcessTime'] = self.processing_time
@@ -655,7 +662,7 @@ class PagerData(object):
         f.close()
 
     def __renderPager(self):
-        #<pager version="1.0 Revision 1516" xml_version="1" process_timestamp="2016-12-09T20:03:58Z" elapsed="20 minutes, 32 seconds" ccode="SB" approved="A" tsunami="0">
+        # <pager version="1.0 Revision 1516" xml_version="1" process_timestamp="2016-12-09T20:03:58Z" elapsed="20 minutes, 32 seconds" ccode="SB" approved="A" tsunami="0">
         if self._is_released:
             approved = 'Y'
         else:
@@ -671,7 +678,7 @@ class PagerData(object):
         return pager
 
     def __renderEvent(self, pager):
-        #<event eventcode="us20007zm1" versioncode="us20007zm1" number="1" shakeversion="1" magnitude="5.5" depth="33.7" lat="-10.963600" lon="161.316700" event_timestamp="2016-12-09T19:43:26Z" event_description="SOLOMON ISLANDS" maxmmi="4.0" shaketime="2016-12-09T20:01:49Z" isreviewed="False" localtime="19:43:26"/>
+        # <event eventcode="us20007zm1" versioncode="us20007zm1" number="1" shakeversion="1" magnitude="5.5" depth="33.7" lat="-10.963600" lon="161.316700" event_timestamp="2016-12-09T19:43:26Z" event_description="SOLOMON ISLANDS" maxmmi="4.0" shaketime="2016-12-09T20:01:49Z" isreviewed="False" localtime="19:43:26"/>
         edict = {'eventcode': self._pagerdict['event_info']['eventid'],
                  'versioncode': self._pagerdict['event_info']['versionid'],
                  'number': '%i' % self.version,
@@ -691,7 +698,7 @@ class PagerData(object):
 
     def __renderAlerts(self, pager):
         alerts = etree.SubElement(pager, 'alerts')
-        #<alert type="economic" level="green" summary="no" units="USD">
+        # <alert type="economic" level="green" summary="no" units="USD">
         summary = {True: 'yes',
                    False: 'no'}
         ecodict = {'type': 'economic',
@@ -699,13 +706,13 @@ class PagerData(object):
                    'summary': summary[self._pagerdict['alerts']['economic']['summary']],
                    'units': self._pagerdict['alerts']['economic']['units']}
         ecoalert = etree.SubElement(pager, 'alert', attrib=ecodict)
-        #<alert type="fatality" level="green" summary="yes" units="fatalities">
+        # <alert type="fatality" level="green" summary="yes" units="fatalities">
         fatdict = {'type': 'fatality',
                    'level': self._pagerdict['alerts']['fatality']['level'],
                    'summary': summary[self._pagerdict['alerts']['fatality']['summary']],
                    'units': self._pagerdict['alerts']['fatality']['units']}
         fatalert = etree.SubElement(pager, 'alert', attrib=fatdict)
-        #<bin min="0" max="999999" probability="99" color="green"/>
+        # <bin min="0" max="999999" probability="99" color="green"/>
         for ebin in self._pagerdict['alerts']['economic']['bins']:
             bdict = {'min': ebin['min'],
                      'max': ebin['max'],
@@ -722,20 +729,20 @@ class PagerData(object):
         return pager
 
     def __renderExposure(self, pager):
-        #<exposure dmin="0.5" dmax="1.5" exposure="0" rangeInsideMap="0"/>
+        # <exposure dmin="0.5" dmax="1.5" exposure="0" rangeInsideMap="0"/>
         max_border_mmi = self._pagerdict['population_exposure']['maximum_border_mmi']
         for i in range(0, 10):
             mmi = i + 1
             exp = self._pagerdict['population_exposure']['aggregated_exposure'][i]
-            expdict = {'dmin': '%.1f' % (mmi-0.5),
-                       'dmax': '%.1f' % (mmi+0.5),
+            expdict = {'dmin': '%.1f' % (mmi - 0.5),
+                       'dmax': '%.1f' % (mmi + 0.5),
                        'exposure': '%i' % exp,
                        'rangeInsideMap': '%i' % (mmi > max_border_mmi)}
             expotag = etree.SubElement(pager, 'exposure', attrib=expdict)
         return pager
 
     def __renderCities(self, pager):
-        #<city name="Kirakira" lat="-10.454420" lon="161.920450" population="1122" mmi="3.500000" iscapital="0"/>
+        # <city name="Kirakira" lat="-10.454420" lon="161.920450" population="1122" mmi="3.500000" iscapital="0"/>
         # The javascript that renders this draws nothing if the number of cities is 11 or less, so let's add a dummy city
         # # at the end that will be ignored.
         # dummy_row = pd.Series({'iscap': 0,
@@ -757,7 +764,7 @@ class PagerData(object):
         return pager
 
     def __renderComments(self, pager):
-        #<structcomment>Overall, the population in this region...</structcomment>
+        # <structcomment>Overall, the population in this region...</structcomment>
 
         struct_tag = etree.SubElement(pager, 'structcomment')
         struct_tag.text = self._pagerdict['comments']['struct_comment']
@@ -775,23 +782,23 @@ class PagerData(object):
         return pager
 
     def __renderHistory(self, pager):
-        #<comment>
-                # <![CDATA[<blockTable style="historyhdrtablestyle" rowHeights="24" colWidths="42,30,25,45,38">
-                #    <tr>
-                #       <td><para alignment="LEFT" fontName="Helvetica-Bold" fontSize="9">Date (UTC)</para></td>
-                #       <td><para alignment="RIGHT" fontName="Helvetica-Bold" fontSize="9">Dist. (km)</para></td>
-                #       <td><para alignment="CENTER" fontName="Helvetica-Bold" fontSize="9">Mag.</para></td>
-                #       <td><para alignment="CENTER" fontName="Helvetica-Bold" fontSize="9">Max MMI(#)</para></td>
-                #       <td><para alignment="RIGHT" fontName="Helvetica-Bold" fontSize="9">Shaking Deaths</para></td>
-                #    </tr>
+        # <comment>
+        # <![CDATA[<blockTable style="historyhdrtablestyle" rowHeights="24" colWidths="42,30,25,45,38">
+        #    <tr>
+        #       <td><para alignment="LEFT" fontName="Helvetica-Bold" fontSize="9">Date (UTC)</para></td>
+        #       <td><para alignment="RIGHT" fontName="Helvetica-Bold" fontSize="9">Dist. (km)</para></td>
+        #       <td><para alignment="CENTER" fontName="Helvetica-Bold" fontSize="9">Mag.</para></td>
+        #       <td><para alignment="CENTER" fontName="Helvetica-Bold" fontSize="9">Max MMI(#)</para></td>
+        #       <td><para alignment="RIGHT" fontName="Helvetica-Bold" fontSize="9">Shaking Deaths</para></td>
+        #    </tr>
         #          </blockTable>
         #          <blockTable style="historytablestyle" rowHeights="12,12,12" colWidths="42,30,25,45,38">
         #          <tr>
         #           <td><para alignment="LEFT" fontName="Helvetica" fontSize="9">1993-03-06</para></td>
-                #   <td><para alignment="RIGHT" fontName="Helvetica" fontSize="9">238</para></td>
-                #   <td><para alignment="CENTER" fontName="Helvetica" fontSize="9">6.6</para></td>
-                #   <td background="#7aff93"><para alignment="CENTER" fontName="Helvetica" fontSize="9">V(7k)</para></td>
-                #   <td><para alignment="RIGHT" fontName="Helvetica" fontSize="9">0</para></td>
+        #   <td><para alignment="RIGHT" fontName="Helvetica" fontSize="9">238</para></td>
+        #   <td><para alignment="CENTER" fontName="Helvetica" fontSize="9">6.6</para></td>
+        #   <td background="#7aff93"><para alignment="CENTER" fontName="Helvetica" fontSize="9">V(7k)</para></td>
+        #   <td><para alignment="RIGHT" fontName="Helvetica" fontSize="9">0</para></td>
         #   </blockTable><para style="commentstyle"></para>]]>	</comment>
         if not any(self._pagerdict['historical_earthquakes']):
             return pager
@@ -800,8 +807,8 @@ class PagerData(object):
                       'colWidths': '42,30,25,45,38'}
         header_tag = etree.Element('blockTable', attrib=table_dict)
         hdr_alignments = ['LEFT', 'RIGHT', 'CENTER', 'CENTER', 'RIGHT']
-        hdr_fonts = ['Helvetica-Bold']*5
-        hdr_sizes = ['9']*5
+        hdr_fonts = ['Helvetica-Bold'] * 5
+        hdr_sizes = ['9'] * 5
         hdr_data = ['Date (UTC)', 'Dist. (km)', 'Mag.',
                     'Max MMI(#)', 'Shaking Deaths']
         row1_tag = etree.SubElement(header_tag, 'tr')
@@ -1217,7 +1224,8 @@ class PagerData(object):
             maxmmi, nmmi, deaths, clat, clon)
         for event in eventlist:
             if event is not None:
-                event['Time'] = event['Time'].strftime(DATETIMEFMT)
+                etime = pd.Timestamp(event['Time'])
+                event['Time'] = etime.strftime(DATETIMEFMT)
         return eventlist
 
     def _getCityTable(self):
@@ -1241,10 +1249,10 @@ class PagerData(object):
             map_cities.loc[rowidx[0], 'on_map'] = row['on_map']
 
         # order the dataframe so that cities in the city table are first
-        #(in the order they occur there)
+        # (in the order they occur there)
         table_index = city_table.index
         cities_index = map_cities.index
         remainder = [idx for idx in cities_index if idx not in table_index]
-        new_index = pd.Int64Index(table_index.tolist()+remainder)
+        new_index = pd.Int64Index(table_index.tolist() + remainder)
         map_cities = map_cities.reindex(new_index)
         return (city_table, map_cities)
