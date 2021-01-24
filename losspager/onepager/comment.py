@@ -368,8 +368,11 @@ def get_structure_comment(resfat, nonresfat, semimodel):
         else:
             regtext = fmt2 % (b1, b2)
     else:
-        b1 = semimodel.getBuildingDesc(btypes[0])
-        regtext = fmt1 % b1
+        if len(btypes) == 0:
+            regtext = ''
+        else:
+            b1 = semimodel.getBuildingDesc(btypes[0])
+            regtext = fmt1 % b1
     return default + '  ' + regtext
 
 
