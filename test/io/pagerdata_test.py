@@ -39,7 +39,7 @@ def tdoc(doc, shakegrid, impact1, impact2, expdict, struct_comment, hist_comment
     assert np.isclose(np.array(exp), expdict['TotalExposure']).all()
 
     hist_table = doc.getHistoricalTable()
-    assert hist_table[0]['EventID'] == '199401171230'
+    assert hist_table[0]['EventID'] == '198411261621'
 
     scomm = doc.getStructureComment()
     assert scomm == struct_comment
