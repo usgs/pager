@@ -323,11 +323,11 @@ def main(pargs, config):
         pager_version = None
         # get all the basic event information and print it, if requested
         shake_tuple = getHeaderData(gridfile)
-        eid = shake_tuple[1]['event_id']
+        eid = shake_tuple[1]['event_id'].lower()
         etime = shake_tuple[1]['event_timestamp']
         if not len(eid):
-            eid = shake_tuple[0]['event_id']
-        network = shake_tuple[1]['event_network']
+            eid = shake_tuple[0]['event_id'].lower()
+        network = shake_tuple[1]['event_network'].lower()
         if network == '':
             network = 'us'
         if not eid.startswith(network):
