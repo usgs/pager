@@ -17,7 +17,7 @@ from losspager.utils.admin import PagerAdmin
 
 WHITELIST = ['us', 'ci', 'nc', 'nn', 'uw', 'nn', 'uu', 'ak']
 NO_SHAKEMAPS = ['mb', 'ecx', 'tul', 'ismp', 'nm', 'se',
-                'ogso', 'pr', 'neic', 'ld', 'wy', 'hv']
+                'ogso', 'pr', 'neic', 'ld', 'wy', 'hv', 'nn']
 
 MAG_THRESHOLD = 4.0
 ANSS_FLAG = 'anss'
