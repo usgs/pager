@@ -15,7 +15,7 @@ from mapio.shake import getHeaderData
 from losspager.utils.config import read_config
 from losspager.utils.admin import PagerAdmin
 
-WHITELIST = ['us', 'ci', 'nc', 'nn', 'uw', 'nn', 'uu', 'ak']
+WHITELIST = ['us', 'ci', 'nc', 'nn', 'uw', 'uu', 'ak']
 NO_SHAKEMAPS = ['mb', 'ecx', 'tul', 'ismp', 'nm', 'se',
                 'ogso', 'pr', 'neic', 'ld', 'wy', 'hv', 'nn']
 
