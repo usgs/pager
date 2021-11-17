@@ -126,7 +126,6 @@ package_list='
   mock
   nose
   openpyxl
-  openquake.engine
   pandas
   paramiko
   pip
