@@ -19,8 +19,8 @@ fi
 
 source $prof
 
-echo "Path:"
-echo $PATH
+# echo "Path:"
+# echo $PATH
 
 VENV=pager
 
@@ -75,9 +75,9 @@ else
     echo "conda detected, installing $VENV environment..."
 fi
 
-echo "PATH:"
-echo $PATH
-echo ""
+# echo "PATH:"
+# echo $PATH
+# echo ""
 
 
 # Choose an environment file based on platform
@@ -100,9 +100,21 @@ echo "Activate base virtual environment"
 conda activate base
 
 # make sure conda is up to date
-conda update -n base conda -y
+# echo "Updating conda..."
+# conda update -n base conda -y
+
+# check to see if mamba is installed in the base environment
+if ! command -v mamba &> /dev/null
+then
+    echo "Installing mamba into base environment..."
+    conda install mamba -n base -c conda-forge -y
+    echo "Done installing mamba."
+else
+    echo "Mamba already installed."
+fi
 
 # Remove any existing pager environments
+echo "Removing existing ${VENV} environment..."
 conda remove -y --name $VENV --all
 
 # define the list of packages
@@ -133,7 +145,6 @@ package_list='
   pycrypto
   pyproj
   pytables
-  python=3.7
   pytest
   pytest-cov
   pytest-mpl
@@ -155,7 +166,15 @@ conda config --set channel_priority strict
 
 # Create a conda virtual environment
 echo "Creating the $VENV virtual environment:"
-conda create -n $VENV -y $package_list
+conda create -n $VENV python=3.7 -y
+
+# activate the new environment so mamba knows where to install packages
+echo "Activating ${VENV} environment..."
+conda activate $VENV
+
+# Use mamba to install packages
+echo "Using mamba to solve dependencies and install packages..."
+mamba install -y $package_list
 
 # Bail out at this point if the conda create command fails.
 # Clean up zip files we've downloaded

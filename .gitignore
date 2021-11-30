@@ -8,3 +8,4 @@ build
 .coverage
 .coverage.xml
 losspager.egg-info/
+test-output.xml
