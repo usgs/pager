@@ -15,146 +15,159 @@ from mapio.shake import getHeaderData
 from losspager.utils.config import read_config
 from losspager.utils.admin import PagerAdmin
 
-WHITELIST = ['us', 'ci', 'nc', 'uw', 'uu', 'ak']
-NO_SHAKEMAPS = ['mb', 'ecx', 'tul', 'ismp', 'nm', 'se',
-                'ogso', 'pr', 'neic', 'ld', 'wy', 'hv', 'nn']
+WHITELIST = ["us"]
+NO_SHAKEMAPS = [
+    "mb",
+    "ecx",
+    "tul",
+    "ismp",
+    "nm",
+    "se",
+    "ogso",
+    "pr",
+    "neic",
+    "ld",
+    "wy",
+    "hv",
+    "nn",
+]
 
 MAG_THRESHOLD = 4.0
-ANSS_FLAG = 'anss'
+ANSS_FLAG = "anss"
 
 # what's the oldest ShakeMap we're willing to process?
 THRESHOLD_YEAR = 2010
 
-TIMEFMT = '%Y-%m-%dT%H:%M:%S'
+TIMEFMT = "%Y-%m-%dT%H:%M:%S"
 
 DEBUG = True
 
 # the PDL actions we'll actually process
-ALLOWED_ACTIONS = ('EVENT_ADDED', 'EVENT_UPDATED',
-                   'PRODUCT_ADDED', 'PRODUCT_UPDATED')
+ALLOWED_ACTIONS = ("EVENT_ADDED", "EVENT_UPDATED", "PRODUCT_ADDED", "PRODUCT_UPDATED")
 
 
 def process_shakemap(args, config):
     if DEBUG:
-        lfile = 'callpager_%s.log' % args.code
-        logfilename = os.path.join(config['log_folder'], lfile)
-        logfile = open(logfilename, 'at')
+        lfile = "callpager_%s.log" % args.code
+        logfilename = os.path.join(config["log_folder"], lfile)
+        logfile = open(logfilename, "at")
     else:
         logfile = io.StringIO()
-    logfile.write('######Event %s####\n' % args.code)
-    logfile.write('args%s\n\n' % str(args))
-    if args.status == 'DELETE':
+    logfile.write("######Event %s####\n" % args.code)
+    logfile.write("args%s\n\n" % str(args))
+    if args.status == "DELETE":
         # look at this with respect to archiving and sending cancel messages
-        msg = 'No action to take with delete messages.'
+        msg = "No action to take with delete messages."
         print(msg)
-        logfile.write(msg + '\n\n')
+        logfile.write(msg + "\n\n")
         logfile.close()
         sys.exit(1)
 
-    logfile.write('Checking if status is update...\n\n')
-    if args.status != 'UPDATE':
-        msg = 'No action to take with %s messages.' % args.status
+    logfile.write("Checking if status is update...\n\n")
+    if args.status != "UPDATE":
+        msg = "No action to take with %s messages." % args.status
         print(msg)
-        logfile.write(msg + '\n\n')
+        logfile.write(msg + "\n\n")
         logfile.close()
         sys.exit(1)
 
-    logfile.write('Checking action...\n\n')
+    logfile.write("Checking action...\n\n")
     if args.action not in ALLOWED_ACTIONS:
-        msg = 'No action to take with %s messages.' % args.action
+        msg = "No action to take with %s messages." % args.action
         print(msg)
-        logfile.write(msg + '\n\n')
+        logfile.write(msg + "\n\n")
         logfile.close()
         sys.exit(1)
 
-    logfile.write('Checking source...\n\n')
+    logfile.write("Checking source...\n\n")
     if args.source not in WHITELIST:
-        fmt = 'ShakeMap not from approved list of sources: %s.  Exiting.'
+        fmt = "ShakeMap not from approved list of sources: %s.  Exiting."
         msg = fmt % str(WHITELIST)
         print(msg)
-        logfile.write(msg + '\n\n')
+        logfile.write(msg + "\n\n")
         logfile.close()
         sys.exit(1)
 
-    logfile.write('Checking magnitude...\n\n')
+    logfile.write("Checking magnitude...\n\n")
     if args.magnitude < MAG_THRESHOLD:
-        fmt = 'Input ShakeMaps must be larger than M%.1f.  Exiting.'
+        fmt = "Input ShakeMaps must be larger than M%.1f.  Exiting."
         msg = fmt % MAG_THRESHOLD
         print(msg)
-        logfile.write(msg + '\n\n')
+        logfile.write(msg + "\n\n")
         logfile.close()
         sys.exit(1)
 
-    logfile.write('Checking ShakeMap code version...\n\n')
+    logfile.write("Checking ShakeMap code version...\n\n")
     code_version = args.property_shakemap_code_version
-    skip_code_version = config['skip_code_version']
+    skip_code_version = config["skip_code_version"]
     if code_version.startswith(skip_code_version):
-        fmt = 'Skipping events from ShakeMap code version %s:  Exiting.'
+        fmt = "Skipping events from ShakeMap code version %s:  Exiting."
         msg = fmt % code_version
         print(msg)
-        logfile.write(msg + '\n\n')
+        logfile.write(msg + "\n\n")
         logfile.close()
         sys.exit(1)
 
     # Use lat,lon and source to exclude ShakeMap providers who are playing
     # outside their sandbox
-    logfile.write('Checking for authoritativeness...\n\n')
-    # we'll default to letting the event run if we can't figure out
-    # who's authoritative
-    authtype = 'anss'
-    authsrc = args.source.lower()
-    try:
-        gs = GeoServe(args.lat, args.lon)
-        authsrc, authtype = gs.getAuthoritative()
-    except Exception as e:
-        fmt = "Can't connect to GeoServe, assuming '%s' is authoritative.\n\n"
-        logfile.write(fmt % args.source)
-    if authtype != 'anss':
-        authsrc = 'us'
-    authsrc = authsrc.lower()
-    source = args.source.lower()
-    is_authoritative = authsrc == source
+    # logfile.write("Checking for authoritativeness...\n\n")
+    # # we'll default to letting the event run if we can't figure out
+    # # who's authoritative
+    # authtype = "anss"
+    # authsrc = args.source.lower()
+    # try:
+    #     gs = GeoServe(args.lat, args.lon)
+    #     authsrc, authtype = gs.getAuthoritative()
+    # except Exception as e:
+    #     fmt = "Can't connect to GeoServe, assuming '%s' is authoritative.\n\n"
+    #     logfile.write(fmt % args.source)
+    # if authtype != "anss":
+    #     authsrc = "us"
+    # authsrc = authsrc.lower()
+    # source = args.source.lower()
+    # is_authoritative = authsrc == source
 
-    if not is_authoritative and authsrc.lower() not in NO_SHAKEMAPS:
-        fmt = 'Source %s not authoritative for this region (%s is).  Exiting.'
-        msg = fmt % (args.source, authsrc)
-        print(msg)
-        logfile.write(msg + '\n\n')
-        logfile.close()
-        sys.exit(1)
+    # if not is_authoritative and authsrc.lower() not in NO_SHAKEMAPS:
+    #     fmt = "Source %s not authoritative for this region (%s is).  Exiting."
+    #     msg = fmt % (args.source, authsrc)
+    #     print(msg)
+    #     logfile.write(msg + "\n\n")
+    #     logfile.close()
+    #     sys.exit(1)
 
-    logfile.write('Checking gridfile...\n\n')
-    gridfile = os.path.join(args.directory, 'download', 'grid.xml')
+    logfile.write("Checking gridfile...\n\n")
+    gridfile = os.path.join(args.directory, "download", "grid.xml")
     if not os.path.isfile(gridfile):
-        fmt = 'Could not find input ShakeMap grid file at %s.  Exiting.'
+        fmt = "Could not find input ShakeMap grid file at %s.  Exiting."
         msg = fmt % gridfile
         print(msg)
-        logfile.write(msg + '\n\n')
+        logfile.write(msg + "\n\n")
         logfile.close()
         sys.exit(1)
 
     # We've passed all the filters, so call PAGER
     # what directory does the pager executable live in?
-    pagerpath = config['pagerpath']
+    pagerpath = config["pagerpath"]
     if args.debug:
-        pagerpath = os.path.join(pagerpath, 'pager -d')
+        pagerpath = os.path.join(pagerpath, "pager -d")
     else:
-        pagerpath = os.path.join(pagerpath, 'pager')
-    cmd = '%s %s' % (pagerpath, gridfile)
+        pagerpath = os.path.join(pagerpath, "pager")
+    cmd = "%s %s" % (pagerpath, gridfile)
     res, stdout, stderr = get_command_output(cmd)
     if res:
         msg = 'Successful run.  Output returned: "%s".' % stdout
         print(msg)
-        logfile.write(msg + '\n\n')
+        logfile.write(msg + "\n\n")
         logfile.close()
         sys.exit(0)
     else:
         fmt = 'Unsuccessful run.  Output returned: "%s", "%s".'
         msg = fmt % (stdout, stderr)
         print(msg)
-        logfile.write(msg + '\n\n')
+        logfile.write(msg + "\n\n")
         logfile.close()
         sys.exit(1)
+
 
 # TODO - Implement this for real and TEST!
 # def process_admin(args, config):
@@ -240,63 +253,85 @@ def process_shakemap(args, config):
 
 def read_shakemap(gridfile):
     gdict, edict, gspec_dict, fdict, unc_dict = getHeaderData(gridfile)
-    source = gdict['shakemap_originator']
-    lat = edict['lat']
-    lon = edict['lon']
-    magnitude = edict['magnitude']
-    time = edict['event_timestamp']
+    source = gdict["shakemap_originator"]
+    lat = edict["lat"]
+    lon = edict["lon"]
+    magnitude = edict["magnitude"]
+    time = edict["event_timestamp"]
     return (source, time, magnitude, lat, lon)
 
 
 def main(args):
-    logfile = os.path.join(os.path.expanduser('~'), 'callpagerlog.log')
-    f = open(logfile, 'wt')
+    logfile = os.path.join(os.path.expanduser("~"), "callpagerlog.log")
+    f = open(logfile, "wt")
     f.write('Arguments: "%s"' % str(args))
     f.close()
     config = read_config()
-    if args.type == 'shakemap':
+    if args.type == "shakemap":
         process_shakemap(args, config)
     else:
-        print('No type specified, exiting.')
+        print("No type specified, exiting.")
     sys.exit(0)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     desc = """Call the PAGER main program with arguments from PDL.
 This program is meant to be called by a PDL process, and generally
 not called by a user, unless that user is a developer debugging
 callpager itself.
 """
     fmt_class = argparse.ArgumentDefaultsHelpFormatter
-    argparser = argparse.ArgumentParser(description=desc,
-                                        formatter_class=fmt_class)
-    argparser.add_argument("--directory",
-                           help="Directory where ShakeMap data can be found",
-                           metavar='DIRECTORY')
-    argparser.add_argument("--type",
-                           help="Product type", metavar='TYPE')
-    argparser.add_argument("--code",
-                           help="Product code", metavar='CODE')
-    argparser.add_argument("--source",
-                           help="Product source", metavar='SOURCE')
-    argparser.add_argument("--status",
-                           help="Product status", metavar='STATUS')
-    argparser.add_argument('-d', '--debug', action='store_true',
-                           default=False, help='Run PAGER in debug mode')
-    argparser.add_argument("--action",
-                           help="Product action", metavar='ACTION')
-    argparser.add_argument("--preferred-latitude", type=float,
-                           help="Event latitude", metavar='LAT', dest='lat')
-    argparser.add_argument("--preferred-longitude", type=float,
-                           help="Event longitude", metavar='LON', dest='lon')
-    argparser.add_argument("--preferred-depth", type=float,
-                           help="Event depth", metavar='DEPTH', dest='depth')
-    argparser.add_argument("--preferred-magnitude", type=float,
-                           help="Event magnitude", metavar='MAG',
-                           dest='magnitude')
-    argparser.add_argument("--preferred-eventtime",
-                           help="Event time", metavar='TIME', dest='time')
-    argparser.add_argument('--property-shakemap-code-version',
-                           metavar='CODE_VERSION', default='3.5')
+    argparser = argparse.ArgumentParser(description=desc, formatter_class=fmt_class)
+    argparser.add_argument(
+        "--directory",
+        help="Directory where ShakeMap data can be found",
+        metavar="DIRECTORY",
+    )
+    argparser.add_argument("--type", help="Product type", metavar="TYPE")
+    argparser.add_argument("--code", help="Product code", metavar="CODE")
+    argparser.add_argument("--source", help="Product source", metavar="SOURCE")
+    argparser.add_argument("--status", help="Product status", metavar="STATUS")
+    argparser.add_argument(
+        "-d",
+        "--debug",
+        action="store_true",
+        default=False,
+        help="Run PAGER in debug mode",
+    )
+    argparser.add_argument("--action", help="Product action", metavar="ACTION")
+    argparser.add_argument(
+        "--preferred-latitude",
+        type=float,
+        help="Event latitude",
+        metavar="LAT",
+        dest="lat",
+    )
+    argparser.add_argument(
+        "--preferred-longitude",
+        type=float,
+        help="Event longitude",
+        metavar="LON",
+        dest="lon",
+    )
+    argparser.add_argument(
+        "--preferred-depth",
+        type=float,
+        help="Event depth",
+        metavar="DEPTH",
+        dest="depth",
+    )
+    argparser.add_argument(
+        "--preferred-magnitude",
+        type=float,
+        help="Event magnitude",
+        metavar="MAG",
+        dest="magnitude",
+    )
+    argparser.add_argument(
+        "--preferred-eventtime", help="Event time", metavar="TIME", dest="time"
+    )
+    argparser.add_argument(
+        "--property-shakemap-code-version", metavar="CODE_VERSION", default="3.5"
+    )
     pargs, unknown = argparser.parse_known_args()
     main(pargs)
