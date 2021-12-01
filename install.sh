@@ -197,6 +197,31 @@ conda activate $VENV
 echo "Installing ${VENV}..."
 pip install -e .
 
+# test pager, if we get an error about libffi, try to fix it
+# this is a total hack, but the only way I can see to get around 
+# this weird result.
+ffi_lib=libffi.so.7
+pager_lib_dir=~/miniconda/envs/pager/lib
+test_res=$(pager -h 2>&1)
+echo $test_res | grep "${ffi_lib}"
+if [ $? == 0 ]; then
+    echo "Issue finding library ${ffi_lib}. Trying to resolve..."
+    ffi_files=$(find ~/miniconda -name "libffi.so.7")
+    if [ -z "$ffi_files" ]; then
+        # this library is not found on the system
+        echo "Cannot find missing library ${ffi_lib}. Please attempt to sort out libffi library issue."
+        exit 1
+    fi
+    ffi_file=$(echo $ffi_files | head -1)
+    echo "Copying ${ffi_file} to ${pager_lib_dir}..."
+    cp $ffi_file $pager_lib_dir
+    pager -h 2>/dev/null
+    if [ $? != 0 ]; then
+        echo "pager is still broken. Please address this manually."
+        exit 1
+    fi
+fi
+
 # Install default profile
 #python bin/sm_profile -c default -a
 
