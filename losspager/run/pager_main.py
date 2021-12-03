@@ -64,7 +64,7 @@ def _is_url(gridfile):
         f.write(data)
         f.close()
         return (True, grid_file)
-    except:
+    except Exception:
         return (False, None)
 
 
@@ -325,6 +325,9 @@ def main(pargs, config):
     mail_from = config["mail_from"]
     developers = config["developers"]
     logfile = os.path.join(pager_folder, "pager.log")
+    if pargs.logfile is not None:
+        logfile = pargs.logfile
+
     plog = PagerLogger(logfile, developers, mail_from, mail_host, debug=pargs.debug)
     logger = plog.getLogger()
 
@@ -342,20 +345,20 @@ def main(pargs, config):
             network = "us"
         if not eid.startswith(network):
             eid = network + eid
+        plog.info(f"Got event ID {eid}.")
 
         # Create a ComcatInfo object to hopefully tell us a number of things about this event
         try:
             ccinfo = ComCatInfo(eid)
             location = ccinfo.getLocation()
             tsunami = ccinfo.getTsunami()
-            authid, allids = ccinfo.getAssociatedIds()
-            authsource, othersources = ccinfo.getAssociatedSources()
-        except:  # fail over to what we can determine locally
+            authid, _ = ccinfo.getAssociatedIds()
+        except Exception:  # fail over to what we can determine locally
             location = shake_tuple[1]["event_description"]
             tsunami = shake_tuple[1]["magnitude"] >= TSUNAMI_MAG_THRESH
             authid = eid
-            authsource = network
-            allids = []
+
+        plog.info(f"Got authoritative ID {authid}.")
 
         # Check to see if user wanted to override default tsunami criteria
         if pargs.tsunami != "auto":
@@ -369,6 +372,7 @@ def main(pargs, config):
         shakemap_type = shake_tuple[0]["shakemap_event_type"]
         if shakemap_type == "SCENARIO":
             is_scenario = True
+        plog.info(f"Scenario: {is_scenario}.")
 
         # if event is NOT a scenario and event time is in the future,
         # flag the event as a scenario and yell about it.
@@ -385,6 +389,7 @@ def main(pargs, config):
         # create the event directory (if it does not exist), and start logging there
         logger.info("Creating event directory")
         event_folder = admin.createEventFolder(authid, etime)
+        plog.info(f"Created event folder {event_folder}.")
 
         # Stop processing if there is a "stop" file in the event folder
         stopfile = os.path.join(event_folder, "stop")
@@ -397,6 +402,7 @@ def main(pargs, config):
         version_folder = os.path.join(event_folder, "version.%03d" % pager_version)
         os.makedirs(version_folder)
         event_logfile = os.path.join(version_folder, "event.log")
+        plog.info(f"Switching log to event log {event_logfile}.")
 
         # this will turn off the global rotating log file
         # and switch to the one in the version folder.

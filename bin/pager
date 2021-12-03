@@ -73,7 +73,12 @@ if __name__ == "__main__":
         metavar="ELAPSED",
         help="Override calculated elapsed time with minutes.  Usually used for scenarios.",
     )
-
+    parser.add_argument(
+        "--logfile",
+        type=str,
+        metavar="LOGFILE",
+        help="Send output to custom log file location.",
+    )
     args = parser.parse_args()
 
     # read in the config - should be in a predictable place - this will error out if not.
