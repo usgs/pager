@@ -48,13 +48,13 @@ ALLOWED_ACTIONS = ("EVENT_ADDED", "EVENT_UPDATED", "PRODUCT_ADDED", "PRODUCT_UPD
 
 def process_shakemap(args, config):
     if DEBUG:
-        lfile = "callpager_%s.log" % args.code
+        lfile = f"callpager_{args.code}.log"
         logfilename = os.path.join(config["log_folder"], lfile)
         logfile = open(logfilename, "at")
     else:
         logfile = io.StringIO()
-    logfile.write("######Event %s####\n" % args.code)
-    logfile.write("args%s\n\n" % str(args))
+    logfile.write(f"######Event {args.code}####\n")
+    logfile.write(f"args{str(args)}\n\n")
     if args.status == "DELETE":
         # look at this with respect to archiving and sending cancel messages
         msg = "No action to take with delete messages."
@@ -65,7 +65,7 @@ def process_shakemap(args, config):
 
     logfile.write("Checking if status is update...\n\n")
     if args.status != "UPDATE":
-        msg = "No action to take with %s messages." % args.status
+        msg = f"No action to take with {args.status} messages."
         print(msg)
         logfile.write(msg + "\n\n")
         logfile.close()
@@ -73,7 +73,7 @@ def process_shakemap(args, config):
 
     logfile.write("Checking action...\n\n")
     if args.action not in ALLOWED_ACTIONS:
-        msg = "No action to take with %s messages." % args.action
+        msg = f"No action to take with {args.action} messages."
         print(msg)
         logfile.write(msg + "\n\n")
         logfile.close()
@@ -152,10 +152,10 @@ def process_shakemap(args, config):
         pagerpath = os.path.join(pagerpath, "pager -d")
     else:
         pagerpath = os.path.join(pagerpath, "pager")
-    cmd = "%s %s" % (pagerpath, gridfile)
+    cmd = f"{pagerpath} {gridfile}"
     res, stdout, stderr = get_command_output(cmd)
     if res:
-        msg = 'Successful run.  Output returned: "%s".' % stdout
+        msg = f'Successful run.  Output returned: "{stdout}".'
         print(msg)
         logfile.write(msg + "\n\n")
         logfile.close()
@@ -264,7 +264,7 @@ def read_shakemap(gridfile):
 def main(args):
     logfile = os.path.join(os.path.expanduser("~"), "callpagerlog.log")
     f = open(logfile, "wt")
-    f.write('Arguments: "%s"' % str(args))
+    f.write(f'Arguments: "{str(args)}"')
     f.close()
     config = read_config()
     if args.type == "shakemap":

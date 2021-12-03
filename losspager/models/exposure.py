@@ -13,8 +13,12 @@ from losspager.utils.exception import PagerException
 from losspager.utils.country import Country
 from .growth import PopulationGrowth
 
-SCENARIO_WARNING = 10  # number of years after date of population data to issue a warning
-SCENARIO_ERROR = 20  # number of years after date of population data to raise an exception
+SCENARIO_WARNING = (
+    10  # number of years after date of population data to issue a warning
+)
+SCENARIO_ERROR = (
+    20  # number of years after date of population data to raise an exception
+)
 
 
 def calc_exposure(mmidata, popdata, isodata):
@@ -41,7 +45,8 @@ def calc_exposure(mmidata, popdata, isodata):
             mmi_lower = mmi - 0.5
             mmi_upper = mmi + 0.5
             midx = np.ravel_multi_index(
-                np.where((mmidata >= mmi_lower) & (mmidata < mmi_upper)), mmidata.shape)
+                np.where((mmidata >= mmi_lower) & (mmidata < mmi_upper)), mmidata.shape
+            )
             idx = np.unravel_index(np.intersect1d(cidx, midx), mmidata.shape)
             popsum = np.nansum(popdata[idx])
             expsum[mmi - 1] = int(popsum)
@@ -87,7 +92,7 @@ class Exposure(object):
           any edge of the ShakeMap.
         """
         # get shakemap geodict
-        shakedict = ShakeGrid.getFileGeoDict(shakefile, adjust='res')
+        shakedict = ShakeGrid.getFileGeoDict(shakefile, adjust="res")
 
         # get population geodict
         popdict = get_file_geodict(self._popfile)
@@ -98,48 +103,71 @@ class Exposure(object):
         # special case for very high latitude events that may be outside the bounds
         # of our population data...
         if not popdict.intersects(shakedict):
-            expdict = {'UK': np.zeros((10,)), 'TotalExposure': np.zeros((10,))}
+            expdict = {"UK": np.zeros((10,)), "TotalExposure": np.zeros((10,))}
             return expdict
 
         if popdict == shakedict == isodict:
             # special case, probably for testing...
-            self._shakegrid = ShakeGrid.load(shakefile, adjust='res')
+            self._shakegrid = ShakeGrid.load(shakefile, adjust="res")
             self._popgrid = read(self._popfile)
             self._isogrid = read(self._isofile)
         else:
             sampledict = popdict.getBoundsWithin(shakedict)
-            self._shakegrid = ShakeGrid.load(shakefile, samplegeodict=sampledict, resample=True,
-                                             method='linear', adjust='res')
-            self._popgrid = read(self._popfile, samplegeodict=sampledict,
-                                 resample=False, doPadding=True, padValue=np.nan)
-            self._isogrid = read(self._isofile, samplegeodict=sampledict,
-                                 resample=True, method='nearest', doPadding=True, padValue=0)
+            self._shakegrid = ShakeGrid.load(
+                shakefile,
+                samplegeodict=sampledict,
+                resample=True,
+                method="linear",
+                adjust="res",
+            )
+            self._popgrid = read(
+                self._popfile,
+                samplegeodict=sampledict,
+                resample=False,
+                doPadding=True,
+                padValue=np.nan,
+            )
+            self._isogrid = read(
+                self._isofile,
+                samplegeodict=sampledict,
+                resample=True,
+                method="nearest",
+                doPadding=True,
+                padValue=0,
+            )
 
-        mmidata = self._shakegrid.getLayer('mmi').getData()
+        mmidata = self._shakegrid.getLayer("mmi").getData()
         popdata = self._popgrid.getData()
         isodata = self._isogrid.getData()
 
-        eventyear = self._shakegrid.getEventDict()['event_timestamp'].year
+        eventyear = self._shakegrid.getEventDict()["event_timestamp"].year
 
         # in order to avoid crazy far-future scenarios where PAGER models are probably invalid,
         # check to see if the time gap between the date of population data collection and event year
         # reaches either of a couple of different thresholds.
         if eventyear > self._popyear:
-            tdiff = (eventyear - self._popyear)
+            tdiff = eventyear - self._popyear
             if tdiff > SCENARIO_WARNING and tdiff < SCENARIO_ERROR:
-                msg = '''The input ShakeMap event year is more than %i years from the population date.
-                PAGER results for events this far in the future may not be valid.''' % SCENARIO_WARNING
+                msg = (
+                    """The input ShakeMap event year is more than %i years from the population date.
+                PAGER results for events this far in the future may not be valid."""
+                    % SCENARIO_WARNING
+                )
                 warnings.warn(msg)
             if tdiff > SCENARIO_ERROR:
-                msg = '''The input ShakeMap event year is more than %i years from the population date.
-                PAGER results for events this far in the future are not valid. Stopping.''' % SCENARIO_ERROR
+                msg = (
+                    """The input ShakeMap event year is more than %i years from the population date.
+                PAGER results for events this far in the future are not valid. Stopping."""
+                    % SCENARIO_ERROR
+                )
                 raise PagerException(msg)
 
         ucodes = np.unique(isodata[~np.isnan(isodata)])
         for ccode in ucodes:
-            cidx = (isodata == ccode)
+            cidx = isodata == ccode
             popdata[cidx] = self._popgrowth.adjustPopulation(
-                popdata[cidx], ccode, self._popyear, eventyear)
+                popdata[cidx], ccode, self._popyear, eventyear
+            )
 
         exposure_dict = calc_exposure(mmidata, popdata, isodata)
         newdict = {}
@@ -148,13 +176,13 @@ class Exposure(object):
         for isocode, value in exposure_dict.items():
             cdict = self._country.getCountry(int(isocode))
             if cdict is None:
-                ccode = 'UK'
+                ccode = "UK"
             else:
-                ccode = cdict['ISO2']
+                ccode = cdict["ISO2"]
             newdict[ccode] = value
             total += value
 
-        newdict['TotalExposure'] = total
+        newdict["TotalExposure"] = total
 
         # get the maximum MMI value along any of the four map edges
         nrows, ncols = mmidata.shape
@@ -162,8 +190,7 @@ class Exposure(object):
         bottom = mmidata[nrows - 1, 0:ncols].max()
         left = mmidata[0:nrows, 0].max()
         right = mmidata[0:nrows, ncols - 1].max()
-        newdict['maximum_border_mmi'] = np.array(
-            [top, bottom, left, right]).max()
+        newdict["maximum_border_mmi"] = np.array([top, bottom, left, right]).max()
 
         return newdict
 
@@ -174,7 +201,7 @@ class Exposure(object):
           Population grid.
         """
         if self._popgrid is None:
-            raise PagerException('calcExposure() method must be called first.')
+            raise PagerException("calcExposure() method must be called first.")
         return self._popgrid
 
     def getCountryGrid(self):
@@ -184,7 +211,7 @@ class Exposure(object):
           Grid2D object containing ISO numeric country codes.
         """
         if self._isogrid is None:
-            raise PagerException('calcExposure() method must be called first.')
+            raise PagerException("calcExposure() method must be called first.")
         return self._isogrid
 
     def getShakeGrid(self):
@@ -194,5 +221,5 @@ class Exposure(object):
           MultiGrid object containing ShakeMap data.
         """
         if self._shakegrid is None:
-            raise PagerException('calcExposure() method must be called first.')
+            raise PagerException("calcExposure() method must be called first.")
         return self._shakegrid

@@ -11,36 +11,34 @@ from losspager.utils.config import read_mail_config, get_mail_config_file
 # third party imports
 from impactutils.io.cmd import get_command_output
 
-if __name__ == '__main__':
-    """If primary, syncronize PAGER user/event database with secondary systems.
-    """
+if __name__ == "__main__":
+    """If primary, syncronize PAGER user/event database with secondary systems."""
     conf_file = get_mail_config_file()
     config = read_mail_config()
-    status = config['status']
-    if status == 'secondary':
-        print('This is a secondary system.  No syncing required.')
-        sys.exit(0)
-    
-    other_pagers = config['other_pagers']
-    if other_pagers[0] == 'OTHER_PAGERS':
-        print('Other PAGER servers have not been configured in %s.  Stopping.' % conf_file)
+    status = config["status"]
+    if status == "secondary":
+        print("This is a secondary system.  No syncing required.")
         sys.exit(0)
 
+    other_pagers = config["other_pagers"]
+    if other_pagers[0] == "OTHER_PAGERS":
+        print(
+            f"Other PAGER servers have not been configured in {conf_file}.  Stopping."
+        )
+        sys.exit(0)
 
-    
-    schema_url = config['email']['database']['url']
+    schema_url = config["email"]["database"]["url"]
     parts = urlparse(schema_url)
     schema_file = parts.path
     remote_path, tmp = os.path.split(schema_file)
     errors = []
     for other_pager in other_pagers:
-        scp_cmd = 'scp %s pager@%s:%s' % (schema_file, other_pager, remote_path)
+        scp_cmd = f"scp {schema_file} pager@{other_pager}:{remote_path}"
         res, stdout, stderr = get_command_output(scp_cmd)
         if not res:
             tpl = (other_pager, stderr)
             errstr = 'Cannot connect to other PAGER server %s, error "%s".' % tpl
             errors.append(errstr)
     if len(errors):
-        print('Errors occurred - %s.' % (' '.join(errors)))
+        print(f"Errors occurred - {' '.join(errors)}.")
         sys.exit(1)
-            

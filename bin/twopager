@@ -28,29 +28,28 @@ def main(args):
             isurl = True
             isdir = False
         except:
-            print('Input %s is neither a valid URL or local directory.' % hazdir)
+            print(f"Input {hazdir} is neither a valid URL or local directory.")
             sys.exit(1)
     else:
         isdir = False
 
     config = read_config()
 
-    outfolder = config['output_folder']
-    versions = glob.glob(os.path.join(outfolder, '%s_*' %
-                                      eventid, 'version.*'))
+    outfolder = config["output_folder"]
+    versions = glob.glob(os.path.join(outfolder, f"{eventid}_*", "version.*"))
     vfolder = sorted(versions)[-1]
-    gridxml = os.path.join(vfolder, 'grid.xml')
+    gridxml = os.path.join(vfolder, "grid.xml")
 
-    popfile = config['model_data']['population_data'][0]['population_grid']
-    popyear = config['model_data']['population_data'][0]['population_year']
-    isofile = config['model_data']['country_grid']
+    popfile = config["model_data"]["population_data"][0]["population_grid"]
+    popyear = config["model_data"]["population_data"][0]["population_year"]
+    isofile = config["model_data"]["country_grid"]
     expomodel = Exposure(popfile, popyear, isofile)
     exposure = expomodel.calcExposure(gridxml)
     exposure.keys()
 
     shakegrid = expomodel.getShakeGrid()
 
-    jsondir = os.path.join(vfolder, 'json')
+    jsondir = os.path.join(vfolder, "json")
     pdata = PagerData()
     pdata.loadFromJSON(jsondir)
 
@@ -61,46 +60,51 @@ def main(args):
         if isinstance(fname, bool) and not fname:
             errors.append(key)
     if len(errors):
-        print('Files for the following items could not be found:')
+        print("Files for the following items could not be found:")
         for error in errors:
-            print('\t%s' % error)
-        print('\nExiting.')
+            print(f"\t{error}")
+        print("\nExiting.")
         sys.exit(1)
 
-    countyfile = hazus_files['county']
-    tractfile = hazus_files['tract']
-    bldg_damage = hazus_files['occupancy']
+    countyfile = hazus_files["county"]
+    tractfile = hazus_files["tract"]
+    bldg_damage = hazus_files["occupancy"]
     hazinfo = HazusInfo(vfolder, tractfile, countyfile, bldg_damage)
 
-    map_file = os.path.join(vfolder, 'hazus_map.png')
-    model_config = config['model_data']
+    map_file = os.path.join(vfolder, "hazus_map.png")
+    model_config = config["model_data"]
     hazinfo.drawHazusMap(shakegrid, map_file, model_config)
     output_pdf, msg = create_twopager(pdata, hazinfo, vfolder)
     if output_pdf is None:
-        print('PDF conversion failed: \n%s' % msg)
+        print(f"PDF conversion failed: \n{msg}")
         sys.exit(1)
     else:
-        fmt = 'Created PDF file %s. Additional messages: \n%s'
+        fmt = "Created PDF file %s. Additional messages: \n%s"
         print(fmt % (output_pdf, msg))
         sys.exit(0)
 
 
-if __name__ == '__main__':
-    helptext = '''Create HAZUS backpage PDF product.
+if __name__ == "__main__":
+    helptext = """Create HAZUS backpage PDF product.
 
 Run this script after running `pager` on a grid.xml file.
 
 The hazdir argument can be either a directory or a URL containing 
 HAZUS output.
-'''
-    parser = argparse.ArgumentParser(description=helptext,
-                                     formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('eventid',
-                        help='PAGER event ID')
+"""
+    parser = argparse.ArgumentParser(
+        description=helptext, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument("eventid", help="PAGER event ID")
 
-    parser.add_argument('hazdir', help='directory/url containing HAZUS output')
-    parser.add_argument('-t', '--transfer', action='store_true', default=False,
-                        help='transfer results to ComCat')
+    parser.add_argument("hazdir", help="directory/url containing HAZUS output")
+    parser.add_argument(
+        "-t",
+        "--transfer",
+        action="store_true",
+        default=False,
+        help="transfer results to ComCat",
+    )
     pargs = parser.parse_args()
 
     main(pargs)

@@ -126,7 +126,7 @@ def get_gdp_comment(ecodict, ecomodel, econexposure, event_year, epicode):
     gdp_obj = GDP.fromDefault()
     gdp, outccode = gdp_obj.getGDP(dccode, event_year)
     country = Country()
-    logging.info("ccode: %s, dccode: %s, outccode: %s" % (ccode, dccode, outccode))
+    logging.info(f"ccode: {ccode}, dccode: {dccode}, outccode: {outccode}")
     cinfo = country.getCountry(outccode)
     if cinfo != "UK":
         pop = cinfo["Population"]
@@ -151,7 +151,7 @@ def get_gdp_comment(ecodict, ecomodel, econexposure, event_year, epicode):
     else:
         cname = cinfo["Name"]
     if pthigh < 1.0:
-        strtxt = "Estimated economic losses are less than 1%% of GDP of %s." % cname
+        strtxt = f"Estimated economic losses are less than 1% of GDP of {cname}."
     else:
         if ptlow < 100:
             ptlow = set_num_precision(ptlow, 1)
@@ -162,7 +162,7 @@ def get_gdp_comment(ecodict, ecomodel, econexposure, event_year, epicode):
         else:
             pthigh = set_num_precision(pthigh, 2)
         if pthigh >= 100:
-            strtxt = "Estimated economic losses may exceed the GDP of %s." % cname
+            strtxt = f"Estimated economic losses may exceed the GDP of {cname}."
         else:
             strtxt = "Estimated economic losses are %i-%i%% GDP of %s." % (
                 ptlow,
@@ -455,9 +455,9 @@ def get_secondary_comment(lat, lon, mag):
     elif nhazards == 2:
         fstr = " and ".join(hazards)
     elif nhazards == 3:
-        fstr = ", ".join(hazards[0:2]) + " and %s" % hazards[2]
+        fstr = ", ".join(hazards[0:2]) + f" and {hazards[2]}"
     else:
-        fstr = ", ".join(hazards[0:3]) + " and %s" % hazards[3]
+        fstr = ", ".join(hazards[0:3]) + f" and {hazards[3]}"
 
     hazcomm = sfmt % fstr
     return hazcomm

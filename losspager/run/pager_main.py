@@ -25,7 +25,6 @@ from losspager.utils.config import read_config
 from losspager.mail.formatter import format_exposure
 
 # stdlib imports
-import argparse
 import os.path
 import sys
 import re
@@ -148,10 +147,7 @@ def message_pager(config, onepager_pdf, doc):
             users = config["pager_team"]
             sender = config["mail_from"]
             hosts = config["mail_hosts"]
-            subject = "%s INTERNAL alert: %s" % (
-                doc.summary_alert.capitalize(),
-                doc.location,
-            )
+            subject = f"{doc.summary_alert.capitalize()} INTERNAL alert: {doc.location}"
             msg = (
                 """This is an INTERNAL message notifying you of this %s alert.  You will receive a second message with the pending alert."""
                 % doc.summary_alert
@@ -186,7 +182,7 @@ def _get_pop_year(event_year, popyears):
         popyear = popdict["population_year"]
         popgrid = popdict["population_grid"]
         if not os.path.isfile(popgrid):
-            logging.warning("Population grid file %s does not exist." % popgrid)
+            logging.warning(f"Population grid file {popgrid} does not exist.")
             sys.exit(1)
         if abs(popyear - event_year) < tmin:
             tmin = abs(popyear - event_year)
@@ -251,8 +247,7 @@ def _cancel(eventid, config):
                 for method in config["transfer"]["methods"]:
                     if method not in config["transfer"]:
                         sys.stderr.write(
-                            "Method %s requested but not configured...Skipping."
-                            % method
+                            f"Method {method} requested but not configured...Skipping."
                         )
                         continue
                     params = config["transfer"][method]
@@ -285,7 +280,7 @@ def _cancel(eventid, config):
                         try:
                             msg += sender.cancel()
                         except Exception as e:
-                            msg += "Failed to send products via PDL: %s" % str(e)
+                            msg += f"Failed to send products via PDL: {str(e)}"
                     except Exception as e:
                         msg += 'Could not send products via %s method - error "%s"' % (
                             method,
@@ -317,7 +312,7 @@ def main(pargs, config):
     elif is_pdl:
         gridfile = pdl_gridfile
     else:
-        print("ShakeMap Grid file %s does not exist." % pargs.gridfile)
+        print(f"ShakeMap Grid file {pargs.gridfile} does not exist.")
         return False
 
     pager_folder = os.path.join(homedir, config["output_folder"])
@@ -451,7 +446,7 @@ def main(pargs, config):
         else:
             ccode = cdict["ISO2"]
 
-        logger.info("Country code at epicenter is %s" % ccode)
+        logger.info(f"Country code at epicenter is {ccode}")
 
         # get fatality results, if requested
         logger.info("Calculating empirical fatalities.")
@@ -470,7 +465,7 @@ def main(pargs, config):
         logger.info("Calculating semi-empirical fatalities.")
         urbanfile = config["model_data"]["urban_rural_grid"]
         if not os.path.isfile(urbanfile):
-            raise PagerException("Urban-rural grid file %s does not exist." % urbanfile)
+            raise PagerException(f"Urban-rural grid file {urbanfile} does not exist.")
 
         semi = SemiEmpiricalFatality.fromDefault()
         semi.setGlobalFiles(popfile, pop_year, urbanfile, isofile)
@@ -514,7 +509,7 @@ def main(pargs, config):
             borderfile,
             is_scenario=is_scenario,
         )
-        logger.info("Generated exposure map %s" % pdf_file)
+        logger.info(f"Generated exposure map {pdf_file}")
 
         # figure out whether this event has been "released".
         is_released = _get_release_status(
@@ -576,7 +571,7 @@ def main(pargs, config):
         logger.info("Creating onePAGER pdf...")
         onepager_pdf, error = create_onepager(doc, version_folder)
         if onepager_pdf is None:
-            raise PagerException("Could not create onePAGER output: \n%s" % error)
+            raise PagerException(f"Could not create onePAGER output: \n{error}")
 
         # copy the contents.xml file to the version folder
         contentsfile = get_data_path("contents.xml")
@@ -606,10 +601,10 @@ def main(pargs, config):
         )
         logger.info(msg)
         if not res:
-            logger.critical('Error transferring PAGER content. "%s"' % msg)
+            logger.critical(f'Error transferring PAGER content. "{msg}"')
 
-        print("Created onePAGER pdf %s" % onepager_pdf)
-        logger.info("Created onePAGER pdf %s" % onepager_pdf)
+        print(f"Created onePAGER pdf {onepager_pdf}")
+        logger.info(f"Created onePAGER pdf {onepager_pdf}")
 
         logger.info("Done.")
         return True
@@ -617,13 +612,13 @@ def main(pargs, config):
         f = io.StringIO()
         traceback.print_exc(file=f)
         msg = e
-        msg = "%s\n %s" % (str(msg), f.getvalue())
+        msg = f"{str(msg)}\n {f.getvalue()}"
         hostname = socket.gethostname()
-        msg = msg + "\n" + "Error occurred on %s\n" % (hostname)
+        msg = msg + "\n" + f"Error occurred on {hostname}\n"
         if gridfile is not None:
-            msg = msg + "\n" + "Error on file: %s\n" % (gridfile)
+            msg = msg + "\n" + f"Error on file: {gridfile}\n"
         if eid is not None:
-            msg = msg + "\n" + "Error on event: %s\n" % (eid)
+            msg = msg + "\n" + f"Error on event: {eid}\n"
         if pager_version is not None:
             msg = msg + "\n" + "Error on version: %i\n" % (pager_version)
         f.close()

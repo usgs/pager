@@ -2,6 +2,7 @@
 
 import os.path
 
+
 def get_data_path(datafile):
     """Convenience function to allow scripts to retrieve the full path to a package data file/folder.
 
@@ -12,7 +13,7 @@ def get_data_path(datafile):
     """
     homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
     # the data directory should be one up and then down into data
-    dpath = os.path.abspath(os.path.join(homedir, '..', 'data', datafile))
+    dpath = os.path.abspath(os.path.join(homedir, "..", "data", datafile))
     if not os.path.isfile(dpath) and not os.path.isdir(dpath):
         return None
     return dpath
