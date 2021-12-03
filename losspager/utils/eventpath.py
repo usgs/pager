@@ -4,6 +4,7 @@ import os.path
 # third-party imports
 from impactutils.comcat.query import ComCatInfo
 
+
 def get_event_folder(eventid, outfolder):
     eventfolder = os.path.join(outfolder, eventid)
     if os.path.isdir(eventfolder):

@@ -20,26 +20,26 @@ from sqlalchemy import func
 import pandas as pd
 import numpy as np
 
-FORMATS = ['short', 'long', 'pdf']
+FORMATS = ["short", "long", "pdf"]
 DEFAULT_MAG = 7.0
-DEFAULT_EIS = 'yellow'
+DEFAULT_EIS = "yellow"
 DEFAULT_MMI = 7.0
 
 GLOBAL_FEMA_MAG = 6.0
 GLOBAL_FEMA_MMI = 7.0
-GLOBAL_FEMA_EIS = 'yellow'
+GLOBAL_FEMA_EIS = "yellow"
 
 US_FEMA_MAG = 4.5
-US_FEMA_EIS = 'yellow'
+US_FEMA_EIS = "yellow"
 
 DEFAULT_PRIORITY = 10
 
-USERFILE = 'pager_users.xlsx'
+USERFILE = "pager_users.xlsx"
 
-TIMEFMT = '%Y%m%d%H%M%S'
+TIMEFMT = "%Y%m%d%H%M%S"
 
-DATEFMT = '%Y-%m-%d'
-DATETIMEFMT = '%Y-%m-%d %H:%M:%S'
+DATEFMT = "%Y-%m-%d"
+DATETIMEFMT = "%Y-%m-%d %H:%M:%S"
 
 # how wide can the dataframes we print to the screen get before
 # being truncated?
@@ -50,20 +50,23 @@ DATAFRAME_DISPLAY_WIDTH = 1000
 DATAFRAME_DISPLAY_LENGTH = 100000
 
 
-VERSION_COLUMNS = ['EventID',
-                   'Impacted Country ($)',
-                   'Version',
-                   'EventTime',
-                   'Lat',
-                   'Lon',
-                   'Depth',
-                   'Mag',
-                   'MaxMMI',
-                   'FatalityAlert',
-                   'EconomicAlert',
-                   'SummaryAlert',
-                   'Elapsed (min)',
-                   'Alerted']
+VERSION_COLUMNS = [
+    "EventID",
+    "Impacted Country ($)",
+    "Version",
+    "EventTime",
+    "Lat",
+    "Lon",
+    "Depth",
+    "Mag",
+    "MaxMMI",
+    "FatalityAlert",
+    "EconomicAlert",
+    "SummaryAlert",
+    "Elapsed (min)",
+    "Alerted",
+]
+
 
 def version_to_series(version):
     """Convert a Version table object to a Pandas series.
@@ -73,31 +76,34 @@ def version_to_series(version):
     :returns:
       Pandas Series object.
     """
-    levels = ['green', 'yellow', 'orange', 'red']
+    levels = ["green", "yellow", "orange", "red"]
     dt = version.processtime - version.time
-    dt_minutes = (dt.days * 24*60) + dt.seconds/60
-    vdict = {'EventID': version.event.eventcode,
-             'Impacted Country ($)': version.country,
-             'Version': version.number,
-             'EventTime': version.time,
-             'Lat': version.lat,
-             'Lon': version.lon,
-             'Depth': version.depth,
-             'Mag': version.magnitude,
-             'MaxMMI': version.maxmmi,
-             'FatalityAlert': levels[version.fatlevel],
-             'EconomicAlert': levels[version.ecolevel],
-             'SummaryAlert': levels[version.summarylevel],
-             'Elapsed (min)': dt_minutes,
-             'Alerted': (len(version.addresses) > 0)}
+    dt_minutes = (dt.days * 24 * 60) + dt.seconds / 60
+    vdict = {
+        "EventID": version.event.eventcode,
+        "Impacted Country ($)": version.country,
+        "Version": version.number,
+        "EventTime": version.time,
+        "Lat": version.lat,
+        "Lon": version.lon,
+        "Depth": version.depth,
+        "Mag": version.magnitude,
+        "MaxMMI": version.maxmmi,
+        "FatalityAlert": levels[version.fatlevel],
+        "EconomicAlert": levels[version.ecolevel],
+        "SummaryAlert": levels[version.summarylevel],
+        "Elapsed (min)": dt_minutes,
+        "Alerted": (len(version.addresses) > 0),
+    }
     series = pd.Series(vdict)
     return series
+
 
 def query_events(qparams, session):
     """Use a combination of sqlalchemy queries and pandas techniques to sort and filter event data.
 
     :param qparams:
-      Variable length list of query parameters - 
+      Variable length list of query parameters -
         1) 'all' or string start date in YYYY-MM-DD or YYYY-MM-DD HH:MM:SS format
         2) String magnitude threshold i.e, "5.5".
         3) String EIS threshold i.e., "yellow".
@@ -112,9 +118,9 @@ def query_events(qparams, session):
     end_date = datetime(3000, 1, 1)  # some scenarios are in the future.  Sigh.
     mag_threshold = 0.0
     alert_threshold = 0
-    version = 'last'
-    qsyntax = 'query syntax: [START/all/recent [MAG [ALERT [END [VERSION]]]]]. '
-    levels = ['green', 'yellow', 'orange', 'red']
+    version = "last"
+    qsyntax = "query syntax: [START/all/recent [MAG [ALERT [END [VERSION]]]]]. "
+    levels = ["green", "yellow", "orange", "red"]
     if start_date is None:
         start_date = datetime(1800, 1, 1)
     else:
@@ -123,56 +129,60 @@ def query_events(qparams, session):
                 mag_threshold = float(qparams[1])
                 assert mag_threshold >= 0 and mag_threshold <= 10.0
             except:
-                msg = qsyntax+'Second argument must be a magnitude [0-10].'
+                msg = qsyntax + "Second argument must be a magnitude [0-10]."
                 res = False
         if len(qparams) >= 3:
             alert_threshold = qparams[2]
             if alert_threshold not in levels:
-                msg = qsyntax+'Fourth argument must be one of (green,yellow,orange,red).'
+                msg = (
+                    qsyntax
+                    + "Fourth argument must be one of (green,yellow,orange,red)."
+                )
                 res = False
             alert_threshold = levels.index(alert_threshold)
         if len(qparams) >= 4:
             end_date = get_date(qparams[3])
             if end_date is None:
-                msg = qsyntax+'Third argument must be a date/time string.'
+                msg = qsyntax + "Third argument must be a date/time string."
                 res = False
-        
+
     filter1 = emailschema.Version.time > start_date
     filter2 = emailschema.Version.time < end_date
     filter3 = emailschema.Version.magnitude >= mag_threshold
-    filter4 = emailschema.Version.summarylevel>=alert_threshold
-    
-    versions = session.query(emailschema.Version).filter(filter1,
-                                                         filter2,
-                                                         filter3,
-                                                         filter4).all()
+    filter4 = emailschema.Version.summarylevel >= alert_threshold
+
+    versions = (
+        session.query(emailschema.Version)
+        .filter(filter1, filter2, filter3, filter4)
+        .all()
+    )
     df = pd.DataFrame(columns=VERSION_COLUMNS)
     for version in versions:
         series = version_to_series(version)
         df = df.append(series, ignore_index=True)
-    df[['Version']] = df[['Version']].astype(int)
+    df[["Version"]] = df[["Version"]].astype(int)
 
     newdf = None
     # select by version information
     if len(qparams) >= 5:
         vparam = qparams[4]
-        if vparam == 'first':
-            df = df[df['Version'] == 1]
-        elif vparam == 'last':
+        if vparam == "first":
+            df = df[df["Version"] == 1]
+        elif vparam == "last":
             newdf = pd.DataFrame(columns=VERSION_COLUMNS)
-            eventids = df['EventID'].unique()
+            eventids = df["EventID"].unique()
             for eventid in eventids:
-                tdf = df[df['EventID'] == eventid]
-                newdf = newdf.append(tdf.loc[df['Version'].idxmax()], ignore_index=True)
-        elif vparam == 'eight':
+                tdf = df[df["EventID"] == eventid]
+                newdf = newdf.append(tdf.loc[df["Version"].idxmax()], ignore_index=True)
+        elif vparam == "eight":
             newdf = pd.DataFrame(columns=VERSION_COLUMNS)
-            eventids = df['EventID'].unique()
+            eventids = df["EventID"].unique()
             for eventid in eventids:
-                tdf = df[df['EventID'] == eventid].sort_values('Version')
+                tdf = df[df["EventID"] == eventid].sort_values("Version")
                 found = False
                 for idx, row in tdf.iterrows():
-                    dt = row['processtime'] - row['time']
-                    dt_hours = dt.days*24 + dt.seconds/3600
+                    dt = row["processtime"] - row["time"]
+                    dt_hours = dt.days * 24 + dt.seconds / 3600
                     if dt_hours > 8:
                         newdf = newdf.append(row, ignore_index=True)
                         found = True
@@ -182,22 +192,23 @@ def query_events(qparams, session):
 
     if newdf is not None:
         df = newdf
-    
-    df = df.set_index(['EventID', 'Version'])
+
+    df = df.set_index(["EventID", "Version"])
 
     # order dataframe by origin time, then event ID
-    df = df.sort_values(['EventTime'])
-    
+    df = df.sort_values(["EventTime"])
+
     return df
+
 
 def get_date(datestr):
     """datestr can be a datetime date or date/time string, OR 'all' or 'recent'.
     'recent' returns last two weeks of events, 'all' gets all events.
     """
     archdate = None
-    if datestr == 'all':
+    if datestr == "all":
         archdate = datetime(1800, 1, 1)
-    elif datestr == 'recent':
+    elif datestr == "recent":
         archdate = datetime.utcnow() - timedelta(days=14)
     else:
         try:
@@ -209,6 +220,7 @@ def get_date(datestr):
                 pass
     return archdate
 
+
 def get_version_history(session, eventid):
     """Retrieve the email addresses associated with each version of an event.
 
@@ -219,7 +231,11 @@ def get_version_history(session, eventid):
     :returns:
       Pandas DataFrame containing columns with Version numbers, rows containing email addresses.
     """
-    event = session.query(emailschema.Event).filter(emailschema.Event.eventcode == eventid).first()
+    event = (
+        session.query(emailschema.Event)
+        .filter(emailschema.Event.eventcode == eventid)
+        .first()
+    )
     if event is None:
         df = None
     else:
@@ -228,25 +244,30 @@ def get_version_history(session, eventid):
         max_emails = 0
         for version in event.versions:
             emails = [address.email for address in version.addresses]
-            vdict['Version %i' % version.number] = emails
+            vdict["Version %i" % version.number] = emails
             if len(emails) > max_emails:
                 max_emails = len(emails)
 
         for key, value in vdict.items():
             nrows = len(value)
             if nrows < max_emails:
-                pad = [''] * (max_emails-nrows)
+                pad = [""] * (max_emails - nrows)
                 value += pad
                 vdict[key] = value
         df = pd.DataFrame(vdict)
-        
+
     return df
 
-def write_notification_lists(session,eventid,max_bcc):
-    event = session.query(emailschema.Event).filter(emailschema.Event.eventcode == eventid).first()
+
+def write_notification_lists(session, eventid, max_bcc):
+    event = (
+        session.query(emailschema.Event)
+        .filter(emailschema.Event.eventcode == eventid)
+        .first()
+    )
     short_emails = []
     long_emails = []
-    names_df = pd.DataFrame(columns=['name','org'])
+    names_df = pd.DataFrame(columns=["name", "org"])
     if event is None:
         return
     else:
@@ -255,7 +276,7 @@ def write_notification_lists(session,eventid,max_bcc):
         max_emails = 0
         for version in event.versions:
             for address in version.addresses:
-                if address.format == 'short':
+                if address.format == "short":
                     if address.email not in short_emails:
                         short_emails.append(address.email)
                 else:
@@ -263,47 +284,51 @@ def write_notification_lists(session,eventid,max_bcc):
                         long_emails.append(address.email)
                 user = address.user
                 org = user.organization.shortname
-                name = '%s %s' % (user.firstname,user.lastname)
-                if not names_df['name'].str.contains(name).any():
-                    names_df = names_df.append({'name':name,'org':org},ignore_index=True)
+                name = f"{user.firstname} {user.lastname}"
+                if not names_df["name"].str.contains(name).any():
+                    names_df = names_df.append(
+                        {"name": name, "org": org}, ignore_index=True
+                    )
 
         # check notification directory
-        rootdir = os.path.join(os.path.expanduser('~'),'notification_lists')
+        rootdir = os.path.join(os.path.expanduser("~"), "notification_lists")
         if not os.path.isdir(rootdir):
             os.makedirs(rootdir)
-        eventdir = os.path.join(rootdir,eventid)
+        eventdir = os.path.join(rootdir, eventid)
         if not os.path.isdir(eventdir):
             os.makedirs(eventdir)
 
         i = 0
-        for shortchunk in _chunk_list(short_emails,max_bcc):
+        for shortchunk in _chunk_list(short_emails, max_bcc):
             # shortchunk is now a list no longer than max_bcc
-            chunkfile = os.path.join(eventdir,'short_emails%i.txt' % (i+1))
-            print('Writing %s...' % chunkfile)
-            f = open(chunkfile,'wt')
+            chunkfile = os.path.join(eventdir, "short_emails%i.txt" % (i + 1))
+            print(f"Writing {chunkfile}...")
+            f = open(chunkfile, "wt")
             for email in shortchunk:
-                f.write('%s\n' % email)
+                f.write(f"{email}\n")
             f.close()
             i += 1
 
         i = 0
-        for longchunk in _chunk_list(long_emails,max_bcc):
+        for longchunk in _chunk_list(long_emails, max_bcc):
             # longchunk is now a list no longer than max_bcc
-            chunkfile = os.path.join(eventdir,'long_emails%i.txt' % (i+1))
-            print('Writing %s...' % chunkfile)
-            f = open(chunkfile,'wt')
+            chunkfile = os.path.join(eventdir, "long_emails%i.txt" % (i + 1))
+            print(f"Writing {chunkfile}...")
+            f = open(chunkfile, "wt")
             for email in longchunk:
-                f.write('%s\n' % email)
+                f.write(f"{email}\n")
             f.close()
             i += 1
 
-        name_file = os.path.join(eventdir,'names.csv')
-        print('Writing %s...' % name_file)
-        names_df.to_csv(name_file,index=False)
-                        
-def _chunk_list(datalist,chunksize):
+        name_file = os.path.join(eventdir, "names.csv")
+        print(f"Writing {name_file}...")
+        names_df.to_csv(name_file, index=False)
+
+
+def _chunk_list(datalist, chunksize):
     chunksize = max(1, chunksize)
-    return (datalist[i:i+chunksize] for i in range(0, len(datalist), chunksize))
+    return (datalist[i : i + chunksize] for i in range(0, len(datalist), chunksize))
+
 
 def pandify_user(user, session):
     """Retrieve the version notification history for a given user.
@@ -314,7 +339,7 @@ def pandify_user(user, session):
       Pandas DataFrame with columns: [EventID, Version Number, [Email1], [Email2], [EmailN]
       Rows of Email1-EmailN will be set to True or False
     """
-    columns = ['EventID', 'Version Number']
+    columns = ["EventID", "Version Number"]
     emails = [address.email for address in user.addresses]
     columns = columns + emails
     rows = []
@@ -322,8 +347,8 @@ def pandify_user(user, session):
     for event in events:
         for version in event.versions:
             row = {}
-            row['EventID'] = event.eventcode
-            row['Version Number'] = version.number
+            row["EventID"] = event.eventcode
+            row["Version Number"] = version.number
             version_emails = [a.email for a in version.addresses]
             for address in user.addresses:
                 if address.email in version_emails:
@@ -334,6 +359,7 @@ def pandify_user(user, session):
     df = pd.DataFrame(rows, columns=columns)
     return df
 
+
 def sync_db(session, config):
     """Synchronize the SQLITE database of users with a spreadsheet summary of those users.
 
@@ -342,13 +368,22 @@ def sync_db(session, config):
     :config:
       Configuration dictionary containing the stats_folder where the spreadsheet is maintained.
     """
-    statsfolder = config['stats_folder']
+    statsfolder = config["stats_folder"]
     userfile = os.path.join(statsfolder, USERFILE)
-    print('Syncing database to %s...' % userfile)
+    print(f"Syncing database to {userfile}...")
     users = session.query(emailschema.User).all()
-    columns = ['LastName', 'FirstName', 'CreatedDate', 'Organization',
-               'PrimaryEmail', 'PrimaryFormat', 'Priority', 'PrimaryMMI',
-               'PrimaryMag', 'PrimaryEIS']
+    columns = [
+        "LastName",
+        "FirstName",
+        "CreatedDate",
+        "Organization",
+        "PrimaryEmail",
+        "PrimaryFormat",
+        "Priority",
+        "PrimaryMMI",
+        "PrimaryMag",
+        "PrimaryEIS",
+    ]
     df = pd.DataFrame(columns=columns)
     for user in users:
         primary_email = user.addresses[0].email
@@ -363,25 +398,28 @@ def sync_db(session, config):
                 primary_format = address.format
                 for profile in address.profiles:
                     for threshold in profile.thresholds:
-                        if threshold.alertscheme.name == 'mmi':
+                        if threshold.alertscheme.name == "mmi":
                             mmi_threshold = threshold.value
-                        if threshold.alertscheme.name == 'mag':
+                        if threshold.alertscheme.name == "mag":
                             mag_threshold = threshold.value
-                        if threshold.alertscheme.name == 'eis':
+                        if threshold.alertscheme.name == "eis":
                             eis_threshold = threshold.value
-        d = {'LastName': user.lastname,
-             'FirstName': user.firstname,
-             'CreatedDate': user.createdon,
-             'Organization': user.organization.shortname,
-             'PrimaryEmail': primary_email,
-             'PrimaryFormat': primary_format,
-             'Priority': priority,
-             'PrimaryMMI': mmi_threshold,
-             'PrimaryMag': mag_threshold,
-             'PrimaryEIS': eis_threshold}
+        d = {
+            "LastName": user.lastname,
+            "FirstName": user.firstname,
+            "CreatedDate": user.createdon,
+            "Organization": user.organization.shortname,
+            "PrimaryEmail": primary_email,
+            "PrimaryFormat": primary_format,
+            "Priority": priority,
+            "PrimaryMMI": mmi_threshold,
+            "PrimaryMag": mag_threshold,
+            "PrimaryEIS": eis_threshold,
+        }
         row = pd.Series(data=d, index=None)
         df = df.append(row, ignore_index=True)
     df.to_excel(userfile)
+
 
 def validate_mag(magstr):
     """Convert magnitude string to float or None if invalid.
@@ -392,13 +430,14 @@ def validate_mag(magstr):
       float or None if invalid.
     """
     mag = None
-    if magstr == '':
+    if magstr == "":
         return DEFAULT_MAG
     try:
         mag = float(magstr)
     except ValueError:
         pass
     return mag
+
 
 def validate_mmi(mmistr):
     """Convert MMI string to float or None if invalid.
@@ -409,13 +448,14 @@ def validate_mmi(mmistr):
       float or None if invalid.
     """
     mmi = None
-    if mmistr == '':
+    if mmistr == "":
         return DEFAULT_MMI
     try:
         mmi = float(mmistr)
     except ValueError:
         pass
     return mmi
+
 
 def print_user(user):
     """Return a string describing user in full detail.
@@ -425,32 +465,36 @@ def print_user(user):
     :returns:
       Multiline string containing description of a user.
     """
-    status = {True: 'primary', False: 'not primary'}
-    indent = '  '
-    udesc = ''
-    udesc += 'Name: %s %s\n' % (user.firstname, user.lastname)
-    udesc += '%sOrganization: %s\n' % (indent, user.organization.name)
-    udesc += '%sCreated on: %s\n' % (indent, user.createdon)
-    udesc += '%sAddresses:\n'% (indent)
+    status = {True: "primary", False: "not primary"}
+    indent = "  "
+    udesc = ""
+    udesc += f"Name: {user.firstname} {user.lastname}\n"
+    udesc += f"{indent}Organization: {user.organization.name}\n"
+    udesc += f"{indent}Created on: {user.createdon}\n"
+    udesc += f"{indent}Addresses:\n"
     for address in user.addresses:
-        udesc += '%sEmail: %s\n' % (indent*2, address.email)
-        udesc += '%sFormat: %s\n' % (indent*2, address.format)
-        udesc += '%sPriority: %i\n' % (indent*2, address.priority)
-        udesc += '%sStatus: %s\n' % (indent*2, status[address.is_primary])
-        
-        udesc += '%sProfiles:\n' % (indent*2)
+        udesc += f"{indent * 2}Email: {address.email}\n"
+        udesc += f"{indent * 2}Format: {address.format}\n"
+        udesc += "%sPriority: %i\n" % (indent * 2, address.priority)
+        udesc += f"{indent * 2}Status: {status[address.is_primary]}\n"
+
+        udesc += f"{indent * 2}Profiles:\n"
         for profile in address.profiles:
             if len(profile.regions):
-                udesc += '%sRegions:\n' % (indent*3)
+                udesc += f"{indent * 3}Regions:\n"
             else:
-                udesc += '%sRegions: Global\n' % (indent*3)
+                udesc += f"{indent * 3}Regions: Global\n"
             for region in profile.regions:
-                udesc += '%s%s\n' % (indent*4, region.name)
-            udesc += '%sThresholds:\n' % (indent*3)
+                udesc += f"{indent * 4}{region.name}\n"
+            udesc += f"{indent * 3}Thresholds:\n"
             for threshold in profile.thresholds:
-                udesc += '%s%s:%s\n' % (indent*4, threshold.alertscheme.name, str(threshold.value))
+                udesc += "%s%s:%s\n" % (
+                    indent * 4,
+                    threshold.alertscheme.name,
+                    str(threshold.value),
+                )
     return udesc
-            
+
 
 def add_address(session, user, email=None):
     """Interactively add an Address object to a User.
@@ -466,51 +510,62 @@ def add_address(session, user, email=None):
     """
     is_primary = True
     if email is None:
-        address_prompt = 'Enter an email address for this user (or enter to stop adding addresses): '
+        address_prompt = (
+            "Enter an email address for this user (or enter to stop adding addresses): "
+        )
         email = input(address_prompt).strip()
         is_primary = False
-        
-    if email != '':
+
+    if email != "":
         address = emailschema.Address()
         address.email = email
         if not is_primary:
-            prim_resp = input("Is this email the user's primary address yes/[no]?").strip()
+            prim_resp = input(
+                "Is this email the user's primary address yes/[no]?"
+            ).strip()
             address.is_primary = True
-            if prim_resp == '':
+            if prim_resp == "":
                 address.is_primary = False
         else:
             address.is_primary = is_primary
-        pri_resp = input("Enter an integer priority for this address [%i] " % DEFAULT_PRIORITY)
-        if pri_resp == '':
-            pri_resp = '%i' % DEFAULT_PRIORITY
+        pri_resp = input(
+            "Enter an integer priority for this address [%i] " % DEFAULT_PRIORITY
+        )
+        if pri_resp == "":
+            pri_resp = "%i" % DEFAULT_PRIORITY
         try:
             address.priority = int(pri_resp)
         except Exception as e:
-            print('Priority must be an integer.  Exiting.')
+            print("Priority must be an integer.  Exiting.")
             sys.exit(1)
-        format_resp = input("What email format should this address get [short]/long/pdf? ").strip()
-        if format_resp == '':
-            format_resp = 'short'
+        format_resp = input(
+            "What email format should this address get [short]/long/pdf? "
+        ).strip()
+        if format_resp == "":
+            format_resp = "short"
         if format_resp not in FORMATS:
-            print('Format must be one of %s.  Exiting.' % str(FORMATS))
+            print(f"Format must be one of {str(FORMATS)}.  Exiting.")
             sys.exit(1)
-        address.format = 'short'
-        if format_resp != '':
+        address.format = "short"
+        if format_resp != "":
             address.format = format_resp
         do_profile = True
-        print('Gathering profile information...')
+        print("Gathering profile information...")
         while do_profile:
             profile = add_profile(session, address)
             address.profiles.append(profile)
             address.profiles.append(profile)
-            more_profiles = input('Do you need to add another profile [no]/yes? ').strip()
-            if more_profiles == '':
+            more_profiles = input(
+                "Do you need to add another profile [no]/yes? "
+            ).strip()
+            if more_profiles == "":
                 do_profile = False
             else:
                 do_profile = True
     else:
         address = None
     return address
+
 
 def add_threshold(session, profile, scheme):
     """Interactively add a Threshold object to a Profile.
@@ -525,42 +580,47 @@ def add_threshold(session, profile, scheme):
       SQLALchemy Threshold object.
     """
     threshold = None
-    scheme_prompt = 'Should this profile use a %s threshold[no]/yes? ' % scheme.name
+    scheme_prompt = f"Should this profile use a {scheme.name} threshold[no]/yes? "
     scheme_answer = input(scheme_prompt)
-    if scheme_answer == '':
+    if scheme_answer == "":
         return None
-    if scheme.name == 'mag':
-        mag_answer = input('Enter the magnitude threshold (0-9.9)[%.1f]: ' % DEFAULT_MAG)
+    if scheme.name == "mag":
+        mag_answer = input(
+            f"Enter the magnitude threshold (0-9.9)[{DEFAULT_MAG:.1f}]: "
+        )
         mag = validate_mag(mag_answer)
         if mag is None:
-            print('Invalid magnitude. Exiting.')
+            print("Invalid magnitude. Exiting.")
             sys.exit(1)
         mag_threshold = emailschema.Threshold()
         mag_threshold.alertscheme = scheme
         mag_threshold.value = mag
         return mag_threshold
-    elif scheme.name == 'eis':
-        eis_answer = input('Enter the EIS threshold (green,yellow,orange,red)[%s]: ' % DEFAULT_EIS)
-        if eis_answer == '':
+    elif scheme.name == "eis":
+        eis_answer = input(
+            f"Enter the EIS threshold (green,yellow,orange,red)[{DEFAULT_EIS}]: "
+        )
+        if eis_answer == "":
             eis_answer = DEFAULT_EIS
-        if eis_answer not in ['green', 'yellow', 'orange', 'red']:
-            print('Invalid EIS threshold. Exiting.')
+        if eis_answer not in ["green", "yellow", "orange", "red"]:
+            print("Invalid EIS threshold. Exiting.")
             sys.exit(1)
         eis_threshold = emailschema.Threshold()
         eis_threshold.alertscheme = scheme
         eis_threshold.value = eis_answer
         return eis_threshold
-    elif scheme.name == 'mmi':
-        mmi_answer = input('Choose the MMI threshold (0-10)[%.1f]: ' % DEFAULT_MMI)
+    elif scheme.name == "mmi":
+        mmi_answer = input(f"Choose the MMI threshold (0-10)[{DEFAULT_MMI:.1f}]: ")
         mmi = validate_mmi(mmi_answer)
         if mmi is None:
-            print('Invalid MMI value. Exiting')
+            print("Invalid MMI value. Exiting")
             sys.exit(1)
         mmi_threshold = emailschema.Threshold()
         mmi_threshold.alertscheme = scheme
         mmi_threshold.value = mmi
         return mmi_threshold
     return threshold
+
 
 def add_profile(session, address):
     """Interactively add a Profile object to an Address.
@@ -581,21 +641,29 @@ def add_profile(session, address):
         if threshold is None:
             continue
         profile.thresholds.append(threshold)
-            
+
     for region_group in region_groups:
-        group_prompt = 'Would you like to select a region from %s[no]/yes? ' % region_group.groupname
+        group_prompt = (
+            f"Would you like to select a region from {region_group.groupname}[no]/yes? "
+        )
         group_answer = input(group_prompt).strip()
-        if group_answer == '':
+        if group_answer == "":
             continue
         gid = region_group.id
-        regions = session.query(emailschema.Region).filter(emailschema.Region.regiongroup_id == gid).order_by(emailschema.Region.name).all()
+        regions = (
+            session.query(emailschema.Region)
+            .filter(emailschema.Region.regiongroup_id == gid)
+            .order_by(emailschema.Region.name)
+            .all()
+        )
         for region in regions:
-            region_prompt = 'Use region %s [no]/yes? ' % region.name
+            region_prompt = f"Use region {region.name} [no]/yes? "
             region_answer = input(region_prompt).strip()
-            if region_answer == '':
+            if region_answer == "":
                 continue
             profile.regions.append(region)
     return profile
+
 
 def add_user(session):
     """Interactively add a User object to the database.
@@ -609,20 +677,26 @@ def add_user(session):
     email_prompt = "Enter the user's primary email address: "
     primary_email = input(email_prompt)
 
-    tuser = check_user(session, primary_email, 'null')
+    tuser = check_user(session, primary_email, "null")
     if tuser is not None:
         res = False
-        msg = 'User already exists in the database.\n%s' % (print_user(tuser))
+        msg = f"User already exists in the database.\n{print_user(tuser)}"
         return (res, msg)
-    
+
     name_prompt = "Enter the user's first and last name, separated by spaces: "
     username = input(name_prompt)
     first, last = username.split()
     org_prompt = "Enter the user's organization (short name, can be lower case): "
     org_short = input(org_prompt).lower()
-    org = session.query(emailschema.Organization).filter(func.lower(emailschema.Organization.shortname)==org_short).first()
+    org = (
+        session.query(emailschema.Organization)
+        .filter(func.lower(emailschema.Organization.shortname) == org_short)
+        .first()
+    )
     if org is None:
-        msg = 'Could not find an organization called %s.  Add using --add-org.' % org_short
+        msg = (
+            f"Could not find an organization called {org_short}.  Add using --add-org."
+        )
         return (False, msg)
     user = emailschema.User()
     user.lastname = last
@@ -632,17 +706,18 @@ def add_user(session):
 
     address = add_address(session, user, email=primary_email)
     user.addresses.append(address)
-    
+
     do_address = True
     while do_address:
         address = add_address(session, user)
         if address is None:
             break
         user.addresses.append(address)
-        
+
     session.commit()
-    msg = 'The user %s has now been entered in the database.' % (print_user(user))
+    msg = f"The user {print_user(user)} has now been entered in the database."
     return (True, msg)
+
 
 def init_db(db_url, session, userfile=None, orgfile=None):
     """Initialize the database with new users and new organizations.
@@ -659,9 +734,9 @@ def init_db(db_url, session, userfile=None, orgfile=None):
       result (True or False)
       String message describing result.
     """
-    resp = input('Are you sure to want to re-create the database? [No]/Yes ')
-    if resp != 'Yes':
-        print('That was a No.  Exiting.')
+    resp = input("Are you sure to want to re-create the database? [No]/Yes ")
+    if resp != "Yes":
+        print("That was a No.  Exiting.")
         sys.exit(0)
 
     # Before we nuke everything, let's at least back up the list of users
@@ -674,12 +749,14 @@ def init_db(db_url, session, userfile=None, orgfile=None):
     # print('Saving user profiles to %s.' % user_backup)
     # emailschema.serialize_users(session,user_backup)
     session.close()
-        
-    jsondir = get_data_path('schema')
-    session = emailschema.create_db(db_url, jsondir, users_jsonfile=userfile,
-                                    orgs_jsonfile=orgfile)
+
+    jsondir = get_data_path("schema")
+    session = emailschema.create_db(
+        db_url, jsondir, users_jsonfile=userfile, orgs_jsonfile=orgfile
+    )
     session.close()
-    return (True, 'Database created successfully.')    
+    return (True, "Database created successfully.")
+
 
 def get_threshold(session, scheme_name, value):
     """Create a threshold for a given AlertScheme name and value.
@@ -693,11 +770,16 @@ def get_threshold(session, scheme_name, value):
     :returns:
       SQLALchemy Threshold object.
     """
-    scheme = session.query(emailschema.AlertScheme).filter(emailschema.AlertScheme.name==scheme_name).first()
+    scheme = (
+        session.query(emailschema.AlertScheme)
+        .filter(emailschema.AlertScheme.name == scheme_name)
+        .first()
+    )
     threshold = emailschema.Threshold()
     threshold.alertscheme = scheme
     threshold.value = value
     return threshold
+
 
 def check_user(session, email, sms):
     """Find the user associated with an email.
@@ -711,14 +793,23 @@ def check_user(session, email, sms):
     :returns:
       Valid SQLALchemy User object, or None.
     """
-    address = session.query(emailschema.Address).filter(emailschema.Address.email==email).first()
+    address = (
+        session.query(emailschema.Address)
+        .filter(emailschema.Address.email == email)
+        .first()
+    )
     if address is not None:
         return address.user
-    if sms != 'null':
-        address = session.query(emailschema.Address).filter(emailschema.Address.email==sms).first()
+    if sms != "null":
+        address = (
+            session.query(emailschema.Address)
+            .filter(emailschema.Address.email == sms)
+            .first()
+        )
         if address is not None:
             return address.user
     return None
+
 
 def add_fema(session, fema_user):
     """Create a FEMA user based on data provided at the command line.
@@ -743,23 +834,29 @@ def add_fema(session, fema_user):
     tuser = check_user(session, email, sms)
     if tuser is not None:
         res = False
-        msg = 'User already exists in the database.\n%s' % (print_user(tuser))
+        msg = f"User already exists in the database.\n{print_user(tuser)}"
         return (res, msg)
     # region_names = []
     # if len(fema_user) > 4:
     #     region_names = fema_user[4:]
-    org = session.query(emailschema.Organization).filter(emailschema.Organization.shortname=='DHS/FEMA').first()
+    org = (
+        session.query(emailschema.Organization)
+        .filter(emailschema.Organization.shortname == "DHS/FEMA")
+        .first()
+    )
     user = emailschema.User()
     user.lastname = lastname
     user.firstname = firstname
     user.createdon = datetime.utcnow()
     user.organization = org
-    address1 = emailschema.Address(email=email, is_primary=True, priority=DEFAULT_PRIORITY, format='pdf')
+    address1 = emailschema.Address(
+        email=email, is_primary=True, priority=DEFAULT_PRIORITY, format="pdf"
+    )
     address1.user = user
 
     # Create the default thresholds
     global_thresholds1, us_thresholds1 = get_fema_thresholds(session)
-    
+
     # Add thresholds and regions to primary email profile
     profile1 = emailschema.Profile()
     profile1.thresholds.append(global_thresholds1[0])
@@ -770,10 +867,13 @@ def add_fema(session, fema_user):
     profile2.thresholds.append(us_thresholds1[0])
     profile2.thresholds.append(us_thresholds1[1])
 
-
-    region = session.query(emailschema.Region).filter(emailschema.Region.name=='US_Terr').first()
+    region = (
+        session.query(emailschema.Region)
+        .filter(emailschema.Region.name == "US_Terr")
+        .first()
+    )
     profile2.regions.append(region)
-    
+
     address1.profiles.append(profile1)
     address1.profiles.append(profile2)
 
@@ -796,13 +896,14 @@ def add_fema(session, fema_user):
 
     #     region = session.query(emailschema.Region).filter(emailschema.Region.name=='US_Terr').first()
     #     profile4.regions.append(region)
-            
+
     #     address2.profiles.append(profile3)
     #     address2.profiles.append(profile4)
 
     session.add(user)
     session.commit()
-    return (True, 'Added user to database:\n%s' % (print_user(user)))
+    return (True, f"Added user to database:\n{print_user(user)}")
+
 
 def get_fema_thresholds(session):
     """Create thresholds needed to create a default FEMA user.
@@ -814,17 +915,22 @@ def get_fema_thresholds(session):
       [MMI 7 threshold,Mag 6.0 threshold, EIS yellow threshold]
       [Mag 4.5 threshold, EIS yellow threshold]
     """
-    mmi_threshold_global = get_threshold(session, 'mmi', GLOBAL_FEMA_MMI)
-    mag_threshold_global = get_threshold(session, 'mag', GLOBAL_FEMA_MAG)
-    eis_threshold_global = get_threshold(session, 'eis', GLOBAL_FEMA_EIS)
+    mmi_threshold_global = get_threshold(session, "mmi", GLOBAL_FEMA_MMI)
+    mag_threshold_global = get_threshold(session, "mag", GLOBAL_FEMA_MAG)
+    eis_threshold_global = get_threshold(session, "eis", GLOBAL_FEMA_EIS)
 
-    mag_threshold_us = get_threshold(session, 'mag', US_FEMA_MAG)
-    eis_threshold_us = get_threshold(session, 'eis', US_FEMA_EIS)
+    mag_threshold_us = get_threshold(session, "mag", US_FEMA_MAG)
+    eis_threshold_us = get_threshold(session, "eis", US_FEMA_EIS)
 
-    globals_thresholds = [mmi_threshold_global, mag_threshold_global, eis_threshold_global]
+    globals_thresholds = [
+        mmi_threshold_global,
+        mag_threshold_global,
+        eis_threshold_global,
+    ]
     us_thresholds = [mag_threshold_us, eis_threshold_us]
-    
+
     return (globals_thresholds, us_thresholds)
+
 
 def add_generic(session, generic_user):
     """Add a generic user to the database, using "7 7 yellow" (mag, mmi, eis) thresholds.
@@ -851,27 +957,33 @@ def add_generic(session, generic_user):
     tuser = check_user(session, email, sms)
     if tuser is not None:
         res = False
-        msg = 'User already exists in the database.\n%s' % (print_user(tuser))
+        msg = f"User already exists in the database.\n{print_user(tuser)}"
         return (res, msg)
     region_names = []
     if len(generic_user) > 5:
         region_names = generic_user[5:]
-    org_object = session.query(emailschema.Organization).filter(emailschema.Organization.shortname==org).first()
+    org_object = (
+        session.query(emailschema.Organization)
+        .filter(emailschema.Organization.shortname == org)
+        .first()
+    )
     if org_object is None:
         res = False
-        msg = 'No organization called "%s" found in the database.' % org
+        msg = f'No organization called "{org}" found in the database.'
     user = emailschema.User()
     user.lastname = lastname
     user.firstname = firstname
     user.createdon = datetime.utcnow()
     user.organization = org_object
-    address1 = emailschema.Address(email=email, is_primary=True, priority=DEFAULT_PRIORITY, format='pdf')
+    address1 = emailschema.Address(
+        email=email, is_primary=True, priority=DEFAULT_PRIORITY, format="pdf"
+    )
     address1.user = user
 
     # Create the default thresholds
-    mmi_threshold1 = get_threshold(session, 'mmi', DEFAULT_MMI)
-    mag_threshold1 = get_threshold(session, 'mag', DEFAULT_MAG)
-    eis_threshold1 = get_threshold(session, 'eis', DEFAULT_EIS)
+    mmi_threshold1 = get_threshold(session, "mmi", DEFAULT_MMI)
+    mag_threshold1 = get_threshold(session, "mag", DEFAULT_MAG)
+    eis_threshold1 = get_threshold(session, "eis", DEFAULT_EIS)
 
     # Add thresholds and regions to primary email profile
     profile1 = emailschema.Profile()
@@ -879,31 +991,42 @@ def add_generic(session, generic_user):
     profile1.thresholds.append(mag_threshold1)
     profile1.thresholds.append(eis_threshold1)
     for region_name in region_names:
-        region = session.query(emailschema.Region).filter(emailschema.Region.name==region_name).first()
+        region = (
+            session.query(emailschema.Region)
+            .filter(emailschema.Region.name == region_name)
+            .first()
+        )
         profile1.regions.append(region)
     address1.profiles.append(profile1)
 
     # Create an Address for SMS (if provided)
-    if sms != 'null':
-        address2 = emailschema.Address(email=sms, is_primary=False, priority=DEFAULT_PRIORITY, format='short')
+    if sms != "null":
+        address2 = emailschema.Address(
+            email=sms, is_primary=False, priority=DEFAULT_PRIORITY, format="short"
+        )
         address2.user = user
 
         # Add thresholds and regions to SMS email profile
         # Create the default thresholds
-        mmi_threshold2 = get_threshold(session, 'mmi', DEFAULT_MMI)
-        mag_threshold2 = get_threshold(session, 'mag', DEFAULT_MAG)
-        eis_threshold2 = get_threshold(session, 'eis', DEFAULT_EIS)
+        mmi_threshold2 = get_threshold(session, "mmi", DEFAULT_MMI)
+        mag_threshold2 = get_threshold(session, "mag", DEFAULT_MAG)
+        eis_threshold2 = get_threshold(session, "eis", DEFAULT_EIS)
         profile2 = emailschema.Profile()
         profile2.thresholds.append(mmi_threshold2)
         profile2.thresholds.append(mag_threshold2)
         profile2.thresholds.append(eis_threshold2)
         for region_name in region_names:
-            region = session.query(emailschema.Region).filter(emailschema.Region.name==region_name).first()
+            region = (
+                session.query(emailschema.Region)
+                .filter(emailschema.Region.name == region_name)
+                .first()
+            )
             profile2.regions.append(region)
         address2.profiles.append(profile2)
     session.add(user)
     session.commit()
-    return (True, 'Added user to database:\n%s' % (print_user(user)))
+    return (True, f"Added user to database:\n{print_user(user)}")
+
 
 def delete_user(session, userinfo, config):
     """Delete a user from the database.
@@ -924,30 +1047,38 @@ def delete_user(session, userinfo, config):
       result (True or False)
       String message describing result.
     """
-    statsfolder = config['stats_folder']
-    userfile = os.path.join(statsfolder, 'deleted_users.xlsx')
+    statsfolder = config["stats_folder"]
+    userfile = os.path.join(statsfolder, "deleted_users.xlsx")
     if os.path.isfile(userfile):
         userdf = pd.read_excel(userfile)
     else:
-        userdf = pd.DataFrame(columns=['Name', 'Email', 'Reason'])
+        userdf = pd.DataFrame(columns=["Name", "Email", "Reason"])
     email = userinfo[0]
     if len(userinfo) > 1:
-        reason = ' '.join(userinfo[1:])
+        reason = " ".join(userinfo[1:])
     else:
-        reason = 'No reason supplied'
-        
-    address = session.query(emailschema.Address).filter(func.lower(emailschema.Address.email)==email.lower()).first()
+        reason = "No reason supplied"
+
+    address = (
+        session.query(emailschema.Address)
+        .filter(func.lower(emailschema.Address.email) == email.lower())
+        .first()
+    )
     if address is None:
-        msg = 'No email address "%s" in the database.  Returning.' % email
+        msg = f'No email address "{email}" in the database.  Returning.'
         return (False, msg)
     user = address.user
-    udesc = '%s %s from %s (%s)' % (user.firstname, user.lastname,
-                                    user.organization.shortname, user.addresses[0].email)
-    resp = input('%s.  Is this the user you want to delete? [N]/Y? ' % udesc)
-    if resp.strip() == '' or resp.strip() == 'N':
+    udesc = "%s %s from %s (%s)" % (
+        user.firstname,
+        user.lastname,
+        user.organization.shortname,
+        user.addresses[0].email,
+    )
+    resp = input(f"{udesc}.  Is this the user you want to delete? [N]/Y? ")
+    if resp.strip() == "" or resp.strip() == "N":
         res = False
-        msg = 'You declined to delete a user.'
-    elif resp == 'Y':
+        msg = "You declined to delete a user."
+    elif resp == "Y":
         primary_email = user.addresses[0].email
         for address in user.addresses:
             if address.is_primary:
@@ -959,47 +1090,51 @@ def delete_user(session, userinfo, config):
             session.delete(user)
             session.commit()
         except Exception as e:
-            print('Failed to delete user due to error "%s"' % str(e))
+            print(f'Failed to delete user due to error "{str(e)}"')
             sys.exit(1)
-            
+
         # append the deletion info to our records
-        row = {'Name': '%s %s' % (user.firstname, user.lastname),
-               'Email': primary_email,
-               'Reason': reason}
+        row = {
+            "Name": f"{user.firstname} {user.lastname}",
+            "Email": primary_email,
+            "Reason": reason,
+        }
         userdf = userdf.append(row, ignore_index=True)
         userdf.to_excel(userfile)
-        print('Syncing deletion to %s' % userfile)
-        
+        print(f"Syncing deletion to {userfile}")
+
         res = True
-        msg = 'One user deleted.'
+        msg = "One user deleted."
 
     return (res, msg)
 
+
 def do_status(status, admin):
     current_mail_status = admin.getMailStatus()
-    if status == 'check':
-        if current_mail_status == 'primary':
-            msg = 'MAIL PRIMARY: This system WILL send emails.'
+    if status == "check":
+        if current_mail_status == "primary":
+            msg = "MAIL PRIMARY: This system WILL send emails."
         else:
-            msg = 'MAIL SECONDARY: This system WILL NOT send emails.'
+            msg = "MAIL SECONDARY: This system WILL NOT send emails."
     else:
         if status == current_mail_status:
-            msg = 'MAIL status is already %s.' % current_mail_status
+            msg = f"MAIL status is already {current_mail_status}."
         else:
             new_status = admin.setMailStatus(status)
-            if new_status == 'primary':
-                fmt = 'MAIL status changed to %s - this system is now configured to send email.'
+            if new_status == "primary":
+                fmt = "MAIL status changed to %s - this system is now configured to send email."
             else:
-                fmt = 'MAIL status changed to %s - this system is now configured to NOT send email.'
+                fmt = "MAIL status changed to %s - this system is now configured to NOT send email."
             msg = fmt % new_status
     return msg
-                        
+
+
 def main(args):
-    pd.set_option('display.width', DATAFRAME_DISPLAY_WIDTH)
-    pd.set_option('display.max_rows', DATAFRAME_DISPLAY_LENGTH)
-    
+    pd.set_option("display.width", DATAFRAME_DISPLAY_WIDTH)
+    pd.set_option("display.max_rows", DATAFRAME_DISPLAY_LENGTH)
+
     config = read_mail_config()
-    dburl = config['email']['database']['url']
+    dburl = config["email"]["database"]["url"]
     create = False
     parts = urlparse(dburl)
     dbfile = parts.path[1:]
@@ -1009,7 +1144,7 @@ def main(args):
 
     do_sync = False
     res = False
-    msg = ''
+    msg = ""
 
     if args.init_db:
         if len(args.init_db) >= 1:
@@ -1023,7 +1158,7 @@ def main(args):
         admin = PagerAdmin(os.getcwd(), os.getcwd())
         msg = do_status(args.status, admin)
         res = True
-        
+
     if args.add_user:
         res, msg = add_user(session)
         do_sync = True
@@ -1033,9 +1168,11 @@ def main(args):
         do_sync = True
 
     if args.clear_users:
-        resp = input('Are you sure to want to clear all users from the database? [No]/Yes ')
-        if resp != 'Yes':
-            print('That was a No.  Exiting.')
+        resp = input(
+            "Are you sure to want to clear all users from the database? [No]/Yes "
+        )
+        if resp != "Yes":
+            print("That was a No.  Exiting.")
             sys.exit(0)
         users = session.query(emailschema.User).all()
         nusers = len(users)
@@ -1043,31 +1180,35 @@ def main(args):
             session.delete(user)
             session.commit()
         res = True
-        msg = '%i users deleted from the database.' % nusers
+        msg = "%i users deleted from the database." % nusers
         do_sync = True
-        
+
     if args.export_users:
         userlist = []
         jsonfile = args.export_users[0]
         emails = args.export_users[1:]
-        if emails[0] == 'all':
+        if emails[0] == "all":
             addresses = session.query(emailschema.Address).all()
             emails = [address.email for address in addresses]
-            
+
         for email in emails:
-            address = session.query(emailschema.Address).filter(func.lower(emailschema.Address.email)==email.lower()).first()
+            address = (
+                session.query(emailschema.Address)
+                .filter(func.lower(emailschema.Address.email) == email.lower())
+                .first()
+            )
             user = address.user
             userdict = user.toDict()
             userlist.append(userdict)
-        f = open(jsonfile, 'wt')
+        f = open(jsonfile, "wt")
         json.dump(userlist, f)
         f.close()
         res = True
-        msg = '%i users have been written to %s' % (len(userlist), jsonfile)
+        msg = "%i users have been written to %s" % (len(userlist), jsonfile)
 
     if args.import_users:
         jsonfile = args.import_users
-        f = open(jsonfile, 'rt')
+        f = open(jsonfile, "rt")
         userlist = json.load(f)
         f.close()
         for userdict in userlist:
@@ -1075,9 +1216,9 @@ def main(args):
             user.fromDict(session, userdict)
         # session adding and committing handled inside fromDict method
         res = True
-        msg = '%i users added from %s.' % (len(userlist), jsonfile)
+        msg = "%i users added from %s." % (len(userlist), jsonfile)
         do_sync = True
-        
+
     if args.add_generic:
         if len(args.add_generic) < 5:
             msg = 'add_generic required fields: Org FirstName LastName PrimaryEmail SMSEmail (or "null"). Exiting.'
@@ -1093,60 +1234,64 @@ def main(args):
         else:
             res, msg = add_fema(session, args.add_fema)
             do_sync = True
-    
+
     if args.add_org:
         shortname = args.add_org[0]
-        longname = ' '.join(args.add_org[1:])
+        longname = " ".join(args.add_org[1:])
         org = emailschema.Organization(name=longname, shortname=shortname)
         session.add(org)
         session.commit()
-        msg = 'Organization %s has been added to the database.' % org
+        msg = f"Organization {org} has been added to the database."
         res = True
         do_sync = True
 
     if args.list_orgs:
         orgs = session.query(emailschema.Organization).all()
         for org in orgs:
-            print('%-40s (%s)' % (org.name, org.shortname))
+            print("%-40s (%s)" % (org.name, org.shortname))
         res = True
-        msg = ''
+        msg = ""
 
     if args.list_region_groups:
         groups = session.query(emailschema.RegionGroup).all()
         for group in groups:
-            print('%-40s' % (group.groupname))
+            print("%-40s" % (group.groupname))
         res = True
-        msg = ''
+        msg = ""
 
     if args.delete_event:
         eventid = args.delete_event
-        event = session.query(emailschema.Event).filter(emailschema.Event.eventcode == eventid).first()
+        event = (
+            session.query(emailschema.Event)
+            .filter(emailschema.Event.eventcode == eventid)
+            .first()
+        )
         if event is None:
-            msg = 'Event %s does not exist in the database.' % eventid
+            msg = f"Event {eventid} does not exist in the database."
             res = False
         else:
             session.delete(event)
             session.commit()
-            msg = 'Deleted event %s from the database.' % eventid
+            msg = f"Deleted event {eventid} from the database."
             res = True
-    
+
     # get information about a bunch of events
     if args.query:
         df = query_events(args.query, session)
-        if args.output == 'screen':
+        if args.output == "screen":
             print(df)
             res = True
-            msg = ''
+            msg = ""
         else:
             df.to_excel(args.output)
             res = True
-            msg = ''
+            msg = ""
 
     if args.stats:
-        statsdir = config['stats_folder']
+        statsdir = config["stats_folder"]
         tnow = datetime.utcnow()
         this_month = tnow.month
-        if args.stats[0] == 'month':
+        if args.stats[0] == "month":
             # go get the last full month's worth of pager results.
             query_month = this_month - 1
             query_year = tnow.year
@@ -1156,79 +1301,84 @@ def main(args):
             ndays = monthrange(query_year, query_month)[1]
             start_date = datetime(query_year, query_month, 1)
             end_date = datetime(query_year, query_month, ndays, 23, 59, 59)
-            fname = 'monthly_%i_%i.xlsx' % (query_year, query_month)
-        elif args.stats[0] == 'quarter':
-            this_quarter = (tnow.month-1)//3
+            fname = "monthly_%i_%i.xlsx" % (query_year, query_month)
+        elif args.stats[0] == "quarter":
+            this_quarter = (tnow.month - 1) // 3
             last_quarter = this_quarter - 1
             if last_quarter == -1:
                 query_year = tnow.year - 1
                 last_quarter = 3
-            quarters = {0: (1, 3),
-                        1: (4, 6),
-                        2: (7, 9),
-                        3: (10, 12)}
+            quarters = {0: (1, 3), 1: (4, 6), 2: (7, 9), 3: (10, 12)}
 
             fday, end_month_days = monthrange(query_year, quarters[last_quarter][1])
             start_date = datetime(query_year, quarters[last_quarter][0], 1)
-            end_date = datetime(query_year, quarters[last_quarter][1], end_month_days, 23, 59, 59)
-            fname = 'quarterly_%i_Q%i.xlsx' % (query_year, (last_quarter+1))
-        elif args.stats[0] == 'year':
+            end_date = datetime(
+                query_year, quarters[last_quarter][1], end_month_days, 23, 59, 59
+            )
+            fname = "quarterly_%i_Q%i.xlsx" % (query_year, (last_quarter + 1))
+        elif args.stats[0] == "year":
             query_year = tnow.year - 1
             start_date = datetime(query_year, 1, 1)
             end_date = datetime(query_year, 12, 31, 23, 59, 59)
-            fname = 'yearly_%i.xlsx' % (query_year)
+            fname = "yearly_%i.xlsx" % (query_year)
         else:
             pass
         qparams = []
-        qparams.append(start_date.strftime('%Y-%m-%d 00:00:00'))
+        qparams.append(start_date.strftime("%Y-%m-%d 00:00:00"))
         qparams.append(0.0)
-        qparams.append('green')
-        qparams.append(end_date.strftime('%Y-%m-%d 23:59:59'))
+        qparams.append("green")
+        qparams.append(end_date.strftime("%Y-%m-%d 23:59:59"))
         df = query_events(qparams, session)
         output = os.path.join(statsdir, fname)
         if len(df):
             df.to_excel(output)
             res = True
-            msg = '%i events written to %s' % (len(df), output)
+            msg = "%i events written to %s" % (len(df), output)
         else:
             res = False
-            msg = 'No events from period %s to %s. Exiting.' % (start_date, end_date)
-        
+            msg = f"No events from period {start_date} to {end_date}. Exiting."
 
     # get information about all versions for an event
     if args.event_history:
         ecode = args.event_history
-        event = session.query(emailschema.Event).filter(emailschema.Event.eventcode == ecode).first()
+        event = (
+            session.query(emailschema.Event)
+            .filter(emailschema.Event.eventcode == ecode)
+            .first()
+        )
         if event is None:
-            msg = 'No event with ID %s found in database.' % ecode
+            msg = f"No event with ID {ecode} found in database."
             res = False
         else:
             df = pd.DataFrame(columns=VERSION_COLUMNS)
             for version in event.versions:
                 row = version_to_series(version)
                 df = df.append(row, ignore_index=True)
-            df[['Version']] = df[['Version']].astype(int)
-            df = df.set_index(['EventID', 'Version'])
-            if args.output == 'screen':
+            df[["Version"]] = df[["Version"]].astype(int)
+            df = df.set_index(["EventID", "Version"])
+            if args.output == "screen":
                 print(df)
-                msg = '%i versions for event %s.' % (len(event.versions), ecode)
+                msg = "%i versions for event %s." % (len(event.versions), ecode)
             else:
                 df.to_excel(args.output)
-                msg = '%i versions written to Excel file %s.' % (len(event.versions), args.output)
+                msg = "%i versions written to Excel file %s." % (
+                    len(event.versions),
+                    args.output,
+                )
             res = True
-            
+
     # Get information about which emails received notifications for different versions of a given event
     if args.event_notification_history:
         df = get_version_history(session, args.event_notification_history)
         if df is None:
-            msg = 'No event found for %s.' % args.event_notification_history
+            msg = f"No event found for {args.event_notification_history}."
             res = False
         else:
-            if args.output == 'screen':
+            if args.output == "screen":
                 print(df)
-                msg = ''
+                msg = ""
             else:
-                msg = 'Results written to %s.' % args.output
+                msg = f"Results written to {args.output}."
                 df.to_excel(args.output)
         res = True
 
@@ -1244,69 +1394,93 @@ def main(args):
     # These files will be placed in a directory under ~/notification_lists/eventid
     if args.generate_notification_list:
         eventid = args.generate_notification_list
-        event = session.query(emailschema.Event).filter(emailschema.Event.eventcode == eventid).first()
+        event = (
+            session.query(emailschema.Event)
+            .filter(emailschema.Event.eventcode == eventid)
+            .first()
+        )
         if event is None:
-            msg = 'Event %s does not exist in the database.' % eventid
+            msg = f"Event {eventid} does not exist in the database."
             res = False
         else:
-            max_bcc = config['email']['max_bcc']
+            max_bcc = config["email"]["max_bcc"]
             write_notification_lists(session, eventid, max_bcc)
-            
-        
+
     # get information about which versions user has been notified
     if args.user_notification_history:
         email = args.user_notification_history.strip()
-        address = session.query(emailschema.Address).filter(emailschema.Address.email == email).first()
+        address = (
+            session.query(emailschema.Address)
+            .filter(emailschema.Address.email == email)
+            .first()
+        )
         user = address.user
         df = pandify_user(user, session)
-        if args.output == 'screen':
+        if args.output == "screen":
             print(df)
-            msg = ''
+            msg = ""
         else:
-            msg = 'Results written to %s.' % args.output
+            msg = f"Results written to {args.output}."
             df.to_excel(output)
         res = True
-        
+
     if args.list_regions:
         groupname = args.list_regions
-        regiongroup = session.query(emailschema.RegionGroup).filter(emailschema.RegionGroup.groupname == groupname).first()
+        regiongroup = (
+            session.query(emailschema.RegionGroup)
+            .filter(emailschema.RegionGroup.groupname == groupname)
+            .first()
+        )
         if regiongroup is None:
-            msg = 'No region group called %s found in database. Exiting.' % groupname
+            msg = f"No region group called {groupname} found in database. Exiting."
             res = False
         else:
             gid = regiongroup.id
-            regions = session.query(emailschema.Region).filter(emailschema.Region.regiongroup_id == gid).all()
+            regions = (
+                session.query(emailschema.Region)
+                .filter(emailschema.Region.regiongroup_id == gid)
+                .all()
+            )
             regions = sorted(regions, key=lambda r: r.name)
             for region in regions:
-                print('%-40s %-40s' % (region.name, region.desc))
+                print("%-40s %-40s" % (region.name, region.desc))
             res = True
-            msg = ''
+            msg = ""
 
     if args.show_user:
         email = args.show_user
-        address = session.query(emailschema.Address).filter(func.lower(emailschema.Address.email)==email.lower()).first()
+        address = (
+            session.query(emailschema.Address)
+            .filter(func.lower(emailschema.Address.email) == email.lower())
+            .first()
+        )
         if address is not None:
             print(print_user(address.user))
             res = True
-            msg = ''
+            msg = ""
         else:
             res = False
-            msg = 'No user found for email address %s' % email
-        
+            msg = f"No user found for email address {email}"
+
     if args.list_users:
         org_short = args.list_users
-        msg = ''
-        if org_short == 'all':
+        msg = ""
+        if org_short == "all":
             users = session.query(emailschema.User).all()
-            msg = 'There are %i total users.' % len(users)
+            msg = "There are %i total users." % len(users)
         else:
-            org = session.query(emailschema.Organization).filter(func.lower(emailschema.Organization.shortname)==org_short.lower()).first()
+            org = (
+                session.query(emailschema.Organization)
+                .filter(
+                    func.lower(emailschema.Organization.shortname) == org_short.lower()
+                )
+                .first()
+            )
             users = org.users
-            msg = 'There are %i users from %s.' % (len(users), org_short)
+            msg = "There are %i users from %s." % (len(users), org_short)
         for user in users:
             print(print_user(user))
         res = True
-        
 
     if res and do_sync:
         sync_db(session, config)
@@ -1317,8 +1491,9 @@ def main(args):
         sys.exit(1)
     sys.exit(0)
 
-if __name__ == '__main__':
-    usage = '''Administer the PAGER email database.
+
+if __name__ == "__main__":
+    usage = """Administer the PAGER email database.
     
     To add a user to the database: 
 
@@ -1367,70 +1542,141 @@ if __name__ == '__main__':
     To delete a user:
 
     %(prog)s --delete-user smith (follow the prompts to select the desired user.)
-    '''
-    argparser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-                                        usage=usage)
-    argparser.add_argument("--add-user", action='store_true', default=False,
-                           help='Add a user by following prompts.')
+    """
+    argparser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter, usage=usage
+    )
+    argparser.add_argument(
+        "--add-user",
+        action="store_true",
+        default=False,
+        help="Add a user by following prompts.",
+    )
 
-    argparser.add_argument("--add-generic", nargs='*',
-                           help='Add a generic user by providing: Org FirstName LastName PrimaryEmail SMSEmail (or "null") [regions].')
-    argparser.add_argument("--add-fema", nargs='*',
-                           help='Add a FEMA user by providing: FirstName LastName PrimaryEmail SMSEmail (or "null").')
-    argparser.add_argument("--delete-user", metavar=('EMAIL', 'REASON'), nargs="*",
-                           help="Delete a user by providing any email address associated with the user, and a description of why they are being deleted.")
+    argparser.add_argument(
+        "--add-generic",
+        nargs="*",
+        help='Add a generic user by providing: Org FirstName LastName PrimaryEmail SMSEmail (or "null") [regions].',
+    )
+    argparser.add_argument(
+        "--add-fema",
+        nargs="*",
+        help='Add a FEMA user by providing: FirstName LastName PrimaryEmail SMSEmail (or "null").',
+    )
+    argparser.add_argument(
+        "--delete-user",
+        metavar=("EMAIL", "REASON"),
+        nargs="*",
+        help="Delete a user by providing any email address associated with the user, and a description of why they are being deleted.",
+    )
 
-    argparser.add_argument("--export-users", nargs='*',
-                           help="""Export users by providing an output JSON file, and a list of 
-email addresses associated with the users to export.""")
+    argparser.add_argument(
+        "--export-users",
+        nargs="*",
+        help="""Export users by providing an output JSON file, and a list of 
+email addresses associated with the users to export.""",
+    )
 
-    argparser.add_argument("--import-users", 
-                           help="""Import users by providing an input JSON file.""")
+    argparser.add_argument(
+        "--import-users", help="""Import users by providing an input JSON file."""
+    )
 
-    argparser.add_argument("--clear-users", action='store_true', default=False,
-                           help="""Clear all users from database.""")
-    
-    
-    argparser.add_argument("--add-org", nargs='*', 
-                           help='Add an organization by entering short name (one word) followed by full name.')
-    argparser.add_argument("--list-orgs", action='store_true', default=False,
-                           help='Add a user by following prompts.')
-    argparser.add_argument("--list-users", metavar='GROUP',
-                           help='Print a user summary for all users ("all"), or those from an organization.')
-    argparser.add_argument("--show-user", metavar='EMAIL',
-                           help='Print a user summary for a given email address.')
-    argparser.add_argument("--list-region-groups", action='store_true', default=False,
-                           help='List the available region groups.')
-    argparser.add_argument("--list-regions", metavar='REGIONGROUP',
-                           help='List the regions associated with the given region group.')
+    argparser.add_argument(
+        "--clear-users",
+        action="store_true",
+        default=False,
+        help="""Clear all users from database.""",
+    )
 
-    argparser.add_argument("--query", nargs='*', default=False,
-                           help='Query the database for events.  Params are [START/all/recent [MAG [ALERT [END]]]]')
-    argparser.add_argument("--event-history", metavar='EVENTID',
-                           help='Display the version history of given event.')
-    argparser.add_argument("--event-notification-history", metavar='EVENTID',
-                           help='List all addresses notified for each version of a given event.')
-    argparser.add_argument("--user-notification-history", metavar='EMAIL',
-                           help='Display the alerting history for a given user (specified by an email address).')
-    argparser.add_argument("--generate-notification-list", metavar='EVENTID',
-                           help='List all unique addresses/names for any given version.')
+    argparser.add_argument(
+        "--add-org",
+        nargs="*",
+        help="Add an organization by entering short name (one word) followed by full name.",
+    )
+    argparser.add_argument(
+        "--list-orgs",
+        action="store_true",
+        default=False,
+        help="Add a user by following prompts.",
+    )
+    argparser.add_argument(
+        "--list-users",
+        metavar="GROUP",
+        help='Print a user summary for all users ("all"), or those from an organization.',
+    )
+    argparser.add_argument(
+        "--show-user",
+        metavar="EMAIL",
+        help="Print a user summary for a given email address.",
+    )
+    argparser.add_argument(
+        "--list-region-groups",
+        action="store_true",
+        default=False,
+        help="List the available region groups.",
+    )
+    argparser.add_argument(
+        "--list-regions",
+        metavar="REGIONGROUP",
+        help="List the regions associated with the given region group.",
+    )
 
-    argparser.add_argument("--status", choices=['check', 'primary', 'secondary'],
-                           help="Print or change PAGER Mail primary/secondary status.")
-    argparser.add_argument("--delete-event", metavar='EVENTCODE',
-                           help="Delete an event by providing it's event code.")   
-    argparser.add_argument("--stats", nargs=1, 
-                           help="Create dump of monthly, quarterly, or yearly event summary.",
-                           choices = ('month', 'quarter', 'year'), metavar='PERIOD')
-    argparser.add_argument("--output", metavar='OUTPUT', default='screen',
-                            help="Select output format for queries ('screen' or excel filename. (default: screen))'")
+    argparser.add_argument(
+        "--query",
+        nargs="*",
+        default=False,
+        help="Query the database for events.  Params are [START/all/recent [MAG [ALERT [END]]]]",
+    )
+    argparser.add_argument(
+        "--event-history",
+        metavar="EVENTID",
+        help="Display the version history of given event.",
+    )
+    argparser.add_argument(
+        "--event-notification-history",
+        metavar="EVENTID",
+        help="List all addresses notified for each version of a given event.",
+    )
+    argparser.add_argument(
+        "--user-notification-history",
+        metavar="EMAIL",
+        help="Display the alerting history for a given user (specified by an email address).",
+    )
+    argparser.add_argument(
+        "--generate-notification-list",
+        metavar="EVENTID",
+        help="List all unique addresses/names for any given version.",
+    )
 
-    ihelp = '''Recreate the database file by (optionally) providing JSON user file and
+    argparser.add_argument(
+        "--status",
+        choices=["check", "primary", "secondary"],
+        help="Print or change PAGER Mail primary/secondary status.",
+    )
+    argparser.add_argument(
+        "--delete-event",
+        metavar="EVENTCODE",
+        help="Delete an event by providing it's event code.",
+    )
+    argparser.add_argument(
+        "--stats",
+        nargs=1,
+        help="Create dump of monthly, quarterly, or yearly event summary.",
+        choices=("month", "quarter", "year"),
+        metavar="PERIOD",
+    )
+    argparser.add_argument(
+        "--output",
+        metavar="OUTPUT",
+        default="screen",
+        help="Select output format for queries ('screen' or excel filename. (default: screen))'",
+    )
+
+    ihelp = """Recreate the database file by (optionally) providing JSON user file and
     a JSON org file.
-    '''
-    argparser.add_argument("--init-db", nargs='*', help=ihelp, metavar=('userfile', 'orgfile'))
+    """
+    argparser.add_argument(
+        "--init-db", nargs="*", help=ihelp, metavar=("userfile", "orgfile")
+    )
     pargs = argparser.parse_args()
     main(pargs)
-    
-
-

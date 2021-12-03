@@ -17,10 +17,11 @@ from losspager.utils.country import Country
 
 GLOBAL_GDP = 16100  # from https://en.wikipedia.org/wiki/Gross_world_product
 
+
 class GDP(object):
     def __init__(self, dataframe):
         """Create an instance of a GDP object with a dataframe of countries/GDP values over time.
-        
+
         :param dataframe:
           Pandas dataframe where rows are countries, and columns are rates for different years.
           dataframe should look like this:
@@ -35,20 +36,22 @@ class GDP(object):
     @classmethod
     def fromDefault(cls):
         homedir = os.path.dirname(os.path.abspath(__file__))  # where is this module?
-        excelfile = os.path.join(homedir, '..', 'data', 'API_NY.GDP.PCAP.CD_DS2_en_excel_v2.xls')
+        excelfile = os.path.join(
+            homedir, "..", "data", "API_NY.GDP.PCAP.CD_DS2_en_excel_v2.xls"
+        )
         return cls.fromWorldBank(excelfile)
-        
+
     @classmethod
     def fromWorldBank(cls, excelfile):
         """Read in Excel data from the World Bank containing per capita GDP values for all countries in the world.
         Taken from: http://data.worldbank.org/indicator/NY.GDP.PCAP.CD
-        
+
         :param excelfile:
           Excel spreadsheet downloaded from above source.
         :returns:
           GDP instance.
         """
-        df = pd.read_excel(excelfile, sheet_name='Data', header=3)
+        df = pd.read_excel(excelfile, sheet_name="Data", header=3)
         return cls(df)
 
     def getGDP(self, ccode, year):
@@ -57,14 +60,14 @@ class GDP(object):
         :param ccode:
           Any of ISO2, ISO3, or ISON country codes.
         :param year:
-          Year of desired GDP value.  If this year is before the earliest year in the data source, 
-          the earliest GDP value will be used. If this year is after the latest year in the data source, 
+          Year of desired GDP value.  If this year is before the earliest year in the data source,
+          the earliest GDP value will be used. If this year is after the latest year in the data source,
           the latest non-NaN GDP value will be used.
         :returns:
-          Tuple of: 
+          Tuple of:
             - GDP value corresponding to country code and year, unless country code is not found, in which case
             a default global GDP value will be returned.
-            - The country code which is most applicable to the output GDP.  For example, if the GDP value chosen 
+            - The country code which is most applicable to the output GDP.  For example, if the GDP value chosen
               is the global value, then this country code will be None.  If the input country code is XF (California),
               then the output country code will be 'US'.
         """
@@ -72,18 +75,18 @@ class GDP(object):
         countrydict = self._country.getCountry(ccode)
         if countrydict is None:
             return (GLOBAL_GDP, None)
-        if countrydict['ISO2'] in ['XF', 'EU', 'WU']:
-            ccode = 'USA'
-            outccode = 'US'
+        if countrydict["ISO2"] in ["XF", "EU", "WU"]:
+            ccode = "USA"
+            outccode = "US"
         else:
-            ccode = countrydict['ISO3']
+            ccode = countrydict["ISO3"]
             outccode = ccode
         yearstr = str(year)
         try:
-            row = self._dataframe[self._dataframe['Country Code'] == ccode].iloc[0]
+            row = self._dataframe[self._dataframe["Country Code"] == ccode].iloc[0]
         except:
             return (GLOBAL_GDP, None)
-        
+
         if yearstr in row:
             gdp = row[yearstr]
         else:
@@ -91,7 +94,7 @@ class GDP(object):
             columns = row.index.tolist()
             years = []
             for c in columns:
-                res = re.search('[0-9]{4}', c)
+                res = re.search("[0-9]{4}", c)
                 if res is not None:
                     years.append(res.group())
 
@@ -112,7 +115,7 @@ class GDP(object):
                     gdp = row[max(years)]
 
         return (gdp, outccode)
-        
+
 
 class EconExposure(Exposure):
     def __init__(self, popfile, popyear, isofile):
@@ -138,14 +141,16 @@ class EconExposure(Exposure):
           PagerException when calcExposure() has not been called.
         """
         if self._econpopgrid is None:
-            raise PagerException('Must call calcExposure() before calling getEconPopulationGrid().')
+            raise PagerException(
+                "Must call calcExposure() before calling getEconPopulationGrid()."
+            )
         return self._econpopgrid
-        
+
     def calcExposure(self, shakefile):
         """Calculate population exposure to shaking.
 
-        Calculate population exposure to shaking, per country, multiplied by event-year per-capita GDP and 
-        alpha correction factor.  Also multiply the internal population grid by GDP and 
+        Calculate population exposure to shaking, per country, multiplied by event-year per-capita GDP and
+        alpha correction factor.  Also multiply the internal population grid by GDP and
         alpha.
 
         :param shakefile:
@@ -160,25 +165,24 @@ class EconExposure(Exposure):
         self._econpopgrid = Grid2D.copyFromGrid(self._popgrid)
         econdict = {}
         isodata = self._isogrid.getData()
-        eventyear = self.getShakeGrid().getEventDict()['event_timestamp'].year
+        eventyear = self.getShakeGrid().getEventDict()["event_timestamp"].year
         total = np.zeros((10,))
         for ccode, exparray in expdict.items():
-            if ccode.find('Total') > -1 or ccode.find('maximum') > -1:
+            if ccode.find("Total") > -1 or ccode.find("maximum") > -1:
                 continue
-            if ccode == 'UK':  # unknown
+            if ccode == "UK":  # unknown
                 continue
             lossmodel = self._emploss.getModel(ccode)
             gdp, outccode = self._gdp.getGDP(ccode, eventyear)
-            isocode = self._country.getCountry(ccode)['ISON']
+            isocode = self._country.getCountry(ccode)["ISON"]
             alpha = lossmodel.alpha
             econarray = exparray * gdp * alpha
-            cidx = (isodata == isocode)
+            cidx = isodata == isocode
             # multiply the population grid by GDP and alpha, so that when the loss model
             # queries the grid later, those calculations don't have to be re-done.
             self._econpopgrid._data[cidx] = self._econpopgrid._data[cidx] * gdp * alpha
             econdict[ccode] = econarray
             total += econarray
 
-        econdict['TotalEconomicExposure'] = total
+        econdict["TotalEconomicExposure"] = total
         return econdict
-    

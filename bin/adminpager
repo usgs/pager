@@ -13,11 +13,15 @@ from operator import attrgetter
 from calendar import monthrange
 
 # local imports
-from losspager.utils.config import (read_config, read_mail_config,
-                                    get_mail_config_file)
+from losspager.utils.config import read_config, read_mail_config, get_mail_config_file
 from losspager.io.pagerdata import PagerData
-from losspager.utils.admin import (PagerAdmin, RemoteAdmin, transfer,
-                                   unset_pending, get_id_and_source)
+from losspager.utils.admin import (
+    PagerAdmin,
+    RemoteAdmin,
+    transfer,
+    unset_pending,
+    get_id_and_source,
+)
 from losspager.utils.eventpath import get_event_folder
 from losspager.utils.exception import PagerException
 
@@ -27,49 +31,50 @@ from impactutils.io.cmd import get_command_output
 from impactutils.comcat.query import ComCatInfo
 import pandas as pd
 
-DATEFMT = '%Y-%m-%d'
-DATETIMEFMT = '%Y-%m-%d %H:%M:%S'
+DATEFMT = "%Y-%m-%d"
+DATETIMEFMT = "%Y-%m-%d %H:%M:%S"
 NDAYS = 7
 MAX_DAYS = 300 * 365  # maximum number of days to do queries for events
 # this is a system call hack until I can refactor runpager to export a run function
-PAGER_SCRIPT = 'runpager.py'
-TIMEFMT = '%Y-%m-%d %H:%M:%S'
-HDRDICT = collections.OrderedDict([('ID', '%-10s'),
-                                   ('Ver', '%-3s'),
-                                   ('Time', '%-19s'),
-                                   ('Mag', '%-4s'),
-                                   ('Depth', '%-8s'),
-                                   ('Level', '%-7s'),
-                                   ('MMI', '%-3s'),
-                                   ('Tsunami?', '%-8s'),
-                                   ('Stopped?', '%-8s'),
-                                   ('Location', '%-42s')])
+PAGER_SCRIPT = "runpager.py"
+TIMEFMT = "%Y-%m-%d %H:%M:%S"
+HDRDICT = collections.OrderedDict(
+    [
+        ("ID", "%-10s"),
+        ("Ver", "%-3s"),
+        ("Time", "%-19s"),
+        ("Mag", "%-4s"),
+        ("Depth", "%-8s"),
+        ("Level", "%-7s"),
+        ("MMI", "%-3s"),
+        ("Tsunami?", "%-8s"),
+        ("Stopped?", "%-8s"),
+        ("Location", "%-42s"),
+    ]
+)
 
-LEVELS = {'green': 0,
-          'yellow': 1,
-          'orange': 2,
-          'red': 3}
+LEVELS = {"green": 0, "yellow": 1, "orange": 2, "red": 3}
 
 
 def run_pager(eventid):
     try:
         ccinfo = ComCatInfo(eventid)
         gridurl = ccinfo.getShakeGrid()
-        cmd = 'pager %s' % gridurl
-        print('Running command "%s"' % cmd)
+        cmd = f"pager {gridurl}"
+        print(f'Running command "{cmd}"')
         res, stdout, stderr = get_command_output(cmd)
         return (res, stdout + stderr)
     except Exception:
-        return (False, 'Could not open connection to ComCat for event %s' % eventid)
+        return (False, f"Could not open connection to ComCat for event {eventid}")
 
 
-def order_event_data(event_data, sort_by=('time',)):
+def order_event_data(event_data, sort_by=("time",)):
     if not isinstance(sort_by, tuple):
-        raise PagerException('sort_by option must be a tuple of strings.')
-    sort_options = ('time', 'magnitude', 'alert', 'processing_time')
+        raise PagerException("sort_by option must be a tuple of strings.")
+    sort_options = ("time", "magnitude", "alert", "processing_time")
     for option in sort_by:
         if option not in sort_options:
-            raise PagerException('Sort option %s not allowed.' % option)
+            raise PagerException(f"Sort option {option} not allowed.")
     event_data = sorted(event_data, key=attrgetter(*sort_by))
     return event_data
 
@@ -78,11 +83,10 @@ def archive_event(event, archive_folder, output_folder):
     eventfolder = get_event_folder(event, output_folder)
     if eventfolder is None:
         return False
-    zipname = os.path.join(archive_folder, event + '.zip')
-    myzip = zipfile.ZipFile(
-        zipname, mode='w', compression=zipfile.ZIP_DEFLATED)
+    zipname = os.path.join(archive_folder, event + ".zip")
+    myzip = zipfile.ZipFile(zipname, mode="w", compression=zipfile.ZIP_DEFLATED)
     for root, dirs, files in os.walk(eventfolder):
-        arcfolder = root[root.find(event):]
+        arcfolder = root[root.find(event) :]
         for fname in files:
             arcfile = os.path.join(arcfolder, fname)
             fullfile = os.path.join(root, fname)
@@ -119,8 +123,8 @@ def get_all_events(outfolder):
 
 def get_event_data(eventfolder):
     data_blobs = []
-    for versionfolder in glob.glob(os.path.join(eventfolder, 'version.*')):
-        jsonfolder = os.path.join(versionfolder, 'json')
+    for versionfolder in glob.glob(os.path.join(eventfolder, "version.*")):
+        jsonfolder = os.path.join(versionfolder, "json")
         vdata = PagerData()
         vdata.loadFromJSON(jsonfolder)
         data_blobs.append(vdata)
@@ -132,9 +136,9 @@ def get_date(datestr):
     'recent' returns last two weeks of events, 'all' gets all events.
     """
     archdate = None
-    if datestr == 'all':
+    if datestr == "all":
         archdate = datetime.datetime(1800, 1, 1)
-    elif datestr == 'recent':
+    elif datestr == "recent":
         archdate = datetime.datetime.utcnow() - datetime.timedelta(days=14)
     else:
         try:
@@ -149,9 +153,9 @@ def get_date(datestr):
 
 def do_archive(archive_info, archive_threshold, admin):
     archive_date = get_date(archive_info[0])
-    if archive_info[0] == 'all':
+    if archive_info[0] == "all":
         narchived, nerrors = admin.archive(all_events=True)
-    elif archive_info[0] == 'auto':
+    elif archive_info[0] == "auto":
         tnow = datetime.datetime.utcnow()
         dt = datetime.timedelta(days=archive_threshold)
         archive_date = tnow - dt
@@ -166,17 +170,17 @@ def do_archive(archive_info, archive_threshold, admin):
 def do_release(eventid, admin, config):
     # find the most recent version of PAGER for this event
     event_folder = admin.getEventFolder(eventid)
-    release_file = os.path.join(event_folder, 'release')
-    f = open(release_file, 'wt')
-    f.write('released\n')
+    release_file = os.path.join(event_folder, "release")
+    f = open(release_file, "wt")
+    f.write("released\n")
     f.close()
     if event_folder is None:
-        print('No event %s found.  Exiting.' % eventid)
+        print(f"No event {eventid} found.  Exiting.")
         sys.exit(1)
     version_folder = admin.getLastVersion(event_folder)
     res = unset_pending(version_folder)
     if not res:
-        return (res, 'This event has already been released.')
+        return (res, "This event has already been released.")
     try:
         ccinfo = ComCatInfo(eventid)
         authid, allids = ccinfo.getAssociatedIds()
@@ -184,12 +188,11 @@ def do_release(eventid, admin, config):
     except:
         authid, authsource = get_id_and_source(version_folder)
 
-    jsonfolder = os.path.join(version_folder, 'json')
+    jsonfolder = os.path.join(version_folder, "json")
     pdata = PagerData()
     pdata.loadFromJSON(jsonfolder)
     try:
-        msg = transfer(config, pdata, authid, authsource,
-                       version_folder, release=True)
+        msg = transfer(config, pdata, authid, authsource, version_folder, release=True)
     except Exception as e:
         msg = str(e)
     return (True, msg)
@@ -199,7 +202,7 @@ def do_force(eventid, admin, config, mailconfig):
     # find the most recent version of PAGER for this event
     event_folder = admin.getEventFolder(eventid)
     if event_folder is None:
-        print('No event %s found.  Exiting.' % eventid)
+        print(f"No event {eventid} found.  Exiting.")
         sys.exit(1)
     version_folder = admin.getLastVersion(event_folder)
     try:
@@ -209,25 +212,29 @@ def do_force(eventid, admin, config, mailconfig):
     except:
         authid, authsource = get_id_and_source(version_folder)
 
-    jsonfolder = os.path.join(version_folder, 'json')
+    jsonfolder = os.path.join(version_folder, "json")
     pdata = PagerData()
     pdata.loadFromJSON(jsonfolder)
     event_time = pdata.time
-    thresh = mailconfig['release_threshold']
+    thresh = mailconfig["release_threshold"]
     email_threshold = event_time + datetime.timedelta(seconds=thresh * 3600)
     now_time = datetime.datetime.utcnow()
-    user_msg = ''
+    user_msg = ""
     if now_time < email_threshold:
-        user_msg += 'The current time is within the %i hour email limit - users may already have been notified.\n' % thresh
-    user_msg += 'Are you sure you want to force sending of emails? Y/[N] '
+        user_msg += (
+            "The current time is within the %i hour email limit - users may already have been notified.\n"
+            % thresh
+        )
+    user_msg += "Are you sure you want to force sending of emails? Y/[N] "
     response = input(user_msg)
-    if response != 'Y':
-        msg = 'You chose not to force sending of emails. Exiting.'
+    if response != "Y":
+        msg = "You chose not to force sending of emails. Exiting."
         return (False, msg)
 
     try:
-        msg = transfer(config, pdata, authid, authsource,
-                       version_folder, force_email=True)
+        msg = transfer(
+            config, pdata, authid, authsource, version_folder, force_email=True
+        )
     except Exception as e:
         msg = str(e)
     return (True, msg)
@@ -237,7 +244,7 @@ def do_renotify(eventid, admin, config):
     # find the most recent version of PAGER for this event
     event_folder = admin.getEventFolder(eventid)
     if event_folder is None:
-        print('No event %s found.  Exiting.' % eventid)
+        print(f"No event {eventid} found.  Exiting.")
         sys.exit(1)
     version_folder = admin.getLastVersion(event_folder)
     try:
@@ -247,12 +254,11 @@ def do_renotify(eventid, admin, config):
     except:
         authid, authsource = get_id_and_source(version_folder)
 
-    jsonfolder = os.path.join(version_folder, 'json')
+    jsonfolder = os.path.join(version_folder, "json")
     pdata = PagerData()
     pdata.loadFromJSON(jsonfolder)
     try:
-        msg = transfer(config, pdata, authid, authsource,
-                       version_folder, renotify=True)
+        msg = transfer(config, pdata, authid, authsource, version_folder, renotify=True)
     except Exception as e:
         msg = str(e)
     return (True, msg)
@@ -261,39 +267,39 @@ def do_renotify(eventid, admin, config):
 def do_status(status, admin):
     # check the pager config first
     current_status = admin.getStatus()
-    if status == 'check':
-        if current_status == 'primary':
-            msg = 'PAGER PRIMARY: This system WILL transfer products.'
+    if status == "check":
+        if current_status == "primary":
+            msg = "PAGER PRIMARY: This system WILL transfer products."
         else:
-            msg = 'PAGER SECONDARY: This system WILL NOT transfer products.'
+            msg = "PAGER SECONDARY: This system WILL NOT transfer products."
     else:
         if status == current_status:
-            msg = 'PAGER status is already %s.' % current_status
+            msg = f"PAGER status is already {current_status}."
         else:
             new_status = admin.setStatus(status)
-            if new_status == 'primary':
-                fmt = 'PAGER status changed to %s - this system is now configured to transfer products.'
+            if new_status == "primary":
+                fmt = "PAGER status changed to %s - this system is now configured to transfer products."
             else:
-                fmt = 'PAGER status changed to %s - this system is now configured to NOT transfer products.'
+                fmt = "PAGER status changed to %s - this system is now configured to NOT transfer products."
             msg = fmt % new_status
 
     # if the mail config file exists on this system, do the same actions on that file
     if get_mail_config_file() is not None:
         current_mail_status = admin.getMailStatus()
-        if status == 'check':
-            if current_mail_status == 'primary':
-                msg2 = '\nMAIL PRIMARY: This system WILL send emails.'
+        if status == "check":
+            if current_mail_status == "primary":
+                msg2 = "\nMAIL PRIMARY: This system WILL send emails."
             else:
-                msg2 = '\nMAIL SECONDARY: This system WILL NOT send emails.'
+                msg2 = "\nMAIL SECONDARY: This system WILL NOT send emails."
         else:
             if status == current_mail_status:
-                msg2 = '\nMAIL status is already %s.' % current_mail_status
+                msg2 = f"\nMAIL status is already {current_mail_status}."
             else:
                 new_status = admin.setMailStatus(status)
-                if new_status == 'primary':
-                    fmt = '\nMAIL status changed to %s - this system is now configured to send email.'
+                if new_status == "primary":
+                    fmt = "\nMAIL status changed to %s - this system is now configured to send email."
                 else:
-                    fmt = '\nMAIL status changed to %s - this system is now configured to NOT send email.'
+                    fmt = "\nMAIL status changed to %s - this system is now configured to NOT send email."
                 msg2 = fmt % new_status
 
     msg += msg2
@@ -301,15 +307,15 @@ def do_status(status, admin):
 
 
 def do_stats(stats, admin, config):
-    if 'stats_folder' not in config.keys():
-        print('Configure the stats_folder variable first.')
+    if "stats_folder" not in config.keys():
+        print("Configure the stats_folder variable first.")
         sys.exit(1)
-    if not os.path.isdir(config['stats_folder']):
-        print('stats_folder %s does not exist.' % (config['stats_folder']))
+    if not os.path.isdir(config["stats_folder"]):
+        print(f"stats_folder {config['stats_folder']} does not exist.")
         sys.exit(1)
     tnow = datetime.datetime.utcnow()
     this_month = tnow.month
-    if stats[0] == 'month':
+    if stats[0] == "month":
         # go get the last full month's worth of pager results.
         query_month = this_month - 1
         query_year = tnow.year
@@ -318,62 +324,60 @@ def do_stats(stats, admin, config):
             query_year = tnow.year - 1
         ndays = monthrange(query_year, query_month)[1]
         start_date = datetime.datetime(query_year, query_month, 1)
-        end_date = datetime.datetime(
-            query_year, query_month, ndays, 23, 59, 59)
-        fname = 'monthly_%i_%i.xlsx' % (query_year, query_month)
-    elif stats[0] == 'quarter':
+        end_date = datetime.datetime(query_year, query_month, ndays, 23, 59, 59)
+        fname = "monthly_%i_%i.xlsx" % (query_year, query_month)
+    elif stats[0] == "quarter":
         this_quarter = (tnow.month - 1) // 3
         last_quarter = this_quarter - 1
         if last_quarter == -1:
             query_year = tnow.year - 1
             last_quarter = 3
-        quarters = {0: (1, 3),
-                    1: (4, 6),
-                    2: (7, 9),
-                    3: (10, 12)}
+        quarters = {0: (1, 3), 1: (4, 6), 2: (7, 9), 3: (10, 12)}
 
         end_month_days, tmp = monthrange(query_year, quarters[last_quarter][1])
-        start_date = datetime.datetime(
-            query_year, quarters[last_quarter][0], 1)
+        start_date = datetime.datetime(query_year, quarters[last_quarter][0], 1)
         end_date = datetime.datetime(
-            query_year, quarters[last_quarter][1], end_month_days, 23, 59, 59)
-        fname = 'quarterly_%i_Q%i.xlsx' % (query_year, (last_quarter + 1))
-    elif stats[0] == 'year':
+            query_year, quarters[last_quarter][1], end_month_days, 23, 59, 59
+        )
+        fname = "quarterly_%i_Q%i.xlsx" % (query_year, (last_quarter + 1))
+    elif stats[0] == "year":
         query_year = tnow.year - 1
         start_date = datetime.datetime(query_year, 1, 1)
         end_date = datetime.datetime(query_year, 12, 31, 23, 59, 59)
-        fname = 'yearly_%i.xlsx' % (query_year)
+        fname = "yearly_%i.xlsx" % (query_year)
     else:
-        msg = 'Unsupported stats period %s.' % stats[0]
+        msg = f"Unsupported stats period {stats[0]}."
         res = False
-    pdataframe, broken = admin.query(start_time=start_date,
-                                     end_time=end_date,
-                                     mag_threshold=0.0,
-                                     alert_threshold='green',
-                                     version='all')
-    pdataframe['tmp'] = pdataframe.index
-    pdataframe = pdataframe.sort_values(['tmp', 'Version'])
-    pdataframe = pdataframe.drop('tmp', 1)
-    statsfile = os.path.join(config['stats_folder'], fname)
+    pdataframe, broken = admin.query(
+        start_time=start_date,
+        end_time=end_date,
+        mag_threshold=0.0,
+        alert_threshold="green",
+        version="all",
+    )
+    pdataframe["tmp"] = pdataframe.index
+    pdataframe = pdataframe.sort_values(["tmp", "Version"])
+    pdataframe = pdataframe.drop("tmp", 1)
+    statsfile = os.path.join(config["stats_folder"], fname)
     pdataframe.to_excel(statsfile)
-    msg = 'All event statistics saved to %s.' % statsfile
+    msg = f"All event statistics saved to {statsfile}."
     res = True
     return (res, msg)
 
 
 def do_query(query, output, admin):
-    msg = ''
-    pd.set_option('display.width', 1000)
-    pd.set_option('display.max_rows', 1000)
+    msg = ""
+    pd.set_option("display.width", 1000)
+    pd.set_option("display.max_rows", 1000)
     start_date = get_date(query[0])
     # some scenarios are in the future.  Sigh.
     end_date = datetime.datetime(3000, 1, 1)
     mag_threshold = 0.0
-    alert_threshold = 'green'
-    version = 'last'
-    qsyntax = 'query syntax: [START/all [MAG [ALERT [END [VERSION]]]]]. '
+    alert_threshold = "green"
+    version = "last"
+    qsyntax = "query syntax: [START/all [MAG [ALERT [END [VERSION]]]]]. "
     if start_date is None:
-        msg = 'Invalid start date %s. Returning.'
+        msg = "Invalid start date %s. Returning."
         res = False
         return (res, msg)
 
@@ -382,48 +386,48 @@ def do_query(query, output, admin):
             mag_threshold = float(query[1])
             assert mag_threshold >= 0 and mag_threshold <= 10.0
         except:
-            msg = qsyntax + 'Second argument must be a magnitude [0-10].'
+            msg = qsyntax + "Second argument must be a magnitude [0-10]."
             res = False
     if len(query) >= 3:
         alert_threshold = query[2]
-        if alert_threshold not in ['green', 'yellow', 'orange', 'red']:
-            msg = qsyntax + \
-                'Fourth argument must be one of (green,yellow,orange,red).'
+        if alert_threshold not in ["green", "yellow", "orange", "red"]:
+            msg = qsyntax + "Fourth argument must be one of (green,yellow,orange,red)."
             res = False
     if len(query) >= 4:
         end_date = get_date(query[3])
         if end_date is None:
-            msg = qsyntax + 'Third argument must be a date/time string.'
+            msg = qsyntax + "Third argument must be a date/time string."
             res = False
     if len(query) >= 5:
         version = query[4]
-        if version not in ['first', 'last', 'eight', 'all']:
-            msg = qsyntax + \
-                'Fifth argument must be one of (first,last,eight,all).'
+        if version not in ["first", "last", "eight", "all"]:
+            msg = qsyntax + "Fifth argument must be one of (first,last,eight,all)."
             res = False
 
-    pdataframe, broken_events = admin.query(start_time=start_date, end_time=end_date,
-                                            mag_threshold=mag_threshold,
-                                            alert_threshold=alert_threshold,
-                                            version=version)
-    if output == 'screen':
+    pdataframe, broken_events = admin.query(
+        start_time=start_date,
+        end_time=end_date,
+        mag_threshold=mag_threshold,
+        alert_threshold=alert_threshold,
+        version=version,
+    )
+    if output == "screen":
         if len(pdataframe):
             print(pdataframe)
             if len(broken_events):
-                print('Events with no valid versions:')
+                print("Events with no valid versions:")
                 for broken in broken_events:
                     print(broken)
         else:
-            print('No events on filesystem matching query criteria.')
+            print("No events on filesystem matching query criteria.")
         res = True
     else:
         fpath, fname = os.path.split(output)
         if not os.path.isdir(fpath):
-            msg = 'Cannot create %s in %s - directory does not exist.' % (
-                fname, fpath)
+            msg = f"Cannot create {fname} in {fpath} - directory does not exist."
             res = False
         pdataframe.to_excel(output)
-        msg = '%i rows written to %s.' % (len(pdataframe), output)
+        msg = "%i rows written to %s." % (len(pdataframe), output)
         res = True
     return (res, msg)
 
@@ -433,50 +437,54 @@ def main(args):
     config = read_config()
 
     # figure out where the output data goes
-    pager_folder = config['output_folder']
+    pager_folder = config["output_folder"]
 
     # figure out where the archive folder is
-    archive_folder = config['archive_folder']
+    archive_folder = config["archive_folder"]
 
     # figure out auto archive threshold
-    archive_threshold_days = config['archive_older_than']
-    archive_threshold = datetime.datetime.utcnow(
-    ) - datetime.timedelta(days=archive_threshold_days)
+    archive_threshold_days = config["archive_older_than"]
+    archive_threshold = datetime.datetime.utcnow() - datetime.timedelta(
+        days=archive_threshold_days
+    )
 
     # if we're on a laptop, then status should not be set in the config at all
-    if 'status' not in config:
-        if 'pdl' in config:
-            admin = RemoteAdmin(config['pdl'])
-            action = ''
-            eventid = ''
+    if "status" not in config:
+        if "pdl" in config:
+            admin = RemoteAdmin(config["pdl"])
+            action = ""
+            eventid = ""
             if args.release:
-                action = 'release'
+                action = "release"
                 eventid = args.release
             if args.status:
-                action = 'switch-status'
+                action = "switch-status"
             if args.cancel:
-                action = 'cancel'
+                action = "cancel"
                 eventid = args.cancel
             if args.renotify:
-                action = 'renotify'
+                action = "renotify"
                 eventid = args.renotify
             if args.stop:
-                action = 'stop'
+                action = "stop"
                 eventid = args.stop
             if args.unstop:
-                action = 'unstop'
+                action = "unstop"
                 eventid = args.unstop
-            if action != '':
+            if action != "":
                 print(
-                    'You are not on a primary system, but have PDL configured.  Trying remote admin actions...')
+                    "You are not on a primary system, but have PDL configured.  Trying remote admin actions..."
+                )
                 res, stdout, stderr = admin.sendAction(action, eventid)
                 if not res:
-                    print('Sending remote action %s failed. "%s", %s".' %
-                          (action, stdout, stderr))
+                    print(
+                        f'Sending remote action {action} failed. "{stdout}", {stderr}".'
+                    )
                     sys.exit(1)
                 else:
-                    print('Successfully sent remote action %s. "%s".' %
-                          (action, stdout))
+                    print(
+                        f'Successfully sent remote action {action}. "{stdout}".'
+                    )
                     sys.exit(0)
 
     admin = PagerAdmin(pager_folder, archive_folder)
@@ -484,15 +492,15 @@ def main(args):
     if args.stop:
         result, eventfolder = admin.stop(args.stop)
         if result:
-            print('A "stop" file was placed in %s.' % (eventfolder))
+            print(f'A "stop" file was placed in {eventfolder}.')
         else:
-            print('"stop" file already exists in %s.' % (eventfolder))
+            print(f'"stop" file already exists in {eventfolder}.')
         sys.exit(0)
 
     if args.run_event:
         eventid = args.run_event
         res, msg = run_pager(eventid)
-        lines = msg.decode('utf-8').split('\n')
+        lines = msg.decode("utf-8").split("\n")
         for line in lines:
             print(line)
         if not res:
@@ -520,16 +528,18 @@ def main(args):
     if args.unstop:
         result, eventfolder = admin.unstop(args.unstop)
         if result:
-            print('A "stop" file was removed from %s.' % (eventfolder))
+            print(f'A "stop" file was removed from {eventfolder}.')
         else:
-            print('No "stop" file was found in %s.' % (eventfolder))
+            print(f'No "stop" file was found in {eventfolder}.')
         sys.exit(0)
 
     if args.archive:
         narchived, nerrors = do_archive(
-            args.archive, config['archive_older_than'], admin)
-        print('%i events archived to %s, %i errors' %
-              (narchived, archive_folder, nerrors))
+            args.archive, config["archive_older_than"], admin
+        )
+        print(
+            "%i events archived to %s, %i errors" % (narchived, archive_folder, nerrors)
+        )
         sys.exit(0)
 
     if args.release:
@@ -541,11 +551,11 @@ def main(args):
             sys.exit(0)
 
     if args.restore:
-        if args.restore[0] == 'all':
+        if args.restore[0] == "all":
             nrestored = admin.restore(all_events=True)
         else:
             nrestored = admin.restore(events=args.restore)
-        print('%i events restored to %s' % (nrestored, pager_folder))
+        print("%i events restored to %s" % (nrestored, pager_folder))
         sys.exit(0)
 
     if args.status is not None:
@@ -554,38 +564,41 @@ def main(args):
         sys.exit(0)
 
     if args.history:
-        pd.set_option('display.width', 1000)
-        pd.set_option('display.max_rows', 1000)
+        pd.set_option("display.width", 1000)
+        pd.set_option("display.max_rows", 1000)
         pdataframe, broken_events = admin.query(eventid=args.history)
-        pdataframe = pdataframe.sort_values('Version')
-        if args.output == 'screen':
+        pdataframe = pdataframe.sort_values("Version")
+        if args.output == "screen":
             print(pdataframe)
             if len(broken_events):
-                print('Events with no valid versions:')
+                print("Events with no valid versions:")
                 for broken in broken_events:
                     print(broken)
         else:
             pdataframe.to_excel(args.output)
-            print('Saved %i versions to %s' % (len(pdataframe), args.output))
+            print("Saved %i versions to %s" % (len(pdataframe), args.output))
         sys.exit(0)
 
     if args.tsunami:
-        if args.tsunami[1] not in ['on', 'off']:
-            print('Tsunami syntax: adminpager --tsunami EVENT on/off')
+        if args.tsunami[1] not in ["on", "off"]:
+            print("Tsunami syntax: adminpager --tsunami EVENT on/off")
             sys.exit(1)
         # toggling re-runs PAGER, including whatever transfer may happen
-        result, stdout, stderr = admin.toggleTsunami(
-            args.tsunami[0], args.tsunami[1])
-        print('Tsunami status has been set to %s for event %s' %
-              (args.tsunami[1], args.tsunami[0]))
+        result, stdout, stderr = admin.toggleTsunami(args.tsunami[0], args.tsunami[1])
+        print(
+            "Tsunami status has been set to %s for event %s"
+            % (args.tsunami[1], args.tsunami[0])
+        )
         if result:
-            lines = stdout.decode('utf-8').split('\n')
-            print('This event has been re-run successfully, with the output:')
+            lines = stdout.decode("utf-8").split("\n")
+            print("This event has been re-run successfully, with the output:")
             for line in lines:
                 print(line)
         if not result:
             print(
-                'This event has not been re-run successfully, with the output:"%s"' % (stderr))
+                'This event has not been re-run successfully, with the output:"%s"'
+                % (stderr)
+            )
         sys.exit(0)
 
     if args.stats:
@@ -605,9 +618,9 @@ def main(args):
             sys.exit(1)
 
 
-if __name__ == '__main__':
-    desc = 'Administer the PAGER system with a series of subcommands.'
-    usage = '''
+if __name__ == "__main__":
+    desc = "Administer the PAGER system with a series of subcommands."
+    usage = """
     System Status:
     To query the system status: "adminpager --status check"
     To switch the system from being primary to secondary: "adminpager --status secondary"
@@ -648,53 +661,84 @@ if __name__ == '__main__':
 
     Saving query results:
     Any query above can be saved to an Excel file by using the --output option: "adminpager --query recent --output ~/fortnight_results.xls"
-    '''
-    argparser = argparse.ArgumentParser(description=desc,
-                                        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-                                        usage=usage)
-    archive_str = '''Archive event(s) from file system. Passing "all" as an argument 
+    """
+    argparser = argparse.ArgumentParser(
+        description=desc,
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        usage=usage,
+    )
+    archive_str = """Archive event(s) from file system. Passing "all" as an argument 
     will archive all events, passing "auto" will archive events based on pre-configured 
     number of days previous to current date, passing a date (YYYY-mm-dd) will archive
-    all events prior to that date.'''
-    argparser.add_argument("--archive", nargs='*',
-                           help=archive_str, metavar='EVENT')
-    argparser.add_argument("--restore", nargs='*',
-                           help='Restore events from archive.  Passing "all" will restore all events from the archive.', metavar='EVENT')
+    all events prior to that date."""
+    argparser.add_argument("--archive", nargs="*", help=archive_str, metavar="EVENT")
+    argparser.add_argument(
+        "--restore",
+        nargs="*",
+        help='Restore events from archive.  Passing "all" will restore all events from the archive.',
+        metavar="EVENT",
+    )
 
-    argparser.add_argument("--stop",
-                           help="Prevent event(s) from being re-run automatically.",
-                           metavar='EVENT')
-    argparser.add_argument("--unstop",
-
-                           help="Allow stopped event(s) to be re-run automatically.",
-                           metavar='EVENT')
-    argparser.add_argument("--status", choices=['check', 'primary', 'secondary'],
-                           help="Print or change PAGER (and also possibly PAGER MAIL) primary/secondary status.")
-    argparser.add_argument("--tsunami", nargs=2,
-                           help="Toggle tsunami warning on PAGER alert",
-                           metavar=('EVENT', 'on/off/auto'))
-    argparser.add_argument('--query', nargs='*', metavar='PARAM',
-                           help="List events that match the query. Params are [START/all/recent [MAG [ALERT [END [VERSION]]]]].")
-    argparser.add_argument("--history",
-                           help="Print history of input event.",
-                           metavar='EVENT')
-    argparser.add_argument("--output",
-                           help="Select output format for queries ('screen' or excel filename.",
-                           default='screen', metavar='FORMAT')
-    argparser.add_argument("--stats", nargs=1,
-                           help="Create dump of monthly, quarterly, or yearly PAGER results.",
-                           choices=('month', 'quarter', 'year'), metavar='PERIOD')
-    argparser.add_argument("--release", help="Release orange/red alert level event.",
-                           metavar='EVENTCODE')
-    argparser.add_argument("--force-email", help="Force sending of email to all appropriate users, ignoring email threshold (nominally 8 hours).",
-                           metavar='EVENTCODE')
-    argparser.add_argument("--run-event", help="Run event based on event ID from ComCat.  Will fail if ShakeMap not found in ComCat.",
-                           metavar='EVENTCODE')
-    argparser.add_argument("--renotify", metavar='EVENTCODE',
-                           help="Renotify users about an event.")
-    argparser.add_argument("--cancel", nargs=1,
-                           help="Cancel event.",
-                           metavar='EVENT')
+    argparser.add_argument(
+        "--stop",
+        help="Prevent event(s) from being re-run automatically.",
+        metavar="EVENT",
+    )
+    argparser.add_argument(
+        "--unstop",
+        help="Allow stopped event(s) to be re-run automatically.",
+        metavar="EVENT",
+    )
+    argparser.add_argument(
+        "--status",
+        choices=["check", "primary", "secondary"],
+        help="Print or change PAGER (and also possibly PAGER MAIL) primary/secondary status.",
+    )
+    argparser.add_argument(
+        "--tsunami",
+        nargs=2,
+        help="Toggle tsunami warning on PAGER alert",
+        metavar=("EVENT", "on/off/auto"),
+    )
+    argparser.add_argument(
+        "--query",
+        nargs="*",
+        metavar="PARAM",
+        help="List events that match the query. Params are [START/all/recent [MAG [ALERT [END [VERSION]]]]].",
+    )
+    argparser.add_argument(
+        "--history", help="Print history of input event.", metavar="EVENT"
+    )
+    argparser.add_argument(
+        "--output",
+        help="Select output format for queries ('screen' or excel filename.",
+        default="screen",
+        metavar="FORMAT",
+    )
+    argparser.add_argument(
+        "--stats",
+        nargs=1,
+        help="Create dump of monthly, quarterly, or yearly PAGER results.",
+        choices=("month", "quarter", "year"),
+        metavar="PERIOD",
+    )
+    argparser.add_argument(
+        "--release", help="Release orange/red alert level event.", metavar="EVENTCODE"
+    )
+    argparser.add_argument(
+        "--force-email",
+        help="Force sending of email to all appropriate users, ignoring email threshold (nominally 8 hours).",
+        metavar="EVENTCODE",
+    )
+    argparser.add_argument(
+        "--run-event",
+        help="Run event based on event ID from ComCat.  Will fail if ShakeMap not found in ComCat.",
+        metavar="EVENTCODE",
+    )
+    argparser.add_argument(
+        "--renotify", metavar="EVENTCODE", help="Renotify users about an event."
+    )
+    argparser.add_argument("--cancel", nargs=1, help="Cancel event.", metavar="EVENT")
 
     args = argparser.parse_args()
     main(args)

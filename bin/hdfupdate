@@ -28,47 +28,49 @@ def load_container_from_excel(excelfile, outfile):
 
 
 def main(args):
-    homedir = os.path.dirname(os.path.abspath(
-        __file__))  # where is this script?
-    excelfiles = glob.glob(os.path.join(
-        homedir, '..', 'losspager', 'data', 'semi_*.xlsx'))
-    hdffiles = glob.glob(os.path.join(
-        homedir, '..', 'losspager', 'data', 'semi_*.hdf'))
+    homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
+    excelfiles = glob.glob(
+        os.path.join(homedir, "..", "losspager", "data", "semi_*.xlsx")
+    )
+    hdffiles = glob.glob(os.path.join(homedir, "..", "losspager", "data", "semi_*.hdf"))
     if args.undo:
-        cmd = 'git checkout %s' % (' '.join(hdffiles))
+        cmd = f"git checkout {' '.join(hdffiles)}"
         res, stdout, stderr = get_command_output(cmd)
         if not res:
-            print('Checkout failed with errors: "%s" "%s"' % (stderr, stdout))
+            print(f'Checkout failed with errors: "{stderr}" "{stdout}"')
             sys.exit(1)
         else:
-            print('HDF files have been reverted back to their previous state.')
+            print("HDF files have been reverted back to their previous state.")
         sys.exit(0)
 
     if args.convert:
         for excelfile in excelfiles:
             fpath, fname = os.path.split(excelfile)
             fbase, _ = os.path.splitext(fname)
-            outfile = os.path.join(fpath, fbase + '.hdf')
-            print('Converting data from %s to HDF...' % fname)
+            outfile = os.path.join(fpath, fbase + ".hdf")
+            print(f"Converting data from {fname} to HDF...")
             load_container_from_excel(excelfile, outfile)
-        print('Done.  Do not forget to commit these changes.')
+        print("Done.  Do not forget to commit these changes.")
         sys.exit(0)
 
 
-if __name__ == '__main__':
-    desc = '''This script is intended for developers and scientists involved
+if __name__ == "__main__":
+    desc = """This script is intended for developers and scientists involved
     in the PAGER project.  It's purpose is to update the SemiEmpirical HDF files in the 
     repository based on changes to the equivalent Excel files.  Simply run this script
     from the repository directory where it is found, and it will re-create the HDF files
     from the Excel files found in the test/data directory.  Remember to run the tests, then 
     commit and merge these changes into the repository after running this script.
-    '''
+    """
     parser = argparse.ArgumentParser(description=desc)
-    undohelp = 'Undo the changes to the HDF files.  NB: Only works if changes have not been committed.'
-    parser.add_argument('-u', '--undo', action='store_true',
-                        help=undohelp)
-    parser.add_argument('-c', '--convert', action='store_true',
-                        help='Convert Excel spreadhsheets to HDF.')
+    undohelp = "Undo the changes to the HDF files.  NB: Only works if changes have not been committed."
+    parser.add_argument("-u", "--undo", action="store_true", help=undohelp)
+    parser.add_argument(
+        "-c",
+        "--convert",
+        action="store_true",
+        help="Convert Excel spreadhsheets to HDF.",
+    )
     pargs = parser.parse_args()
     if not pargs.convert and not pargs.undo:
         parser.print_help()

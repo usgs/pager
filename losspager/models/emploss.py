@@ -22,6 +22,7 @@ DEFAULT_BETA = 0.15
 DEFAULT_L2G = 1.0
 DEFAULT_ALPHA = 1.0
 
+
 class LossModel(object):
     def __init__(self, name, rates, l2g, alpha=None):
         """Create a loss model from an array of loss rates at MMI 1-10.
@@ -33,7 +34,7 @@ class LossModel(object):
         :param l2g:
           Float value defining the value of the L2G norm calculated when model was derived.
         :param alpha:
-          Float value defining the alpha (economic correction factor) value for the model.  
+          Float value defining the alpha (economic correction factor) value for the model.
           Not specified/used for fatality models.
         :returns:
           LossModel instance.
@@ -44,17 +45,16 @@ class LossModel(object):
         self._alpha = alpha
 
     def __repr__(self):
-        """return string representation of loss model.
-        """
+        """return string representation of loss model."""
         mmirange = np.arange(5, 10)
         rates = self.getLossRates(mmirange)
-        reprstr = ''
+        reprstr = ""
         for i in range(0, len(mmirange)):
             mmi = mmirange[i]
             rate = rates[i]
-            reprstr += 'MMI %i: 1 in %s\n' % (mmi, format(int(1.0/rate), ",d"))
+            reprstr += "MMI %i: 1 in %s\n" % (mmi, format(int(1.0 / rate), ",d"))
         return reprstr
-        
+
     def getLossRates(self, mmirange):
         mmirange = np.array(mmirange)
         idx = mmirange - 1
@@ -63,25 +63,25 @@ class LossModel(object):
     @property
     def name(self):
         """Return the name associated with this model.
-        
+
         :returns:
           The name associated with this model.
         """
         return self._name
-    
+
     @property
     def theta(self):
         """Return the theta value associated with this model.
-        
+
         :returns:
           The theta associated with this model.
         """
         return self._theta
-    
+
     @property
     def beta(self):
         """Return the beta value associated with this model.
-        
+
         :returns:
           The beta value associated with this model.
         """
@@ -90,7 +90,7 @@ class LossModel(object):
     @property
     def alpha(self):
         """Return the alpha value associated with this model (may be None).
-        
+
         :returns:
           The alpha value associated with this model (may be None).
         """
@@ -99,7 +99,7 @@ class LossModel(object):
     @property
     def l2g(self):
         """Return the L2G value associated with this model.
-        
+
         :returns:
           The L2G value associated with this model.
         """
@@ -119,7 +119,7 @@ class LossModel(object):
         """
         if rates is None:
             rates = self.getLossRates(mmirange)
-        deaths = np.nansum(rates*exp_pop)
+        deaths = np.nansum(rates * exp_pop)
         return deaths
 
     def getArea(self):
@@ -199,10 +199,11 @@ class LossModel(object):
         area2 = other.getArea()
         if area1 >= area2:
             return True
-    
+
+
 class LoglinearModel(LossModel):
-    """Loglinear loss model (defined by theta/beta (or mu/sigma) values.
-    """
+    """Loglinear loss model (defined by theta/beta (or mu/sigma) values."""
+
     def __init__(self, name, theta, beta, l2g, alpha=None):
         """Instantiate Loglinear Loss object.
 
@@ -215,7 +216,7 @@ class LoglinearModel(LossModel):
         :param l2g:
           Float value defining the value of the L2G norm calculated when model was derived.
         :param alpha:
-          Float value defining the alpha (economic correction factor) value for the model.  
+          Float value defining the alpha (economic correction factor) value for the model.
           Not specified/used for fatality models.
         :returns:
           LognormalModel instance.
@@ -235,12 +236,13 @@ class LoglinearModel(LossModel):
           Array of loss rates for input MMI values.
         """
         mmi = np.array(mmirange)
-        yy = numpy.power(10, (theta - (mmi*beta)))
-        return yy    
-    
+        yy = numpy.power(10, (theta - (mmi * beta)))
+        return yy
+
+
 class LognormalModel(LossModel):
-    """Lognormal loss model (defined by theta/beta (or mu/sigma) values.
-    """
+    """Lognormal loss model (defined by theta/beta (or mu/sigma) values."""
+
     def __init__(self, name, theta, beta, l2g, alpha=None):
         """Instantiate Lognormal Loss object.
 
@@ -253,7 +255,7 @@ class LognormalModel(LossModel):
         :param l2g:
           Float value defining the value of the L2G norm calculated when model was derived.
         :param alpha:
-          Float value defining the alpha (economic correction factor) value for the model.  
+          Float value defining the alpha (economic correction factor) value for the model.
           Not specified/used for fatality models.
         :returns:
           LognormalModel instance.
@@ -273,14 +275,15 @@ class LognormalModel(LossModel):
           Array of loss rates for input MMI values.
         """
         mmi = np.array(mmirange)
-        xx = np.log(mmirange/self._theta)/self._beta
-        yy = 0.5*erfc(-xx/np.sqrt(2))
+        xx = np.log(mmirange / self._theta) / self._beta
+        yy = 0.5 * erfc(-xx / np.sqrt(2))
         return yy
 
+
 class EmpiricalLoss(object):
-    """Container class for multiple LognormalModel objects.
-    """
-    def __init__(self, model_list, losstype='fatality'):
+    """Container class for multiple LognormalModel objects."""
+
+    def __init__(self, model_list, losstype="fatality"):
         """Instantiate EmpiricalLoss class.
 
         :param model_list:
@@ -290,17 +293,21 @@ class EmpiricalLoss(object):
         :returns:
           EmpiricalLoss instance.
         """
-        if losstype not in ['fatality', 'economic']:
+        if losstype not in ["fatality", "economic"]:
             raise PagerException('losstype must be one of ("fatality","economic").')
         self._loss_type = losstype
         self._model_dict = {}
         for model in model_list:
             self._model_dict[model.name] = model
-        self._country = Country()  # object that can translate between different ISO country representations.
-        self._overrides = {}  # dictionary of manually set rates (not necessarily lognormal)
+        self._country = (
+            Country()
+        )  # object that can translate between different ISO country representations.
+        self._overrides = (
+            {}
+        )  # dictionary of manually set rates (not necessarily lognormal)
 
     def getModel(self, ccode):
-        """Return the LognormalModel associated with given country code, 
+        """Return the LognormalModel associated with given country code,
         or a default model if country code not found.
 
         :param ccode:
@@ -309,7 +316,9 @@ class EmpiricalLoss(object):
           LognormalModel instance containing model for input country code, or a default model.
         """
         ccode = ccode.upper()
-        default = LognormalModel('default', DEFAULT_THETA, DEFAULT_BETA, DEFAULT_L2G, alpha=DEFAULT_ALPHA)
+        default = LognormalModel(
+            "default", DEFAULT_THETA, DEFAULT_BETA, DEFAULT_L2G, alpha=DEFAULT_ALPHA
+        )
         if ccode in self._model_dict:
             return self._model_dict[ccode]
         else:
@@ -318,53 +327,53 @@ class EmpiricalLoss(object):
     @classmethod
     def fromDefaultFatality(cls):
         homedir = os.path.dirname(os.path.abspath(__file__))  # where is this module?
-        fatxml = os.path.join(homedir, '..', 'data', 'fatality.xml')
+        fatxml = os.path.join(homedir, "..", "data", "fatality.xml")
         return cls.fromXML(fatxml)
 
     @classmethod
     def fromDefaultEconomic(cls):
         homedir = os.path.dirname(os.path.abspath(__file__))  # where is this module?
-        econxml = os.path.join(homedir, '..', 'data', 'economy.xml')
+        econxml = os.path.join(homedir, "..", "data", "economy.xml")
         return cls.fromXML(econxml)
-        
+
     @classmethod
     def fromXML(cls, xmlfile):
         """Load country-specific models from an XML file of the form:
           <?xml version="1.0" encoding="US-ASCII" standalone="yes"?>
-          
+
           <models vstr="2.2" type="fatality">
-          
+
             <model ccode="AF" theta="11.613073" beta="0.180683" gnormvalue="1.0"/>
-            
+
           </models>
 
-          or 
+          or
 
           <?xml version="1.0" encoding="US-ASCII" standalone="yes"?>
-          
+
           <models vstr="1.3" type="economic">
-          
+
             <model alpha="15.065400" beta="0.100000" gnormvalue="4.113200" ccode="AF"/>
-            
+
           </models>
-        
+
         :param xmlfile:
           XML file containing model parameters (see above).
         :returns:
           EmpiricalLoss instance.
         """
         root = minidom.parse(xmlfile)
-        rootmodels = root.getElementsByTagName('models')[0]
-        models = rootmodels.getElementsByTagName('model')
-        losstype = rootmodels.getAttribute('type')
+        rootmodels = root.getElementsByTagName("models")[0]
+        models = rootmodels.getElementsByTagName("model")
+        losstype = rootmodels.getAttribute("type")
         model_list = []
         for model in models:
-            key = model.getAttribute('ccode')
-            theta = float(model.getAttribute('theta'))
-            beta = float(model.getAttribute('beta'))
-            l2g = float(model.getAttribute('gnormvalue'))
-            if model.hasAttribute('alpha'):
-                alpha = float(model.getAttribute('alpha'))
+            key = model.getAttribute("ccode")
+            theta = float(model.getAttribute("theta"))
+            beta = float(model.getAttribute("beta"))
+            l2g = float(model.getAttribute("gnormvalue"))
+            if model.hasAttribute("alpha"):
+                alpha = float(model.getAttribute("alpha"))
             else:
                 alpha = 1.0  # what is the appropriate default value for this?
             model_list.append(LognormalModel(key, theta, beta, l2g, alpha=alpha))
@@ -386,13 +395,13 @@ class EmpiricalLoss(object):
         model = self.getModel(ccode)
         yy = model.getLossRates(mmirange)
         return yy
-    
+
     def getLosses(self, exposure_dict):
         """Given an input dictionary of ccode (usually ISO numeric), calculate losses per country and total losses.
 
         :param exposure_dict:
           Dictionary containing country code keys, and 10 element arrays representing population
-          exposures to shaking from MMI values 1-10.  If loss type is economic, then this 
+          exposures to shaking from MMI values 1-10.  If loss type is economic, then this
           input represents exposure *x* per capita GDP *x* alpha (a correction factor).
         :returns:
           Dictionary containing country code keys and integer population estimations of loss.
@@ -401,9 +410,9 @@ class EmpiricalLoss(object):
         fatdict = {}
         for ccode, exparray in exposure_dict.items():
             # exposure array will now also have a row of Total Exposure to shaking.
-            if ccode.find('Total') > -1 or ccode.find('maximum') > -1: 
+            if ccode.find("Total") > -1 or ccode.find("maximum") > -1:
                 continue
-            if ccode == 'UK':  # unknown
+            if ccode == "UK":  # unknown
                 continue
             mmirange = np.arange(5, 10)
             model = self.getModel(ccode)
@@ -420,17 +429,17 @@ class EmpiricalLoss(object):
 
         # now go through the whole list, and get the total number of losses.
         total = sum(list(fatdict.values()))
-        if self._loss_type == 'fatality':
-            fatdict['TotalFatalities'] = total
+        if self._loss_type == "fatality":
+            fatdict["TotalFatalities"] = total
         else:
-            fatdict['TotalDollars'] = total
+            fatdict["TotalDollars"] = total
         return fatdict
 
     def getCombinedG(self, lossdict):
         """Get combined L2G statistic for all countries contributing to losses.
 
         :param lossdict:
-          Dictionary (as retued by getLosses() method, containing keys of ISO2 country codes, 
+          Dictionary (as retued by getLosses() method, containing keys of ISO2 country codes,
           and values of loss (fatalities or dollars) for that country.
         :returns:
           sqrt(sum(l2g^2)) for array of all l2g values from countries that had non-zero losses.
@@ -445,7 +454,7 @@ class EmpiricalLoss(object):
                     g.append(self.getModel(ccode).l2g)
             else:
                 g.append(self.getModel(ccode).l2g)
-            
+
         g = np.array(g)
         zetf = np.sqrt(np.sum(np.power(g, 2)))
         if zetf > 2.5:
@@ -456,12 +465,12 @@ class EmpiricalLoss(object):
         """Calculate probabilities over the standard PAGER loss ranges.
 
         :param lossdict:
-          Dictionary (as retued by getLosses() method, containing keys of ISO2 country codes, 
+          Dictionary (as retued by getLosses() method, containing keys of ISO2 country codes,
           and values of loss (fatalities or dollars) for that country.
         :param G:
           Combined G value (see getCombinedG() method).
         :returns:
-          Ordered Dictionary of probability of losses over ranges : 
+          Ordered Dictionary of probability of losses over ranges :
            - '0-1' (green alert)
            - '1-10' (yellow alert)
            - '10-100' (yellow alert)
@@ -470,28 +479,32 @@ class EmpiricalLoss(object):
            - '10000-100000' (red alert)
            - '100000-10000000' (red alert)
         """
-        ranges = OrderedDict([('0-1', 0.0),
-                              ('1-10', 0.0),
-                              ('10-100', 0.0),
-                              ('100-1000', 0.0),
-                              ('1000-10000', 0.0),
-                              ('10000-100000', 0.0),
-                              ('100000-10000000', 0.0)])
-        
-        if self._loss_type == 'economic':
-            expected = lossdict['TotalDollars']
+        ranges = OrderedDict(
+            [
+                ("0-1", 0.0),
+                ("1-10", 0.0),
+                ("10-100", 0.0),
+                ("100-1000", 0.0),
+                ("1000-10000", 0.0),
+                ("10000-100000", 0.0),
+                ("100000-10000000", 0.0),
+            ]
+        )
+
+        if self._loss_type == "economic":
+            expected = lossdict["TotalDollars"]
             expected = expected / 1e6  # turn USD into millions of USD
         else:
-            expected = lossdict['TotalFatalities']
+            expected = lossdict["TotalFatalities"]
         for rangekey, value in ranges.items():
-            rparts = rangekey.split('-')
+            rparts = rangekey.split("-")
             rmin = int(rparts[0])
             if len(rparts) == 1:
                 rmax = int(rparts[0])
             else:
                 rmax = int(rparts[1])
                 # the high end of the highest red range should be a very large number (ideally infinity).
-                # one trillion should do it. 
+                # one trillion should do it.
                 if rmax == 10000000:
                     rmax = 1e12
             prob = calcEmpiricalProbFromRange(G, expected, (rmin, rmax))
@@ -506,17 +519,17 @@ class EmpiricalLoss(object):
         :returns:
           String alert level, one of ('green','yellow','orange','red').
         """
-        levels = [(1, 'green'), (100, 'yellow'), (1000, 'orange'), (1e12, 'red')]
-        if 'TotalFatalities' in lossdict:
-            total = lossdict['TotalFatalities']
+        levels = [(1, "green"), (100, "yellow"), (1000, "orange"), (1e12, "red")]
+        if "TotalFatalities" in lossdict:
+            total = lossdict["TotalFatalities"]
         else:
-            total = lossdict['TotalDollars']/1e6
-        for i in range(0, len(levels)-1):
+            total = lossdict["TotalDollars"] / 1e6
+        for i in range(0, len(levels) - 1):
             lossmax, thislevel = levels[i]
             if total < lossmax:
                 return thislevel
-        return 'red'  # we should never get here, unless we have 1e18 USD in losses!
-    
+        return "red"  # we should never get here, unless we have 1e18 USD in losses!
+
     def overrideModel(self, ccode, rates):
         """Override the rates determined from theta,beta values with these hard-coded ones.
         Once set on the instance object, these will be the preferred rates.
@@ -546,8 +559,7 @@ class EmpiricalLoss(object):
             return None
 
     def clearOverrides(self):
-        """Clear out any models that have been set manually using overrideModel().
-        """
+        """Clear out any models that have been set manually using overrideModel()."""
         self._overrides.clear()
 
     def getLossGrid(self, mmidata, popdata, isodata):
@@ -566,14 +578,14 @@ class EmpiricalLoss(object):
         fatgrid = np.zeros_like(mmidata)
         # we treat MMI 10 as MMI 9 for modeling purposes...
         mmidata[mmidata > 9.5] = 9.0
-        
+
         for isocode in ucodes:
             countrydict = self._country.getCountry(int(isocode))
             if countrydict is None:
-                ccode = 'unknown'
+                ccode = "unknown"
             else:
-                ccode = countrydict['ISO2']
-            
+                ccode = countrydict["ISO2"]
+
             if ccode not in self._overrides:
                 rates = self.getLossRates(ccode, np.arange(5, 10))
             else:
@@ -582,17 +594,22 @@ class EmpiricalLoss(object):
             tcidx = np.where(isodata == isocode)
             cidx = np.ravel_multi_index(tcidx, isodata.shape)
             for i in range(0, len(rates)):
-                mmi = i+5
-                mmi_lower = mmi-0.5
-                mmi_upper = mmi+0.5
-                midx = np.ravel_multi_index(np.where((mmidata >= mmi_lower) & (mmidata < mmi_upper)), mmidata.shape)
+                mmi = i + 5
+                mmi_lower = mmi - 0.5
+                mmi_upper = mmi + 0.5
+                midx = np.ravel_multi_index(
+                    np.where((mmidata >= mmi_lower) & (mmidata < mmi_upper)),
+                    mmidata.shape,
+                )
                 idx = np.intersect1d(cidx, midx)
                 idx2d = np.unravel_index(idx, mmidata.shape)
-                fatgrid[idx2d] = popdata[idx2d]*rates[i]
+                fatgrid[idx2d] = popdata[idx2d] * rates[i]
 
         return fatgrid
 
-    def getLossByShapes(self, mmidata, popdata, isodata, shapes, geodict, eventyear=None, gdpobj=None):
+    def getLossByShapes(
+        self, mmidata, popdata, isodata, shapes, geodict, eventyear=None, gdpobj=None
+    ):
         """Divide the losses calculated per grid cell into polygons that intersect with the grid.
 
         :param mmidata:
@@ -606,7 +623,7 @@ class EmpiricalLoss(object):
         :param eventyear:
           4 digit event year, must be not None if loss type is economic.
         :param gdpobj:
-          GDP object, containing per capita GDP data from all countries.  
+          GDP object, containing per capita GDP data from all countries.
           Must not be None if calculating economic losses.
         :returns:
           Tuple of:
@@ -616,24 +633,27 @@ class EmpiricalLoss(object):
         lossgrid = self.getLossGrid(mmidata, popdata, isodata)
         polyshapes = []
         totloss = 0
-        if self._loss_type == 'fatality':
-            fieldname = 'fatalities'
+        if self._loss_type == "fatality":
+            fieldname = "fatalities"
         else:
-            fieldname = 'dollars_lost'
+            fieldname = "dollars_lost"
         for polyrec in shapes:
-            polygon = shapely.geometry.shape(polyrec['geometry'])
+            polygon = shapely.geometry.shape(polyrec["geometry"])
             # overlay the polygon on top of a grid, turn polygon pixels to 1, non-polygon pixels to 0.
-            tgrid = Grid2D.rasterizeFromGeometry([polygon], geodict, fillValue=0, burnValue=1.0, attribute='value', mustContainCenter=True)
+            tgrid = Grid2D.rasterizeFromGeometry(
+                [polygon],
+                geodict,
+                fillValue=0,
+                burnValue=1.0,
+                attribute="value",
+                mustContainCenter=True,
+            )
             # get the indices of the polygon cells
             shapeidx = tgrid.getData() == 1.0
             # get the sum of those cells in the loss grid
             losses = np.nansum(lossgrid[shapeidx])
-            polyrec['properties'][fieldname] = int(losses)
+            polyrec["properties"][fieldname] = int(losses)
             polyshapes.append(polyrec)
             totloss += int(losses)
 
         return (polyshapes, totloss)
-
-    
-            
-            

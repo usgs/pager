@@ -6,6 +6,7 @@ import os.path
 # third party imports
 import pandas as pd
 
+
 class PagerRegions(object):
     def __init__(self):
         """Class which contains groupings of country codes into PAGER vulnerability regions 1-6,
@@ -15,7 +16,9 @@ class PagerRegions(object):
         The data for this class lives in the PAGER code repository.
         """
         homedir = os.path.dirname(os.path.abspath(__file__))  # where is this script?
-        excelfile = os.path.abspath(os.path.join(homedir, '..', 'data', 'pager_regions.xlsx'))
+        excelfile = os.path.abspath(
+            os.path.join(homedir, "..", "data", "pager_regions.xlsx")
+        )
         self._loadFromExcel(excelfile)
 
     def _loadFromExcel(self, excelfile):
@@ -29,21 +32,21 @@ class PagerRegions(object):
           The 'comment' column should have a string in the first row under the header containing a description
           of building vulnerability in that region.
         """
-        self._region1 = pd.read_excel(excelfile, sheet_name='Region1')['codes'].tolist()
-        self._region2 = pd.read_excel(excelfile, sheet_name='Region2')['codes'].tolist()
-        self._region3 = pd.read_excel(excelfile, sheet_name='Region3')['codes'].tolist()
-        self._region4 = pd.read_excel(excelfile, sheet_name='Region4')['codes'].tolist()
-        self._region5 = pd.read_excel(excelfile, sheet_name='Region5')['codes'].tolist()
-        self._region6 = pd.read_excel(excelfile, sheet_name='Region6')['codes'].tolist()
-        self._comments = {1: str(pd.read_excel(excelfile, sheet_name='Region1')['comment'][0]),
-                          2: str(pd.read_excel(excelfile, sheet_name='Region2')['comment'][0]),
-                          3: str(pd.read_excel(excelfile, sheet_name='Region3')['comment'][0]),
-                          4: str(pd.read_excel(excelfile, sheet_name='Region4')['comment'][0]),
-                          5: str(pd.read_excel(excelfile, sheet_name='Region5')['comment'][0]),
-                          6: str(pd.read_excel(excelfile, sheet_name='Region6')['comment'][0]),
-                          }
-        
-                         
+        self._region1 = pd.read_excel(excelfile, sheet_name="Region1")["codes"].tolist()
+        self._region2 = pd.read_excel(excelfile, sheet_name="Region2")["codes"].tolist()
+        self._region3 = pd.read_excel(excelfile, sheet_name="Region3")["codes"].tolist()
+        self._region4 = pd.read_excel(excelfile, sheet_name="Region4")["codes"].tolist()
+        self._region5 = pd.read_excel(excelfile, sheet_name="Region5")["codes"].tolist()
+        self._region6 = pd.read_excel(excelfile, sheet_name="Region6")["codes"].tolist()
+        self._comments = {
+            1: str(pd.read_excel(excelfile, sheet_name="Region1")["comment"][0]),
+            2: str(pd.read_excel(excelfile, sheet_name="Region2")["comment"][0]),
+            3: str(pd.read_excel(excelfile, sheet_name="Region3")["comment"][0]),
+            4: str(pd.read_excel(excelfile, sheet_name="Region4")["comment"][0]),
+            5: str(pd.read_excel(excelfile, sheet_name="Region5")["comment"][0]),
+            6: str(pd.read_excel(excelfile, sheet_name="Region6")["comment"][0]),
+        }
+
     def getRegion(self, ccode):
         """Get the PAGER region (1-6) corresponding to input country code.
 
@@ -76,4 +79,4 @@ class PagerRegions(object):
         """
         if region in self._comments:
             return self._comments[region]
-        return ''
+        return ""
