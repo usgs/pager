@@ -300,35 +300,35 @@ callpager itself.
     )
     argparser.add_argument("--action", help="Product action", metavar="ACTION")
     argparser.add_argument(
-        "--preferred-latitude",
+        "--property-latitude",
         type=float,
         help="Event latitude",
         metavar="LAT",
         dest="lat",
     )
     argparser.add_argument(
-        "--preferred-longitude",
+        "--property-longitude",
         type=float,
         help="Event longitude",
         metavar="LON",
         dest="lon",
     )
     argparser.add_argument(
-        "--preferred-depth",
+        "--property-depth",
         type=float,
         help="Event depth",
         metavar="DEPTH",
         dest="depth",
     )
     argparser.add_argument(
-        "--preferred-magnitude",
+        "--property-magnitude",
         type=float,
         help="Event magnitude",
         metavar="MAG",
         dest="magnitude",
     )
     argparser.add_argument(
-        "--preferred-eventtime", help="Event time", metavar="TIME", dest="time"
+        "--property-eventtime", help="Event time", metavar="TIME", dest="time"
     )
     argparser.add_argument(
         "--property-shakemap-code-version", metavar="CODE_VERSION", default="3.5"
