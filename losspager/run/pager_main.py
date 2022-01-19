@@ -362,6 +362,10 @@ def main(pargs, config):
             authsource = network
             allids = []
 
+        # location field can be empty (None), which breaks a bunch of things
+        if location is None:
+            location = ""
+
         # Check to see if user wanted to override default tsunami criteria
         if pargs.tsunami != "auto":
             if pargs.tsunami == "on":
