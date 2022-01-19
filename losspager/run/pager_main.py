@@ -363,6 +363,10 @@ def main(pargs, config):
             tsunami = shake_tuple[1]["magnitude"] >= TSUNAMI_MAG_THRESH
             authid = eid
 
+        # location field can be empty (None), which breaks a bunch of things
+        if location is None:
+            location = ""
+
         logger.info(f"Got authoritative ID {authid}.")
 
         # Check to see if user wanted to override default tsunami criteria
