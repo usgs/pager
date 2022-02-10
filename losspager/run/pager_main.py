@@ -304,7 +304,7 @@ def main(pargs, config):
         # we presume that pargs.gridfile in this context is an event ID.
         msg = _cancel(pargs.gridfile, config)
         print(msg)
-        return True
+        return (True, msg)
 
     # what kind of thing is gridfile?
     is_file = os.path.isfile(pargs.gridfile)
@@ -317,8 +317,8 @@ def main(pargs, config):
     elif is_pdl:
         gridfile = pdl_gridfile
     else:
-        print(f"ShakeMap Grid file {pargs.gridfile} does not exist.")
-        return False
+        msg = f"ShakeMap Grid file {pargs.gridfile} does not exist."
+        return (False, msg)
 
     pager_folder = os.path.join(homedir, config["output_folder"])
     pager_archive = os.path.join(homedir, config["archive_folder"])
@@ -622,7 +622,7 @@ def main(pargs, config):
         logger.info(f"Created onePAGER pdf {onepager_pdf}")
 
         logger.info("Done.")
-        return True
+        return (True, "Success!")
     except Exception as e:
         f = io.StringIO()
         traceback.print_exc(file=f)

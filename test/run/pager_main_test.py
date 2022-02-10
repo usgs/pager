@@ -17,6 +17,7 @@ class Args:
     cancel: False
     tsunami: False
     elapsed: 0
+    logfile: None
 
 
 def test_pager_main():
@@ -38,9 +39,12 @@ def test_pager_main():
         cancel=False,
         tsunami=False,
         elapsed=False,
+        logfile=None,
     )
     config = read_config()
-    main(args, config)
+    result, msg = main(args, config)
+    assert result
+    assert msg == "Success!"
 
 
 if __name__ == "__main__":
