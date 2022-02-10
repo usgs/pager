@@ -291,15 +291,20 @@ def _cancel(eventid, config):
 
 
 def main(pargs, config):
+    # logfile = os.path.join(pager_folder, "pager.log")
+    # plog = PagerLogger(logfile, [], "", "", debug=pargs.debug)
+    # logger = plog.getLogger()
     # get the users home directory
     homedir = os.path.expanduser("~")
+    # logger.info(f"Got home dir {homedir}.")
 
     # handle cancel messages
+    # logger.info(f"cancel is {pargs.cancel}.")
     if pargs.cancel:
         # we presume that pargs.gridfile in this context is an event ID.
         msg = _cancel(pargs.gridfile, config)
         print(msg)
-        return True
+        return (True, msg)
 
     # what kind of thing is gridfile?
     is_file = os.path.isfile(pargs.gridfile)
@@ -312,8 +317,8 @@ def main(pargs, config):
     elif is_pdl:
         gridfile = pdl_gridfile
     else:
-        print(f"ShakeMap Grid file {pargs.gridfile} does not exist.")
-        return False
+        msg = f"ShakeMap Grid file {pargs.gridfile} does not exist."
+        return (False, msg)
 
     pager_folder = os.path.join(homedir, config["output_folder"])
     pager_archive = os.path.join(homedir, config["archive_folder"])
@@ -345,7 +350,7 @@ def main(pargs, config):
             network = "us"
         if not eid.startswith(network):
             eid = network + eid
-        plog.info(f"Got event ID {eid}.")
+        logger.info(f"Got event ID {eid}.")
 
         # Create a ComcatInfo object to hopefully tell us a number of things about this event
         try:
@@ -358,7 +363,11 @@ def main(pargs, config):
             tsunami = shake_tuple[1]["magnitude"] >= TSUNAMI_MAG_THRESH
             authid = eid
 
-        plog.info(f"Got authoritative ID {authid}.")
+        # location field can be empty (None), which breaks a bunch of things
+        if location is None:
+            location = ""
+
+        logger.info(f"Got authoritative ID {authid}.")
 
         # Check to see if user wanted to override default tsunami criteria
         if pargs.tsunami != "auto":
@@ -372,7 +381,7 @@ def main(pargs, config):
         shakemap_type = shake_tuple[0]["shakemap_event_type"]
         if shakemap_type == "SCENARIO":
             is_scenario = True
-        plog.info(f"Scenario: {is_scenario}.")
+        logger.info(f"Scenario: {is_scenario}.")
 
         # if event is NOT a scenario and event time is in the future,
         # flag the event as a scenario and yell about it.
@@ -389,7 +398,7 @@ def main(pargs, config):
         # create the event directory (if it does not exist), and start logging there
         logger.info("Creating event directory")
         event_folder = admin.createEventFolder(authid, etime)
-        plog.info(f"Created event folder {event_folder}.")
+        logger.info(f"Created event folder {event_folder}.")
 
         # Stop processing if there is a "stop" file in the event folder
         stopfile = os.path.join(event_folder, "stop")
@@ -402,7 +411,7 @@ def main(pargs, config):
         version_folder = os.path.join(event_folder, "version.%03d" % pager_version)
         os.makedirs(version_folder)
         event_logfile = os.path.join(version_folder, "event.log")
-        plog.info(f"Switching log to event log {event_logfile}.")
+        logger.info(f"Switching log to event log {event_logfile}.")
 
         # this will turn off the global rotating log file
         # and switch to the one in the version folder.
@@ -613,7 +622,7 @@ def main(pargs, config):
         logger.info(f"Created onePAGER pdf {onepager_pdf}")
 
         logger.info("Done.")
-        return True
+        return (True, "Success!")
     except Exception as e:
         f = io.StringIO()
         traceback.print_exc(file=f)

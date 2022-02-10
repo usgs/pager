@@ -95,7 +95,8 @@ if __name__ == "__main__":
         sys.stderr.write(errmsg)
         sys.exit(1)
 
-    result = main(args, config)
+    result, msg = main(args, config)
+    print(msg)
     if result:
         sys.exit(0)
     sys.exit(1)
