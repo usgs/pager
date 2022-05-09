@@ -2,18 +2,19 @@
 
 # stdlib imports
 import argparse
+import io
 import os.path
 import sys
-import io
+
+from impactutils.comcat.query import GeoServe
 
 # third party imports
 from impactutils.io.cmd import get_command_output
-from impactutils.comcat.query import GeoServe
-from mapio.shake import getHeaderData
+from losspager.utils.admin import PagerAdmin
 
 # local imports
 from losspager.utils.config import read_config
-from losspager.utils.admin import PagerAdmin
+from mapio.shake import getHeaderData
 
 WHITELIST = ["us"]
 NO_SHAKEMAPS = [
@@ -300,35 +301,35 @@ callpager itself.
     )
     argparser.add_argument("--action", help="Product action", metavar="ACTION")
     argparser.add_argument(
-        "--property-latitude",
+        "--preferred-latitude",
         type=float,
         help="Event latitude",
         metavar="LAT",
         dest="lat",
     )
     argparser.add_argument(
-        "--property-longitude",
+        "--preferred-longitude",
         type=float,
         help="Event longitude",
         metavar="LON",
         dest="lon",
     )
     argparser.add_argument(
-        "--property-depth",
+        "--preferred-depth",
         type=float,
         help="Event depth",
         metavar="DEPTH",
         dest="depth",
     )
     argparser.add_argument(
-        "--property-magnitude",
+        "--preferred-magnitude",
         type=float,
         help="Event magnitude",
         metavar="MAG",
         dest="magnitude",
     )
     argparser.add_argument(
-        "--property-eventtime", help="Event time", metavar="TIME", dest="time"
+        "--preferred-eventtime", help="Event time", metavar="TIME", dest="time"
     )
     argparser.add_argument(
         "--property-shakemap-code-version", metavar="CODE_VERSION", default="3.5"
