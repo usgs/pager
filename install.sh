@@ -24,17 +24,6 @@ source $prof
 
 VENV=pager
 
-# Is the reset flag set?
-reset=0
-while getopts r FLAG; do
-  case $FLAG in
-    r)
-        reset=1
-        
-      ;;
-  esac
-done
-
 
 # create a matplotlibrc file with the non-interactive backend "Agg" in it.
 if [ ! -d "$matplotlibdir" ]; then
@@ -113,72 +102,57 @@ conda remove -y --name $VENV --all
 
 # define the list of packages
 package_list='
-  beautifulsoup4
-  cartopy=0.17
-  cython
-  decorator
-  descartes
-  docutils
-  fiona
+  cartopy=0.20.2
+  fiona>=1.8.13
   flake8
-  gdal
-  h5py
-  hypothesis
+  gdal=3.4.2
+  h5py>=2.10.0
   impactutils
   jupyter
-  lxml
+  lxml>=3.5
   mapio
-  matplotlib<2.3
+  matplotlib>=3.5
   mock
-  nose
-  openpyxl
-  pandas
-  paramiko
+  numpy=1.21
+  openpyxl>=3.0
+  openssl=1.1.1
+  pandas>=1.4.2
+  paramiko>=2.8.1
   pip
-  psutil
+  psutil>=5.8.0
   pycrypto
-  pyproj
+  pyproj>=3.3.0
   pytables
   pytest
   pytest-cov
-  pytest-mpl
   pyyaml
   rasterio
   rtree
-  scipy
-  shapely
+  scipy>=1.8.1
+  shapely>=1.8.0
   sqlalchemy
   sqlalchemy-utils
-  xlrd
+  xlrd>=2.0.1
   xlwt'
 
 # it seems now that some of the geospatial packages are more stable
 # in the defaults channel, so let's set that as our preferred channel.
 conda config --add channels 'conda-forge'
 conda config --add channels 'defaults'
-conda config --set channel_priority strict
+conda config --set channel_priority flexible
 
-# If the user has specified the -r (reset) flag, then create an
-# environment based on only the named dependencies, without
-# any versions of packages specified.
-if [ $reset != 1 ]; then
-    echo "Installing PAGER from ${env_file}..."
-    conda env create -f $env_file
-else
-    echo "Ignoring platform, letting conda sort out dependencies..."
-    # Create a conda virtual environment
-    echo "Creating the $VENV virtual environment:"
-    conda create -n $VENV python=3.7 -y
+echo "Creating conda virtual environment..."
+# Create a conda virtual environment
+echo "Creating the $VENV virtual environment:"
+conda create -n $VENV python=3.8 -y
 
-    # activate the new environment so mamba knows where to install packages
-    echo "Activating ${VENV} environment..."
-    conda activate $VENV
+# activate the new environment so mamba knows where to install packages
+echo "Activating ${VENV} environment..."
+conda activate $VENV
 
-    # Use mamba to install packages
-    echo "Using mamba to solve dependencies and install packages..."
-    mamba install -y $package_list
-fi
-
+# Use mamba to install packages
+echo "Using mamba to solve dependencies and install packages..."
+mamba install -y $package_list
 
 
 # Bail out at this point if the conda create command fails.
@@ -187,7 +161,6 @@ if [ $? != 0 ]; then
     echo "Failed to create conda environment.  Resolve any conflicts, then try again."
     exit
 fi
-
 
 # Activate the new environment
 echo "Activating the $VENV virtual environment"
