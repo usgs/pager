@@ -7,6 +7,7 @@ import logging
 import os.path
 import re
 import shutil
+import sys
 import zipfile
 from distutils.spawn import find_executable
 
@@ -146,7 +147,7 @@ def transfer(
                         )
                     params["code"] = authid
                     params["eventsource"] = authsource
-                    params["eventsourcecode"] = authid.replace(authsource, "")
+                    params["eventsourcecode"] = authid[len(authsource) :]
                     params["magnitude"] = pagerdata.magnitude
                     params["latitude"] = pagerdata.latitude
                     params["longitude"] = pagerdata.longitude
