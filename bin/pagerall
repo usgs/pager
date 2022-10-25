@@ -1,0 +1,206 @@
+#!/usr/bin/env python
+
+# stdlib imports
+import argparse
+import locale
+import pathlib
+import sys
+
+# third party imports
+import numpy as np
+import pandas as pd
+from impactutils.time.timeutils import LocalTime
+
+# local imports
+from losspager.models.econexposure import EconExposure
+from losspager.models.emploss import EmpiricalLoss
+from losspager.models.exposure import Exposure
+from losspager.models.semimodel import SemiEmpiricalFatality
+from losspager.utils.config import read_config
+from losspager.utils.country import Country
+from mapio.shake import getHeaderData
+
+
+def get_pop_year(config, event_year):
+    # find the population data collected most closely to the event_year
+    pop_year = None
+    tmin = 10000000
+    popfile = None
+    for popdict in config["model_data"]["population_data"]:
+        popyear = popdict["population_year"]
+        popgrid = pathlib.Path(popdict["population_grid"])
+        if not popgrid.is_file():
+            print("Population grid file %s does not exist." % popgrid)
+            sys.exit(1)
+        if abs(popyear - event_year) < tmin:
+            tmin = abs(popyear - event_year)
+            pop_year = popyear
+            popfile = popgrid
+
+    return (pop_year, popfile)
+
+
+def get_exposure(master_row, isofile, popfile, pop_year, gridfile):
+    # Get exposure results
+
+    expomodel = Exposure(popfile, pop_year, isofile)
+    exposure = expomodel.calcExposure(gridfile)
+    exp_rows = []
+    for key, value in exposure.items():
+        if key != "TotalExposure" and len(key) != 2:
+            continue
+        row = {}
+        ccode = key
+        if key == "TotalExposure":
+            ccode = "Total"
+        row["CountryCode"] = ccode
+        headers = [f"MMI{i:02d}" for i in range(1, 11)]
+        mmi_dict = dict(zip(headers, value))
+        row.update(mmi_dict)
+        exp_rows.append(row)
+
+    expframe = pd.DataFrame(data=exp_rows)
+    for key, value in master_row.items():
+        expframe[key] = value
+    allcols = expframe.columns
+    remainder = set(allcols) - set(master_row.keys())
+    newcols = list(master_row.keys()) + sorted(list(remainder))
+    expframe = expframe[newcols]
+    return (expframe, exposure)
+
+
+def get_fatalities(expframe, exposure):
+    fatmodel = EmpiricalLoss.fromDefaultFatality()
+    fatdict = fatmodel.getLosses(exposure)
+    fatdict["Total"] = fatdict.pop("TotalFatalities")
+    fatframe = expframe.copy()
+    fatframe["Fatalities"] = 0
+    for key, value in fatdict.items():
+        fatframe.loc[fatframe["CountryCode"] == key, "Fatalities"] = value
+    return fatframe
+
+
+def get_econ_losses(fatframe, popfile, popyear, isofile, gridfile):
+    econexpmodel = EconExposure(popfile, popyear, isofile)
+    ecomodel = EmpiricalLoss.fromDefaultEconomic()
+    econexposure = econexpmodel.calcExposure(gridfile)
+    rows = []
+    for key, value in econexposure.items():
+        if key != "TotalEconomicExposure" and len(key) != 2:
+            continue
+        row = {}
+        ccode = key
+        if key == "TotalEconomicExposure":
+            ccode = "Total"
+        row["CountryCode"] = ccode
+        headers = [f"EconMMI{i:02d}" for i in range(1, 11)]
+        mmi_dict = dict(zip(headers, value))
+        row.update(mmi_dict)
+        rows.append(row)
+    econframe = pd.DataFrame(data=rows)
+    econframe = pd.merge(fatframe, econframe, on="CountryCode")
+    ecodict = ecomodel.getLosses(econexposure)
+    ecodict["Total"] = ecodict.pop("TotalDollars")
+    econframe["Dollars"] = 0
+    for key, value in ecodict.items():
+        econframe.loc[econframe["CountryCode"] == key, "Dollars"] = value
+    return econframe
+
+
+def get_local_time(etime, timezone_file, lat, lon):
+    ltime = LocalTime(timezone_file, etime, lat, lon)
+    localtime = ltime.getLocalTime()
+    return localtime
+
+
+def main(args):
+    if args.outfile and args.csv:
+        print("You must choose either -c or -o option, not both.")
+        sys.exit(1)
+    if args.outfile is None and args.csv is None:
+        print("You must choose one of -c or -o options.")
+        sys.exit(1)
+    gridfile = pathlib.Path(args.gridfile)
+    # read config file
+    config = read_config()
+    # Make sure grid.xml file exists
+    if not gridfile.is_file():
+        print(f"ShakeMap Grid file {gridfile} does not exist.")
+        sys.exit(1)
+
+    # get all the basic event information and print it, if requested
+    shake_tuple = getHeaderData(gridfile)
+    local_time = get_local_time(
+        shake_tuple[1]["event_timestamp"],
+        config["model_data"]["timezones_file"],
+        shake_tuple[1]["lat"],
+        shake_tuple[1]["lon"],
+    )
+    master_row = {}
+    master_row["EventID"] = shake_tuple[1]["event_id"]
+    master_row["Time"] = shake_tuple[1]["event_timestamp"]
+    master_row["LocalTime"] = local_time
+    master_row["Latitude"] = shake_tuple[1]["lat"]
+    master_row["Longitude"] = shake_tuple[1]["lon"]
+    master_row["Depth"] = shake_tuple[1]["depth"]
+    master_row["Magnitude"] = shake_tuple[1]["magnitude"]
+    master_row["Location"] = shake_tuple[1]["event_description"]
+    event_year = shake_tuple[1]["event_timestamp"].year
+    isofile = config["model_data"]["country_grid"]
+    pop_year, popfile = get_pop_year(config, event_year)
+    expframe, exposure = get_exposure(master_row, isofile, popfile, pop_year, gridfile)
+    fatframe = get_fatalities(expframe, exposure)
+    ecoframe = get_econ_losses(fatframe, popfile, pop_year, isofile, gridfile)
+
+    if args.outfile:
+        if args.outfile.endswith(".xlsx"):
+            ecoframe.to_excel(args.outfile, index=False)
+        else:
+            ecoframe.to_csv(args.outfile, index=False)
+        sys.exit(0)
+    if args.csv:
+        print(ecoframe.to_csv(header=False, index=False))
+
+
+if __name__ == "__main__":
+    helpstr = (
+        "Render complete empirical PAGER results.\n\n"
+        "Default behavior renders PAGER results for a given earthquake\n"
+        "as a formatted DataFrame with multiple rows of exposure and loss,\n"
+        "one row per country, plus a final row with totals. Output columns (in order):\n"
+        "EventID: ComCat event ID\n"
+        "Time: Event Time (y-m-d h:m:s)\n"
+        "Latitude: Event hypocentral latitude\n"
+        "Longitude: Event hypocentral longitude\n"
+        "Depth: Event hypocentral depth\n"
+        "Magnitude: Event magnitude\n"
+        "Location: Event location description\n"
+        "CountryCode: Country code where exposures/losses occur (or Total)\n"
+        "MMI01: Population exposure to shaking at MMI level 1\n"
+        "...\n"
+        "MMI10: Population exposure to shaking at MMI level 10\n"
+        "Fatalities: Fatalities due to shaking\n"
+        "EconMMI01: Economic exposure to shaking at MMI level 1\n"
+        "...\n"
+        "EconMMI10: Economic exposure to shaking at MMI level 10\n"
+        "Dollars: Economic losses (USD) due to shaking\n"
+    )
+    parser = argparse.ArgumentParser(
+        description=helpstr,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument("gridfile", help="A valid ShakeMap grid.xml file.")
+
+    parser.add_argument(
+        "-o", "--outfile", help="Specify output file (.xlsx for Excel, .csv for CSV)"
+    )
+    parser.add_argument(
+        "-c",
+        "--csv",
+        action="store_true",
+        default=False,
+        help="Print CSV without headers to screen",
+    )
+
+    args = parser.parse_args()
+    main(args)
