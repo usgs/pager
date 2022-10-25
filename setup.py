@@ -1,5 +1,5 @@
-from distutils.core import setup
 import os.path
+from distutils.core import setup
 
 setup(
     name="losspager",
@@ -37,5 +37,7 @@ setup(
         "bin/mailadmin",
         "bin/sync_users",
         "bin/twopager",
+        "bin/pagerall",
+        "bin/batchpager",
     ],
 )
