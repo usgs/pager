@@ -109,12 +109,42 @@ def main(args):
 
     # concatenate all of the output files into one file, ordered by the
     # child ids that we created.
-    output = (
-        "EventID,Time,LocalTime,Latitude,Longitude,Depth,Magnitude,Location,"
-        "CountryCode,MMI01,MMI02,MMI03,MMI04,MMI05,MMI06,MMI07,MMI08,MMI09,MMI10,"
-        "Fatalities,EconMMI01,EconMMI02,EconMMI03,EconMMI04,EconMMI05,EconMMI06,"
-        "EconMMI07,EconMMI08,EconMMI09,EconMMI10,Dollars\n"
-    )
+    header_cols = [
+        "EventID",
+        "Time",
+        "LocalTime",
+        "Latitude",
+        "Longitude",
+        "Depth",
+        "Magnitude",
+        "Location",
+        "EpicentralCountryCode",
+        "CountryCode",
+        "MMI01",
+        "MMI02",
+        "MMI03",
+        "MMI04",
+        "MMI05",
+        "MMI06",
+        "MMI07",
+        "MMI08",
+        "MMI09",
+        "MMI10",
+        "MaxMMI1000",
+        "Fatalities",
+        "EconMMI01",
+        "EconMMI02",
+        "EconMMI03",
+        "EconMMI04",
+        "EconMMI05",
+        "EconMMI06",
+        "EconMMI07",
+        "EconMMI08",
+        "EconMMI09",
+        "EconMMI10",
+        "Dollars",
+    ]
+    output = ",".join(header_cols) + "\n"
     for childid in child_ids:
         idfile = os.path.join(homedir, outfmt % childid)
         data = open(idfile, "rt").read()

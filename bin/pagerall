@@ -9,6 +9,7 @@ import sys
 # third party imports
 import numpy as np
 import pandas as pd
+import rasterio
 from impactutils.time.timeutils import LocalTime
 
 # local imports
@@ -19,6 +20,7 @@ from losspager.models.semimodel import SemiEmpiricalFatality
 from losspager.utils.config import read_config
 from losspager.utils.country import Country
 from mapio.shake import getHeaderData
+from rasterio.sample import sample_gen
 
 
 def get_pop_year(config, event_year):
@@ -66,6 +68,15 @@ def get_exposure(master_row, isofile, popfile, pop_year, gridfile):
     remainder = set(allcols) - set(master_row.keys())
     newcols = list(master_row.keys()) + sorted(list(remainder))
     expframe = expframe[newcols]
+    maxmmi_array = []
+    for _, row in expframe.iterrows():
+        mmi_idx = row[headers] > 1000
+        if not len(mmi_idx[mmi_idx].index):
+            maxmmi_array.append(0)
+            continue
+        maxmmi_col = mmi_idx[mmi_idx].index[-1]
+        maxmmi_array.append(headers.index(maxmmi_col) + 1)
+    expframe["MaxMMI1000"] = maxmmi_array
     return (expframe, exposure)
 
 
@@ -147,6 +158,12 @@ def main(args):
     master_row["Location"] = shake_tuple[1]["event_description"]
     event_year = shake_tuple[1]["event_timestamp"].year
     isofile = config["model_data"]["country_grid"]
+    country = Country()
+    with rasterio.open(isofile, "r") as dataset:
+        xy = [(shake_tuple[1]["lon"], shake_tuple[1]["lat"])]
+        isocode = list(sample_gen(dataset, xy))[0][0]
+        ccode = country.getCountry(isocode)["ISO2"]
+    master_row["EpicentralCountryCode"] = ccode
     pop_year, popfile = get_pop_year(config, event_year)
     expframe, exposure = get_exposure(master_row, isofile, popfile, pop_year, gridfile)
     fatframe = get_fatalities(expframe, exposure)
