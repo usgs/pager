@@ -1,34 +1,35 @@
 # stdlib imports
-from collections import OrderedDict
-import os.path
-import time
-from urllib.request import urlopen
-from urllib.parse import urljoin
-import shutil
 import logging
+import os.path
 import re
+import shutil
+import time
+from collections import OrderedDict
+from urllib.parse import urljoin
+from urllib.request import urlopen
+
+import cartopy.crs as ccrs
 
 # third party imports
 import fiona
-import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
-from shapely.geometry import shape as sShape
-from shapely.geometry import Polygon as sPolygon
-from shapely.geometry import GeometryCollection
-from cartopy.io.shapereader import Reader
-from cartopy.feature import ShapelyFeature
-import cartopy.crs as ccrs
+import numpy as np
+import pandas as pd
 from bs4 import BeautifulSoup
+from cartopy.feature import ShapelyFeature
+from cartopy.io.shapereader import Reader
+from impactutils.colors.cpalette import ColorPalette
+from impactutils.mapping.city import Cities
 
 # NEIC imports
 from impactutils.mapping.mercatormap import MercatorMap
-from impactutils.colors.cpalette import ColorPalette
-from impactutils.mapping.city import Cities
-from impactutils.textformat.text import pop_round_short, commify, round_to_nearest
+from impactutils.textformat.text import commify, pop_round_short, round_to_nearest
 
 # local imports
-from losspager.vis.impactscale import GREEN, YELLOW, ORANGE, RED
+from losspager.vis.impactscale import GREEN, ORANGE, RED, YELLOW
+from shapely.geometry import GeometryCollection
+from shapely.geometry import Polygon as sPolygon
+from shapely.geometry import shape as sShape
 
 MAX_TABLE_ROWS = 7  # number of rows in loss tables
 TONS_PER_TRUCK = 25  # number of tons of debris per truckload
@@ -283,7 +284,6 @@ class HazusInfo(object):
 
         # Retrieve the epicenter - this will get used on the map (??)
         center_lat = shakegrid.getEventDict()["lat"]
-        center_lon = shakegrid.getEventDict()["lon"]
 
         # define the map
         # first cope with stupid 180 meridian
@@ -418,7 +418,11 @@ class HazusInfo(object):
 
         # load and clip ocean vectors to match map boundaries
         oceanfile = model_config["ocean_vectors"]
+        # with fiona.open(oceanfile, "r") as f:
+        #     oceanshapes = list(f.items(bbox=bbox))
+
         oceanshapes = _clip_bounds(bbox, oceanfile)
+        feature = ShapelyFeature(oceanshapes, crs=geoproj)
         ax.add_feature(
             ShapelyFeature(oceanshapes, crs=geoproj),
             facecolor=WATERCOLOR,
@@ -428,6 +432,8 @@ class HazusInfo(object):
         # draw states with black border - TODO: Look into
         states_file = model_config["states"]
         transparent = "#00000000"
+        # with fiona.open(states_file, "r") as f:
+        #     states = list(f.items(bbox=bbox))
         states = _clip_bounds(bbox, states_file)
         ax.add_feature(
             ShapelyFeature(states, crs=geoproj),
@@ -548,6 +554,5 @@ def _clip_bounds(bbox, filename):
         intshape = myshape.intersection(bboxpoly)
         newshapes.append(intshape)
         newshapes.append(myshape)
-    gc = GeometryCollection(newshapes)
     f.close()
-    return gc
+    return newshapes
